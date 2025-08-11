@@ -6,10 +6,6 @@ import * as vocabManager from './vocabManager.js';
 import * as stats from './statistics.js';
 import * as exam from './exam.js';
 import * as achievements from './achievements.js';
-import { saveUserData } from './data.js';
-
-// SỬA LỖI: Không định nghĩa DOMElements ở đây nữa để tránh lỗi timing.
-// Thay vào đó, mỗi hàm sẽ tự gọi document.getElementById khi cần.
 
 export function toggleControls() {
     const content = document.getElementById('collapsible-content');
@@ -23,10 +19,8 @@ export function toggleControls() {
 export function updateDarkModeButton() {
     const toggleBtn = document.getElementById('dark-mode-toggle');
     if (!toggleBtn) return;
-
     const isDarkMode = document.documentElement.classList.contains('dark');
     toggleBtn.title = isDarkMode ? "Chuyển sang chế độ Sáng" : "Chuyển sang chế độ Tối";
-    
     if (isDarkMode) {
         toggleBtn.innerHTML = `
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 14.95a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z" clip-rule="evenodd" /></svg>
@@ -41,15 +35,12 @@ export function updateDarkModeButton() {
 export function toggleDarkMode() {
     const isCurrentlyDark = document.documentElement.classList.contains('dark');
     const newDarkModeState = !isCurrentlyDark;
-
     localStorage.setItem('darkMode', newDarkModeState);
-
     if (newDarkModeState) {
         document.documentElement.classList.add('dark');
     } else {
         document.documentElement.classList.remove('dark');
     }
-    
     updateDarkModeButton();
 }
 
