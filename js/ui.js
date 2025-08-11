@@ -35,7 +35,7 @@ export function toggleControls() {
 }
 
 export function populateScreenHTML() {
-    // Chỉ tạo các nút chế độ học
+    // SỬA ĐỔI: Trả 3 nút về lại menu chính
     DOMElements.mainMenu.innerHTML = `
         <button onclick="showScreen('spelling-screen')" class="btn-glowing bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Đánh Vần</button>
         <button onclick="showScreen('reading-screen')" class="btn-glowing bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Flashcard</button>
@@ -45,6 +45,9 @@ export function populateScreenHTML() {
         <button onclick="showScreen('shuffle-screen')" class="btn-glowing bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Xem Toàn Bộ</button>
         <button onclick="showScreen('pronunciation-screen')" class="btn-glowing bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Luyện Phát Âm</button>
         <button onclick="showScreen('fill-blank-screen')" class="btn-glowing bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Điền Từ</button>
+        <button onclick="showScreen('stats-screen')" class="btn-glowing bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md">Thống kê</button>
+        <button onclick="showScreen('exam-screen')" class="btn-glowing bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md">Luyện thi</button>
+        <button onclick="showScreen('achievements-screen')" class="btn-glowing bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg shadow-md">Thành tựu</button>
     `;
 
     // Các màn hình cũ (giữ nguyên)
@@ -124,18 +127,17 @@ export function populateScreenHTML() {
 }
 
 export function showScreen(screenId) {
-    // Ẩn khối điều khiển khi chuyển sang màn hình khác
-    const content = document.getElementById('collapsible-content');
-    const arrow = document.getElementById('toggle-arrow');
-    if (screenId !== 'main-menu') {
-        content.classList.add('hidden');
-        arrow.classList.remove('rotate-180');
+    const isMainMenu = screenId === 'main-menu';
+    
+    // Ẩn/hiện khối điều khiển dựa trên việc có ở menu chính hay không
+    const controlsContainer = document.getElementById('toggle-controls-btn').parentElement;
+    if (controlsContainer) {
+        controlsContainer.style.display = isMainMenu ? 'block' : 'none';
     }
+
+    DOMElements.mainMenu.style.display = isMainMenu ? 'grid' : 'none';
+    DOMElements.appScreensContainer.classList.toggle('hidden', isMainMenu);
     
-    document.getElementById('collapsible-controls-container')?.classList.toggle('hidden', screenId !== 'main-menu');
-    DOMElements.mainMenu.style.display = screenId === 'main-menu' ? 'grid' : 'none';
-    
-    DOMElements.appScreensContainer.classList.toggle('hidden', screenId === 'main-menu');
     document.querySelectorAll('.app-screen').forEach(s => s.classList.add('hidden'));
     const targetScreen = document.getElementById(screenId);
     if(targetScreen) {
