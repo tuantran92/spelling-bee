@@ -6,12 +6,28 @@ import * as vocabManager from './vocabManager.js';
 import * as stats from './statistics.js';
 import * as exam from './exam.js';
 import * as achievements from './achievements.js';
-// SỬA LỖI: Xóa import saveUserData vì không còn dùng ở đây
-// import { saveUserData } from './data.js';
+import { saveUserData } from './data.js';
 
-export const DOMElements = {
-    // ... (giữ nguyên)
-};
+// SỬA LỖI: Chuyển DOMElements thành một hàm để đảm bảo các phần tử đã được tải
+const getDOMElements = () => ({
+    profileSelectionContainer: document.getElementById('profile-selection-container'),
+    profileListEl: document.getElementById('profile-list'),
+    profileFeedbackEl: document.getElementById('profile-feedback'),
+    loadingContainer: document.getElementById('loading-container'),
+    mainAppContainer: document.getElementById('main-app-container'),
+    mainMenu: document.getElementById('main-menu'),
+    dashboard: document.getElementById('dashboard'),
+    appScreensContainer: document.getElementById('app-screens'),
+    vocabSourceEl: document.getElementById('vocab-source'),
+    categoryFilterEl: document.getElementById('category-filter'),
+    streakDisplayEl: document.getElementById('streak-display'),
+    progressBarEl: document.getElementById('progress-bar'),
+    userIdDisplayEl: document.getElementById('user-id-display'),
+    deleteConfirmModal: document.getElementById('delete-confirm-modal'),
+    profileToDeleteNameEl: document.getElementById('profile-to-delete-name'),
+    confirmDeleteBtn: document.getElementById('confirm-delete-btn'),
+});
+
 
 export function toggleControls() {
     const content = document.getElementById('collapsible-content');
@@ -36,9 +52,6 @@ export function updateDarkModeButton() {
     }
 }
 
-/**
- * SỬA LỖI: Tương tác với localStorage để lưu trữ cài đặt Dark Mode.
- */
 export function toggleDarkMode() {
     const isCurrentlyDark = document.documentElement.classList.contains('dark');
     const newDarkModeState = !isCurrentlyDark;
@@ -54,9 +67,12 @@ export function toggleDarkMode() {
     updateDarkModeButton();
 }
 
-
-// ... (Tất cả các hàm còn lại trong file giữ nguyên không đổi)
 export function populateScreenHTML() {
+    const DOMElements = getDOMElements(); // Lấy các phần tử DOM một cách an toàn
+    if (!DOMElements.mainMenu) {
+        console.error("Main menu element not found!");
+        return;
+    }
     DOMElements.mainMenu.innerHTML = `
         <button onclick="showScreen('spelling-screen')" class="btn-glowing bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Đánh Vần</button>
         <button onclick="showScreen('reading-screen')" class="btn-glowing bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Flashcard</button>
@@ -153,8 +169,8 @@ export function showScreen(screenId) {
         controlsContainer.style.display = isMainMenu ? 'block' : 'none';
     }
 
-    DOMElements.mainMenu.style.display = isMainMenu ? 'grid' : 'none';
-    DOMElements.appScreensContainer.classList.toggle('hidden', isMainMenu);
+    getDOMElements().mainMenu.style.display = isMainMenu ? 'grid' : 'none';
+    getDOMElements().appScreensContainer.classList.toggle('hidden', isMainMenu);
     
     document.querySelectorAll('.app-screen').forEach(s => s.classList.add('hidden'));
     const targetScreen = document.getElementById(screenId);
@@ -182,6 +198,7 @@ export function updateDashboard() {
     updateStreakDisplay();
     populateCategoryFilter();
     updateProgressBar();
+    const DOMElements = getDOMElements();
     if (state.vocabList && state.vocabList.length > 0) {
         DOMElements.vocabSourceEl.textContent = `Bộ từ hiện tại: ${state.vocabList.length} từ`;
     } else {
@@ -193,10 +210,12 @@ export function updateDashboard() {
 }
 
 function updateStreakDisplay() {
+    const DOMElements = getDOMElements();
     DOMElements.streakDisplayEl.innerHTML = `🔥 ${state.appData.streak || 0}`;
 }
 
 function updateProgressBar() {
+    const DOMElements = getDOMElements();
     const totalWords = state.filteredVocabList.length;
     if (totalWords === 0) {
         DOMElements.progressBarEl.style.width = '0%';
@@ -210,6 +229,7 @@ function updateProgressBar() {
 }
 
 function populateCategoryFilter() {
+    const DOMElements = getDOMElements();
     const categories = [...new Set(state.vocabList.map(v => v.category || 'Chung'))];
     const currentCategory = DOMElements.categoryFilterEl.value;
     DOMElements.categoryFilterEl.innerHTML = '<option value="all">Tất cả chủ đề</option>';
@@ -224,6 +244,7 @@ function populateCategoryFilter() {
 }
 
 export function applyFilters() {
+    const DOMElements = getDOMElements();
     const selectedCategory = DOMElements.categoryFilterEl.value;
     const selectedDifficulty = document.getElementById('difficulty-filter').value;
 
