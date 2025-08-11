@@ -5,7 +5,8 @@
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from './firebase.js';
 import { setState } from './state.js';
-import { DOMElements, showScreen, applyFilters, populateScreenHTML, cancelVocabEdit, setupVoiceOptions, toggleControls, toggleDarkMode } from './ui.js';
+// SỬA LỖI: Xóa import DOMElements
+import { showScreen, applyFilters, populateScreenHTML, cancelVocabEdit, setupVoiceOptions, toggleControls, toggleDarkMode } from './ui.js';
 import * as profile from './profile.js';
 import * as data from './data.js';
 import * as game from './gameModes.js';
@@ -79,7 +80,10 @@ function addEventListeners() {
     safeAddEventListener('category-filter', 'change', applyFilters);
     safeAddEventListener('difficulty-filter', 'change', applyFilters);
     
-    safeAddOnClick('cancel-delete-btn', () => DOMElements.deleteConfirmModal.classList.add('hidden'));
+    safeAddOnClick('cancel-delete-btn', () => {
+        const modal = document.getElementById('delete-confirm-modal');
+        if (modal) modal.classList.add('hidden');
+    });
     safeAddOnClick('create-profile-btn', profile.createNewProfile);
     safeAddOnClick('switch-profile-btn', profile.switchProfile);
     safeAddOnClick('back-to-menu-btn', () => showScreen('main-menu'));
@@ -98,7 +102,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     signInAnonymously(auth).catch(error => {
         console.error("Lỗi đăng nhập ẩn danh:", error);
-        DOMElements.profileSelectionContainer.innerHTML = `<div class="text-red-500">Lỗi kết nối Firebase. Vui lòng kiểm tra cấu hình và bật đăng nhập ẩn danh trong Console.</div>`;
+        const container = document.getElementById('profile-selection-container');
+        if(container) container.innerHTML = `<div class="text-red-500">Lỗi kết nối Firebase. Vui lòng kiểm tra cấu hình và bật đăng nhập ẩn danh trong Console.</div>`;
     });
 
     onAuthStateChanged(auth, async (user) => {

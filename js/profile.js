@@ -3,17 +3,22 @@
 import { collection, getDocs, addDoc, query, where, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './firebase.js';
 import { setState } from './state.js';
-import { DOMElements } from './ui.js';
+// SỬA LỖI: Không import DOMElements nữa
+// import { DOMElements } from './ui.js';
 import * as data from './data.js';
 import { hashText } from './utils.js';
 
 export async function displayProfileScreen() {
     try {
+        // Lấy các phần tử DOM trực tiếp
+        const profileListEl = document.getElementById('profile-list');
+        const profileFeedbackEl = document.getElementById('profile-feedback');
+
         const profilesCollection = collection(db, "profiles");
         const profilesSnapshot = await getDocs(profilesCollection);
-        DOMElements.profileListEl.innerHTML = '';
+        profileListEl.innerHTML = '';
         if (profilesSnapshot.empty) {
-            DOMElements.profileListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Chưa có hồ sơ nào. Hãy tạo một hồ sơ mới!</p>';
+            profileListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Chưa có hồ sơ nào. Hãy tạo một hồ sơ mới!</p>';
         } else {
             profilesSnapshot.forEach(doc => {
                 const profile = doc.data();
@@ -33,36 +38,39 @@ export async function displayProfileScreen() {
                 };
                 profileItem.appendChild(profileButton);
                 profileItem.appendChild(deleteButton);
-                DOMElements.profileListEl.appendChild(profileItem);
+                profileListEl.appendChild(profileItem);
             });
         }
     } catch (error) {
         console.error("Lỗi khi tải hồ sơ: ", error);
-        DOMElements.profileFeedbackEl.textContent = "Không thể tải danh sách hồ sơ.";
+        const profileFeedbackEl = document.getElementById('profile-feedback');
+        if (profileFeedbackEl) profileFeedbackEl.textContent = "Không thể tải danh sách hồ sơ.";
     }
 }
 
 export async function createNewProfile() {
     const profileNameInput = document.getElementById('profile-name-input');
     const passwordInput = document.getElementById('profile-password-input');
+    const profileFeedbackEl = document.getElementById('profile-feedback');
+    
     const name = profileNameInput.value.trim();
     const password = passwordInput.value.trim();
 
     if (name.length < 3) {
-        DOMElements.profileFeedbackEl.textContent = "Tên phải có ít nhất 3 ký tự.";
+        profileFeedbackEl.textContent = "Tên phải có ít nhất 3 ký tự.";
         return;
     }
     if (password.length < 6) {
-        DOMElements.profileFeedbackEl.textContent = "Mật khẩu phải có ít nhất 6 ký tự.";
+        profileFeedbackEl.textContent = "Mật khẩu phải có ít nhất 6 ký tự.";
         return;
     }
 
-    DOMElements.profileFeedbackEl.textContent = "Đang kiểm tra tên...";
+    profileFeedbackEl.textContent = "Đang kiểm tra tên...";
     try {
         const q = query(collection(db, "profiles"), where("name", "==", name));
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
-            DOMElements.profileFeedbackEl.textContent = "Tên này đã tồn tại.";
+            profileFeedbackEl.textContent = "Tên này đã tồn tại.";
             return;
         }
 
@@ -73,28 +81,28 @@ export async function createNewProfile() {
             createdAt: new Date() 
         });
 
-        DOMElements.profileFeedbackEl.textContent = `Đã tạo hồ sơ cho ${name}!`;
+        profileFeedbackEl.textContent = `Đã tạo hồ sơ cho ${name}!`;
         await selectProfile(docRef.id, name);
     } catch (error) {
         console.error("Lỗi khi tạo hồ sơ: ", error);
-        DOMElements.profileFeedbackEl.textContent = "Đã xảy ra lỗi khi tạo hồ sơ.";
+        profileFeedbackEl.textContent = "Đã xảy ra lỗi khi tạo hồ sơ.";
     }
 }
 
 async function selectProfile(profileId, profileName) {
     setState({ selectedProfileId: profileId });
-    DOMElements.profileSelectionContainer.classList.add('hidden');
-    DOMElements.loadingContainer.classList.remove('hidden');
-    DOMElements.mainAppContainer.classList.add('hidden');
-    DOMElements.userIdDisplayEl.textContent = `Hồ sơ: ${profileName}`;
+    document.getElementById('profile-selection-container').classList.add('hidden');
+    document.getElementById('loading-container').classList.remove('hidden');
+    document.getElementById('main-app-container').classList.add('hidden');
+    document.getElementById('user-id-display').textContent = `Hồ sơ: ${profileName}`;
     await data.loadUserData();
-    DOMElements.loadingContainer.classList.add('hidden');
-    DOMElements.mainAppContainer.classList.remove('hidden');
+    document.getElementById('loading-container').classList.add('hidden');
+    document.getElementById('main-app-container').classList.remove('hidden');
 }
 
 export function switchProfile() {
-    DOMElements.mainAppContainer.classList.add('hidden');
-    DOMElements.profileSelectionContainer.classList.remove('hidden');
+    document.getElementById('main-app-container').classList.add('hidden');
+    document.getElementById('profile-selection-container').classList.remove('hidden');
     setState({
         selectedProfileId: null,
         appData: {},
@@ -105,11 +113,12 @@ export function switchProfile() {
 }
 
 function promptDeleteProfile(profileId, profileName) {
-    DOMElements.profileToDeleteNameEl.textContent = profileName;
+    document.getElementById('profile-to-delete-name').textContent = profileName;
     document.getElementById('delete-password-input').value = '';
     document.getElementById('delete-feedback').textContent = '';
-    DOMElements.deleteConfirmModal.classList.remove('hidden');
-    DOMElements.confirmDeleteBtn.onclick = () => handlePasswordVerificationForDelete(profileId);
+    const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+    deleteConfirmModal.classList.remove('hidden');
+    document.getElementById('confirm-delete-btn').onclick = () => handlePasswordVerificationForDelete(profileId);
 }
 
 async function handlePasswordVerificationForDelete(profileId) {
@@ -151,7 +160,7 @@ async function deleteProfile(profileId) {
     try {
         await deleteDoc(doc(db, "profiles", profileId));
         await deleteDoc(doc(db, "users", profileId));
-        DOMElements.deleteConfirmModal.classList.add('hidden');
+        document.getElementById('delete-confirm-modal').classList.add('hidden');
         await displayProfileScreen();
     } catch (error) {
         console.error("Lỗi khi xóa hồ sơ:", error);
