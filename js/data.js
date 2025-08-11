@@ -46,22 +46,29 @@ export async function loadUserData() {
     const defaultAppData = {
         streak: 0, lastVisit: null, progress: {},
         dailyActivity: {}, achievements: {}, examHistory: [],
-        settings: { darkMode: false }
+        settings: { darkMode: undefined } // Để undefined để xử lý logic khởi tạo
     };
 
     let appData = { ...defaultAppData, ...(userData.appData || {}) };
     
-    if (!appData.settings) {
-        appData.settings = { darkMode: false };
+    // SỬA LỖI & NÂNG CẤP: Logic khởi tạo Dark Mode
+    let themeChanged = false;
+    if (appData.settings?.darkMode === undefined) {
+        // Nếu chưa có cài đặt, lấy theo hệ thống và lưu lại
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (!appData.settings) appData.settings = {};
+        appData.settings.darkMode = prefersDark;
+        themeChanged = true; // Đánh dấu để lưu lại
     }
 
+    // Áp dụng theme
     if (appData.settings.darkMode) {
         document.documentElement.classList.add('dark');
     } else {
         document.documentElement.classList.remove('dark');
     }
 
-    let dataChanged = false;
+    let progressChanged = false;
     masterList.forEach(word => {
         if (!appData.progress[word.word]) {
             appData.progress[word.word] = {
@@ -69,7 +76,7 @@ export async function loadUserData() {
                 nextReview: new Date().toISOString(),
                 wrongAttempts: 0
             };
-            dataChanged = true;
+            progressChanged = true;
         }
     });
 
@@ -80,14 +87,14 @@ export async function loadUserData() {
         yesterday.setDate(yesterday.getDate() - 1);
         appData.streak = (lastVisitDate === yesterday.toDateString()) ? (appData.streak || 0) + 1 : 1;
         appData.lastVisit = new Date().toISOString();
-        dataChanged = true;
+        progressChanged = true;
     }
 
     setState({ appData, vocabList: masterList });
     updateDashboard();
     updateDarkModeButton();
 
-    if (dataChanged) {
+    if (progressChanged || themeChanged) {
         await saveUserData();
     }
 }
