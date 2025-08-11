@@ -191,14 +191,30 @@ function populateCategoryFilter() {
         DOMElements.categoryFilterEl.appendChild(option);
     });
     if (currentCategory) DOMElements.categoryFilterEl.value = currentCategory;
-    applyCategoryFilter();
+    
+    // SỬA ĐỔI: Gọi hàm lọc mới
+    applyFilters();
 }
 
-export function applyCategoryFilter() {
+/**
+ * ĐÃ SỬA: Đổi tên thành applyFilters và xử lý cả hai bộ lọc.
+ */
+export function applyFilters() {
     const selectedCategory = DOMElements.categoryFilterEl.value;
-    const filteredVocabList = (selectedCategory === 'all') 
-        ? [...state.vocabList] 
-        : state.vocabList.filter(v => (v.category || 'Chung') === selectedCategory);
+    const selectedDifficulty = document.getElementById('difficulty-filter').value;
+
+    let filteredVocabList = [...state.vocabList];
+
+    // Lọc theo chủ đề
+    if (selectedCategory !== 'all') {
+        filteredVocabList = filteredVocabList.filter(v => (v.category || 'Chung') === selectedCategory);
+    }
+
+    // Lọc theo độ khó
+    if (selectedDifficulty !== 'all') {
+        filteredVocabList = filteredVocabList.filter(v => (v.difficulty || 'medium') === selectedDifficulty);
+    }
+
     setState({ filteredVocabList });
     updateProgressBar();
 }

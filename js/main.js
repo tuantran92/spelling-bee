@@ -5,7 +5,7 @@
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from './firebase.js';
 import { setState } from './state.js';
-import { DOMElements, showScreen, applyCategoryFilter, populateScreenHTML, cancelVocabEdit, setupVoiceOptions } from './ui.js';
+import { DOMElements, showScreen, applyFilters, populateScreenHTML, cancelVocabEdit, setupVoiceOptions } from './ui.js';
 import * as profile from './profile.js';
 import * as data from './data.js';
 import * as game from './gameModes.js';
@@ -53,14 +53,19 @@ function attachGlobalFunctions() {
 
 /**
  * Gán các sự kiện cho các element không có onclick.
+ * ĐÃ SỬA: Thêm sự kiện cho bộ lọc độ khó.
  */
 function addEventListeners() {
-    DOMElements.categoryFilterEl.addEventListener('change', applyCategoryFilter);
+    // Sửa tên hàm và thêm sự kiện mới
+    DOMElements.categoryFilterEl.addEventListener('change', applyFilters);
+    document.getElementById('difficulty-filter').addEventListener('change', applyFilters);
+    
     document.getElementById('cancel-delete-btn').onclick = () => DOMElements.deleteConfirmModal.classList.add('hidden');
     document.getElementById('create-profile-btn').onclick = profile.createNewProfile;
     document.getElementById('switch-profile-btn').onclick = profile.switchProfile;
     document.getElementById('back-to-menu-btn').onclick = () => showScreen('main-menu');
 }
+
 
 /**
  * Khởi tạo ứng dụng khi DOM đã sẵn sàng.
