@@ -36,16 +36,11 @@ export function populateScreenHTML() {
         <button onclick="showScreen('mcq-screen')" class="btn-glowing bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Trắc Nghiệm</button>
         <button onclick="showScreen('listening-screen')" class="btn-glowing bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Luyện Nghe</button>
         <button onclick="showScreen('shuffle-screen')" class="btn-glowing bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Xem Toàn Bộ</button>
-        
-        <!-- Nút tính năng mới -->
         <button onclick="showScreen('stats-screen')" class="btn-glowing bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Thống kê</button>
         <button onclick="showScreen('exam-screen')" class="btn-glowing bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Luyện thi</button>
         <button onclick="showScreen('achievements-screen')" class="btn-glowing bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Thành tựu</button>
-        
-        <!-- THÊM MỚI: Nút cho các chế độ mới -->
         <button onclick="showScreen('pronunciation-screen')" class="btn-glowing bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Luyện Phát Âm</button>
         <button onclick="showScreen('fill-blank-screen')" class="btn-glowing bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Điền Từ</button>
-
         <button onclick="showScreen('settings-screen')" class="col-span-full btn-glowing bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Quản lý từ vựng</button>
     `;
 
@@ -56,32 +51,45 @@ export function populateScreenHTML() {
     document.getElementById('scramble-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Sắp xếp các chữ cái sau:</h2><p class="text-gray-600 dark:text-gray-400 mb-4">Gợi ý: Từ này có nghĩa là "<span id="scramble-meaning" class="font-semibold"></span>"</p><div id="scrambled-word-display" class="flex justify-center items-center gap-2 my-6 flex-wrap"></div><input type="text" id="scramble-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập đáp án của bạn..."><div class="mt-4"><button onclick="checkScramble()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button><button onclick="startScramble()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Từ khác</button></div><p id="scramble-result" class="mt-4 h-6 text-lg font-medium"></p>`;
     document.getElementById('mcq-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Chọn nghĩa đúng cho từ sau:</h2><div class="flex justify-center items-center gap-4 mb-6"><p id="mcq-word" class="text-3xl font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg text-gray-900 dark:text-gray-100"></p><button id="mcq-speak-btn" class="p-3 bg-sky-500 hover:bg-sky-600 rounded-full text-white shadow-md" title="Nghe lại"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button></div><div id="mcq-options" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div><p id="mcq-result" class="mt-6 h-6 text-lg font-medium"></p>`;
     document.getElementById('listening-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Nghe và gõ lại từ bạn nghe được</h2><div class="my-6"><button onclick="speakWord(state.currentWord.word)" class="bg-rose-500 hover:bg-rose-600 text-white p-4 rounded-full shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button></div><input type="text" id="listening-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập từ bạn nghe được..."><div class="mt-4"><button onclick="checkListening()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button><button onclick="startListening()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Từ khác</button></div><p id="listening-result" class="mt-4 h-6 text-lg font-medium"></p>`;
+    
     document.getElementById('settings-screen').innerHTML = `
         <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4 text-center">Quản lý từ vựng</h2>
+        
         <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6">
             <h3 id="vocab-form-title" class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Thêm từ mới</h3>
-            
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input type="text" id="vocab-word" placeholder="Từ vựng (tiếng Anh)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                 <input type="text" id="vocab-meaning" placeholder="Nghĩa (tiếng Việt)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                 <input type="text" id="vocab-example" placeholder="Ví dụ" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                 <input type="text" id="vocab-category" placeholder="Chủ đề" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
-                
                 <select id="vocab-difficulty" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                     <option value="easy">Dễ</option>
                     <option value="medium" selected>Trung bình</option>
                     <option value="hard">Khó</option>
                 </select>
             </div>
-
             <div class="flex gap-2 mt-4">
                 <button id="vocab-submit-btn" onclick="handleVocabSubmit()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Thêm từ</button>
                 <button id="vocab-cancel-edit-btn" onclick="cancelVocabEdit()" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hidden">Hủy</button>
             </div>
             <p id="vocab-form-feedback" class="text-red-500 text-sm mt-2 h-4"></p>
         </div>
+
         <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mt-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Import từ Google Sheet</h3>
+            <div class="bg-blue-100 dark:bg-blue-900 border-l-4 border-blue-500 text-blue-700 dark:text-blue-200 p-4 rounded-lg mb-4 text-sm" role="alert">
+                <p class="font-bold">Lưu ý:</p>
+                <ul class="list-disc list-inside mt-1">
+                    <li>Hành động này sẽ <strong class="text-red-500">ghi đè toàn bộ</strong> danh sách từ vựng chung.</li>
+                    <li>Sheet cần có các cột: <strong>word</strong>, <strong>meaning</strong>, <strong>example</strong>, <strong>category</strong>, <strong>difficulty</strong>.</li>
+                    <li>Sheet cần được chia sẻ với quyền <strong>"Anyone with the link" (Bất kỳ ai có đường liên kết)</strong>.</li>
+                </ul>
             </div>
+            <input type="url" id="gsheet-url" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500" placeholder="Dán link Google Sheet vào đây...">
+            <button onclick="importFromGoogleSheet()" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Import và Ghi đè</button>
+            <div id="import-feedback" class="mt-2 h-5 text-sm"></div>
+        </div>
+
         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 mt-6">Danh sách của bạn</h3>
         <div id="vocab-management-list" class="space-y-2 max-h-80 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg"></div>
     `;
@@ -116,21 +124,19 @@ export function populateScreenHTML() {
 }
 
 export function showScreen(screenId) {
-    // SỬA ĐỔI: Loại bỏ bước kiểm tra `wordsToReview` ở đây.
-    // Việc kiểm tra sẽ được thực hiện bên trong mỗi hàm bắt đầu game.
     DOMElements.mainMenu.style.display = screenId === 'main-menu' ? 'grid' : 'none';
     DOMElements.dashboard.style.display = screenId === 'main-menu' ? 'block' : 'none';
     DOMElements.appScreensContainer.classList.toggle('hidden', screenId === 'main-menu');
     document.querySelectorAll('.app-screen').forEach(s => s.classList.add('hidden'));
     const targetScreen = document.getElementById(screenId);
-    if (targetScreen) {
+    if(targetScreen) {
         targetScreen.classList.remove('hidden');
         const screenInitializers = {
-            'spelling-screen': game.startSpelling,
-            'reading-screen': game.startReading,
-            'shuffle-screen': game.startShuffle,
-            'scramble-screen': game.startScramble,
-            'mcq-screen': game.startMcq,
+            'spelling-screen': game.startSpelling, 
+            'reading-screen': game.startReading, 
+            'shuffle-screen': game.startShuffle, 
+            'scramble-screen': game.startScramble, 
+            'mcq-screen': game.startMcq, 
             'listening-screen': game.startListening,
             'settings-screen': vocabManager.startSettings,
             'stats-screen': stats.renderStatisticsPage,
@@ -143,12 +149,18 @@ export function showScreen(screenId) {
     }
 }
 
-// Các hàm còn lại giữ nguyên...
 export function updateDashboard() {
     updateStreakDisplay();
     populateCategoryFilter();
     updateProgressBar();
-    DOMElements.vocabSourceEl.textContent = `Bộ từ hiện tại: ${state.vocabList.length} từ`;
+    if (state.vocabList && state.vocabList.length > 0) {
+        DOMElements.vocabSourceEl.textContent = `Bộ từ hiện tại: ${state.vocabList.length} từ`;
+    } else {
+        DOMElements.vocabSourceEl.innerHTML = `
+            <span class="text-orange-500 font-semibold">Bộ từ vựng đang trống!</span> 
+            <p class="text-sm text-gray-500 dark:text-gray-400">Vào "Quản lý từ vựng" để thêm từ hoặc import từ Google Sheet.</p>
+        `;
+    }
 }
 
 function updateStreakDisplay() {
@@ -179,26 +191,19 @@ function populateCategoryFilter() {
         DOMElements.categoryFilterEl.appendChild(option);
     });
     if (currentCategory) DOMElements.categoryFilterEl.value = currentCategory;
-    
-    // SỬA ĐỔI: Gọi hàm lọc mới
     applyFilters();
 }
 
-/**
- * ĐÃ SỬA: Đổi tên thành applyFilters và xử lý cả hai bộ lọc.
- */
 export function applyFilters() {
     const selectedCategory = DOMElements.categoryFilterEl.value;
     const selectedDifficulty = document.getElementById('difficulty-filter').value;
 
     let filteredVocabList = [...state.vocabList];
 
-    // Lọc theo chủ đề
     if (selectedCategory !== 'all') {
         filteredVocabList = filteredVocabList.filter(v => (v.category || 'Chung') === selectedCategory);
     }
 
-    // Lọc theo độ khó
     if (selectedDifficulty !== 'all') {
         filteredVocabList = filteredVocabList.filter(v => (v.difficulty || 'medium') === selectedDifficulty);
     }
@@ -225,6 +230,7 @@ export function cancelVocabEdit() {
     document.getElementById('vocab-meaning').value = '';
     document.getElementById('vocab-example').value = '';
     document.getElementById('vocab-category').value = '';
+    document.getElementById('vocab-difficulty').value = 'medium';
     document.getElementById('vocab-form-feedback').textContent = '';
     document.getElementById('vocab-submit-btn').textContent = "Thêm từ";
     document.getElementById('vocab-cancel-edit-btn').classList.add('hidden');
