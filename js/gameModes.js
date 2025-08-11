@@ -53,9 +53,18 @@ export function startSpelling() {
     setState({ currentWord: newWord });
     document.getElementById('spelling-meaning').textContent = state.currentWord.meaning;
     document.getElementById('spelling-example').textContent = state.currentWord.example || '';
-    document.getElementById('spelling-input').value = '';
+    const inputEl = document.getElementById('spelling-input');
+    inputEl.value = '';
     document.getElementById('spelling-result').textContent = '';
-    document.getElementById('spelling-input').focus();
+    inputEl.focus();
+    
+    // NÂNG CẤP: Thêm sự kiện nhấn Enter
+    inputEl.onkeydown = (event) => {
+        if (event.key === 'Enter') {
+            checkSpelling();
+        }
+    };
+
     const speakBtn = document.getElementById('spelling-speak-btn');
     if (speakBtn) {
         speakBtn.onclick = (event) => speakWord(state.currentWord.word, event);
@@ -113,7 +122,6 @@ export function changeFlashcard(direction) {
     const newIndex = (state.currentFlashcardIndex + direction + gameList.length) % gameList.length;
     setState({ currentFlashcardIndex: newIndex });
     updateFlashcard();
-    // Ghi nhận hoạt động khi người dùng lướt qua thẻ
     recordDailyActivity(1);
     saveUserData();
 }
@@ -180,9 +188,17 @@ export function startScramble() {
         span.textContent = letter;
         displayEl.appendChild(span);
     });
-    document.getElementById("scramble-input").value = "";
+    const inputEl = document.getElementById("scramble-input");
+    inputEl.value = "";
     document.getElementById("scramble-result").textContent = "";
-    document.getElementById("scramble-input").focus();
+    inputEl.focus();
+
+    // NÂNG CẤP: Thêm sự kiện nhấn Enter
+    inputEl.onkeydown = (event) => {
+        if (event.key === 'Enter') {
+            checkScramble();
+        }
+    };
 }
 
 export function checkScramble() {
@@ -275,9 +291,18 @@ export function startListening() {
         return;
     }
     setState({ currentWord: newWord });
-    document.getElementById("listening-input").value = "";
+    const inputEl = document.getElementById("listening-input");
+    inputEl.value = "";
     document.getElementById("listening-result").textContent = "";
-    document.getElementById("listening-input").focus();
+    inputEl.focus();
+
+    // NÂNG CẤP: Thêm sự kiện nhấn Enter
+    inputEl.onkeydown = (event) => {
+        if (event.key === 'Enter') {
+            checkListening();
+        }
+    };
+    
     speakWord(state.currentWord.word);
 }
 
@@ -420,7 +445,15 @@ function populateFillBlankUI(sentence, wordObj) {
     const regex = new RegExp(`\\b${wordObj.word}\\b`, 'ig');
     const sentenceWithBlank = sentence.replace(regex, '_______');
     screenEl.innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Điền vào chỗ trống</h2><div id="fill-blank-sentence" class="p-6 bg-gray-100 dark:bg-gray-700 rounded-lg text-lg md:text-xl text-gray-800 dark:text-gray-200 mb-6 leading-relaxed">${sentenceWithBlank}</div><input type="text" id="fill-blank-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập từ còn thiếu..."><div class="mt-4"><button onclick="checkFillBlank()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button><button onclick="startFillBlank()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Câu khác</button></div><p id="fill-blank-result" class="mt-4 h-6 text-lg font-medium"></p>`;
-    document.getElementById('fill-blank-input').focus();
+    const inputEl = document.getElementById('fill-blank-input');
+    inputEl.focus();
+
+    // NÂNG CẤP: Thêm sự kiện nhấn Enter
+    inputEl.onkeydown = (event) => {
+        if (event.key === 'Enter') {
+            checkFillBlank();
+        }
+    };
 }
 
 export function checkFillBlank() {
