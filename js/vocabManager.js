@@ -3,7 +3,6 @@
 // Hoạt động trên danh sách từ vựng chung (master list).
 
 import { state, setState } from './state.js';
-// Sửa đổi: import saveMasterVocab để thao tác trên danh sách chung
 import { saveMasterVocab } from './data.js';
 import { cancelVocabEdit } from './ui.js';
 
@@ -17,6 +16,7 @@ export function startSettings() {
 
 /**
  * Hiển thị danh sách từ vựng trong trang quản lý.
+ * ĐÃ NÂNG CẤP: Thêm ô chọn nhanh độ khó cho mỗi từ.
  */
 export function renderVocabManagementList() {
     const listContainer = document.getElementById('vocab-management-list');
@@ -25,7 +25,7 @@ export function renderVocabManagementList() {
         listContainer.innerHTML = '<p class="text-center text-gray-500">Danh sách của bạn đang trống.</p>';
         return;
     }
-    
+
     const difficulties = {
         easy: { text: 'Dễ', class: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
         medium: { text: 'Trung bình', class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' },
@@ -34,19 +34,26 @@ export function renderVocabManagementList() {
 
     state.vocabList.forEach((word, index) => {
         const item = document.createElement('div');
-        item.className = 'p-3 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-between';
-        
+        item.id = `vocab-item-${index}`; // ID để tạo hiệu ứng khi lưu
+        item.className = 'p-3 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-between transition-colors duration-300';
+
         const difficultyInfo = difficulties[word.difficulty] || difficulties.medium;
 
         item.innerHTML = `
-            <div>
+            <div class="flex-grow">
                 <div class="flex items-center gap-2">
                     <p class="font-bold text-gray-900 dark:text-gray-100">${word.word} - <span class="font-normal">${word.meaning}</span></p>
-                    <span class="text-xs font-medium px-2 py-0.5 rounded-full ${difficultyInfo.class}">${difficultyInfo.text}</span>
+                    <span id="difficulty-label-${index}" class="text-xs font-medium px-2 py-0.5 rounded-full ${difficultyInfo.class}">${difficultyInfo.text}</span>
                 </div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 italic">${word.example || ''}</p>
             </div>
-            <div class="flex gap-2">
+            <div class="flex items-center gap-2">
+                <select onchange="updateWordDifficulty(${index}, this.value)" class="p-2 border rounded dark:bg-gray-700 dark:border-gray-600 text-sm focus:ring-2 focus:ring-indigo-500">
+                    <option value="easy" ${word.difficulty === 'easy' ? 'selected' : ''}>Dễ</option>
+                    <option value="medium" ${!word.difficulty || word.difficulty === 'medium' ? 'selected' : ''}>Trung bình</option>
+                    <option value="hard" ${word.difficulty === 'hard' ? 'selected' : ''}>Khó</option>
+                </select>
+                
                 <button onclick="editVocabWord(${index})" class="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md" title="Sửa từ">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg>
                 </button>
@@ -60,7 +67,7 @@ export function renderVocabManagementList() {
 }
 
 /**
- * Xử lý việc thêm hoặc sửa một từ.
+ * Xử lý việc thêm hoặc sửa một từ trong form chính.
  */
 export async function handleVocabSubmit() {
     const wordInput = document.getElementById('vocab-word');
@@ -99,7 +106,6 @@ export async function handleVocabSubmit() {
     }
     setState({ vocabList: newVocabList });
 
-    // Lưu vào danh sách chung
     await saveMasterVocab();
     renderVocabManagementList();
     cancelVocabEdit();
@@ -121,6 +127,7 @@ export function editVocabWord(index) {
     
     document.getElementById('vocab-submit-btn').textContent = "Lưu thay đổi";
     document.getElementById('vocab-cancel-edit-btn').classList.remove('hidden');
+    window.scrollTo(0, 0); // Cuộn lên đầu trang để dễ chỉnh sửa
 }
 
 /**
@@ -133,9 +140,34 @@ export async function deleteVocabWord(index) {
         newVocabList.splice(index, 1);
         
         setState({ vocabList: newVocabList });
-
-        // Lưu vào danh sách chung
         await saveMasterVocab();
         renderVocabManagementList();
+    }
+}
+
+/**
+ * THÊM MỚI: Cập nhật nhanh độ khó của từ và tự động lưu.
+ */
+export async function updateWordDifficulty(index, newDifficulty) {
+    state.vocabList[index].difficulty = newDifficulty;
+    await saveMasterVocab();
+
+    const itemEl = document.getElementById(`vocab-item-${index}`);
+    const labelEl = document.getElementById(`difficulty-label-${index}`);
+    
+    if (itemEl && labelEl) {
+        const difficulties = {
+            easy: { text: 'Dễ', class: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
+            medium: { text: 'Trung bình', class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' },
+            hard: { text: 'Khó', class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' }
+        };
+        const difficultyInfo = difficulties[newDifficulty];
+        labelEl.textContent = difficultyInfo.text;
+        labelEl.className = `text-xs font-medium px-2 py-0.5 rounded-full ${difficultyInfo.class}`;
+
+        itemEl.classList.add('bg-green-50', 'dark:bg-green-900/50');
+        setTimeout(() => {
+            itemEl.classList.remove('bg-green-50', 'dark:bg-green-900/50');
+        }, 1000);
     }
 }

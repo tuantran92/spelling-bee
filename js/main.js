@@ -49,6 +49,7 @@ function attachGlobalFunctions() {
     window.listenForPronunciation = game.listenForPronunciation;
     window.startFillBlank = game.startFillBlank;
     window.checkFillBlank = game.checkFillBlank;
+    window.updateWordDifficulty = vocabManager.updateWordDifficulty;
 }
 
 /**
