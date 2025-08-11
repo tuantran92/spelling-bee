@@ -1,7 +1,10 @@
+// js/vocabManager.js
 // File này chứa các hàm quản lý từ vựng (Thêm, Sửa, Xóa) trong màn hình Cài đặt.
+// Hoạt động trên danh sách từ vựng chung (master list).
 
 import { state, setState } from './state.js';
-import * as data from './data.js';
+// Sửa đổi: import saveMasterVocab để thao tác trên danh sách chung
+import { saveMasterVocab } from './data.js';
 import { cancelVocabEdit } from './ui.js';
 
 /**
@@ -14,7 +17,6 @@ export function startSettings() {
 
 /**
  * Hiển thị danh sách từ vựng trong trang quản lý.
- * ĐÃ SỬA: Thêm hiển thị nhãn độ khó.
  */
 export function renderVocabManagementList() {
     const listContainer = document.getElementById('vocab-management-list');
@@ -24,7 +26,6 @@ export function renderVocabManagementList() {
         return;
     }
     
-    // Định nghĩa nhãn cho độ khó
     const difficulties = {
         easy: { text: 'Dễ', class: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
         medium: { text: 'Trung bình', class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' },
@@ -60,14 +61,13 @@ export function renderVocabManagementList() {
 
 /**
  * Xử lý việc thêm hoặc sửa một từ.
- * ĐÃ SỬA: Lấy và lưu giá trị độ khó.
  */
 export async function handleVocabSubmit() {
     const wordInput = document.getElementById('vocab-word');
     const meaningInput = document.getElementById('vocab-meaning');
     const exampleInput = document.getElementById('vocab-example');
     const categoryInput = document.getElementById('vocab-category');
-    const difficultyInput = document.getElementById('vocab-difficulty'); // Lấy element mới
+    const difficultyInput = document.getElementById('vocab-difficulty');
     const feedbackEl = document.getElementById('vocab-form-feedback');
 
     const word = wordInput.value.trim().toLowerCase();
@@ -88,7 +88,7 @@ export async function handleVocabSubmit() {
         meaning: meaning,
         example: exampleInput.value.trim(),
         category: categoryInput.value.trim() || 'Chung',
-        difficulty: difficultyInput.value // Lưu độ khó
+        difficulty: difficultyInput.value
     };
 
     const newVocabList = [...state.vocabList];
@@ -99,14 +99,14 @@ export async function handleVocabSubmit() {
     }
     setState({ vocabList: newVocabList });
 
-    await data.saveUserData();
+    // Lưu vào danh sách chung
+    await saveMasterVocab();
     renderVocabManagementList();
     cancelVocabEdit();
 }
 
 /**
  * Chuẩn bị form để sửa một từ.
- * ĐÃ SỬA: Đặt giá trị cho ô chọn độ khó khi sửa.
  */
 export function editVocabWord(index) {
     setState({ editingWordIndex: index });
@@ -117,7 +117,7 @@ export function editVocabWord(index) {
     document.getElementById('vocab-meaning').value = word.meaning;
     document.getElementById('vocab-example').value = word.example;
     document.getElementById('vocab-category').value = word.category;
-    document.getElementById('vocab-difficulty').value = word.difficulty || 'medium'; // Đặt giá trị độ khó
+    document.getElementById('vocab-difficulty').value = word.difficulty || 'medium';
     
     document.getElementById('vocab-submit-btn').textContent = "Lưu thay đổi";
     document.getElementById('vocab-cancel-edit-btn').classList.remove('hidden');
@@ -125,7 +125,6 @@ export function editVocabWord(index) {
 
 /**
  * Xóa một từ khỏi danh sách.
- * (Không thay đổi)
  */
 export async function deleteVocabWord(index) {
     const wordToDelete = state.vocabList[index].word;
@@ -133,17 +132,10 @@ export async function deleteVocabWord(index) {
         const newVocabList = [...state.vocabList];
         newVocabList.splice(index, 1);
         
-        const newProgress = { ...state.appData.progress };
-        if (newProgress[wordToDelete]) {
-            delete newProgress[wordToDelete];
-        }
-        
-        setState({ 
-            vocabList: newVocabList,
-            appData: { ...state.appData, progress: newProgress }
-        });
+        setState({ vocabList: newVocabList });
 
-        await data.saveUserData();
+        // Lưu vào danh sách chung
+        await saveMasterVocab();
         renderVocabManagementList();
     }
 }

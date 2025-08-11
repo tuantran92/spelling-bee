@@ -11,12 +11,8 @@ export const firebaseConfig = {
     measurementId: "G-95V4YFCS7E"
 };
 
-// Danh sách từ vựng mặc định cho người dùng mới
-export const defaultVocabList = [
-    { word: 'default', meaning: 'mặc định', example: 'This is the default setting.', category: 'Tech' },
-    { word: 'example', meaning: 'ví dụ', example: 'Please give me an example.', category: 'General' },
-    { word: 'learning', meaning: 'học tập', example: 'Learning is a lifelong process.', category: 'General' }
-];
+// SỬA ĐỔI: Biến này không còn cần thiết vì dùng danh sách chung
+// export const defaultVocabList = [...];
 
 // Các mốc thời gian cho thuật toán lặp lại ngắt quãng (tính bằng ngày)
 export const SRS_INTERVALS = [1, 2, 5, 10, 21, 45, 90];
