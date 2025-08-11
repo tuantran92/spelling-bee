@@ -91,10 +91,13 @@ export function populateScreenHTML() {
         </div>
 
         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 mt-6">Danh sách của bạn</h3>
+        
+        <div id="vocab-list-filter-container"></div> 
+        
         <div id="vocab-management-list" class="space-y-2 max-h-80 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg"></div>
     `;
 
-    // THÊM MỚI: HTML cho các màn hình mới
+    // HTML cho các màn hình mới
     document.getElementById('pronunciation-screen').innerHTML = `
         <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Luyện Phát Âm</h2>
         <p class="text-gray-600 dark:text-gray-400 mb-6">Hãy đọc to từ sau đây:</p>

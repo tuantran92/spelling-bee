@@ -11,18 +11,38 @@ import { cancelVocabEdit } from './ui.js';
  */
 export function startSettings() {
     cancelVocabEdit();
-    renderVocabManagementList();
+    // Bắt đầu bằng cách hiển thị tất cả từ
+    renderVocabManagementList('all');
 }
 
 /**
  * Hiển thị danh sách từ vựng trong trang quản lý.
- * ĐÃ NÂNG CẤP: Thêm ô chọn nhanh độ khó cho mỗi từ.
+ * ĐÃ NÂNG CẤP: Thêm bộ lọc Chủ đề và chỉ render danh sách đã lọc.
+ * @param {string} categoryFilter - Chủ đề cần lọc ('all' để hiển thị tất cả).
  */
-export function renderVocabManagementList() {
+export function renderVocabManagementList(categoryFilter = 'all') {
     const listContainer = document.getElementById('vocab-management-list');
+    const filterContainer = document.getElementById('vocab-list-filter-container'); // Container mới cho bộ lọc
     listContainer.innerHTML = '';
-    if (state.vocabList.length === 0) {
-        listContainer.innerHTML = '<p class="text-center text-gray-500">Danh sách của bạn đang trống.</p>';
+    
+    // --- Tạo và hiển thị bộ lọc Chủ đề ---
+    const categories = ['all', ...new Set(state.vocabList.map(v => v.category || 'Chung'))];
+    filterContainer.innerHTML = `
+        <div class="mb-4">
+            <label for="vocab-list-category-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Lọc theo chủ đề:</label>
+            <select id="vocab-list-category-filter" onchange="filterVocabManagementList(this.value)" class="mt-1 block w-full md:w-1/3 p-2 border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
+                ${categories.map(cat => `<option value="${cat}" ${cat === categoryFilter ? 'selected' : ''}>${cat === 'all' ? 'Tất cả chủ đề' : cat}</option>`).join('')}
+            </select>
+        </div>
+    `;
+
+    // --- Lọc và hiển thị danh sách từ vựng ---
+    const listToRender = categoryFilter === 'all'
+        ? state.vocabList
+        : state.vocabList.filter(word => (word.category || 'Chung') === categoryFilter);
+
+    if (listToRender.length === 0) {
+        listContainer.innerHTML = '<p class="text-center text-gray-500">Không có từ nào trong chủ đề này.</p>';
         return;
     }
 
@@ -32,32 +52,33 @@ export function renderVocabManagementList() {
         hard: { text: 'Khó', class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' }
     };
 
-    state.vocabList.forEach((word, index) => {
-        const item = document.createElement('div');
-        item.id = `vocab-item-${index}`; // ID để tạo hiệu ứng khi lưu
-        item.className = 'p-3 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-between transition-colors duration-300';
+    listToRender.forEach(word => {
+        // Tìm index gốc của từ trong danh sách đầy đủ để các hàm sửa/xóa hoạt động đúng
+        const originalIndex = state.vocabList.findIndex(v => v.word === word.word);
 
+        const item = document.createElement('div');
+        item.id = `vocab-item-${originalIndex}`;
+        item.className = 'p-3 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-between transition-colors duration-300';
         const difficultyInfo = difficulties[word.difficulty] || difficulties.medium;
 
         item.innerHTML = `
             <div class="flex-grow">
                 <div class="flex items-center gap-2">
                     <p class="font-bold text-gray-900 dark:text-gray-100">${word.word} - <span class="font-normal">${word.meaning}</span></p>
-                    <span id="difficulty-label-${index}" class="text-xs font-medium px-2 py-0.5 rounded-full ${difficultyInfo.class}">${difficultyInfo.text}</span>
+                    <span id="difficulty-label-${originalIndex}" class="text-xs font-medium px-2 py-0.5 rounded-full ${difficultyInfo.class}">${difficultyInfo.text}</span>
                 </div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 italic">${word.example || ''}</p>
             </div>
             <div class="flex items-center gap-2">
-                <select onchange="updateWordDifficulty(${index}, this.value)" class="p-2 border rounded dark:bg-gray-700 dark:border-gray-600 text-sm focus:ring-2 focus:ring-indigo-500">
+                <select onchange="updateWordDifficulty(${originalIndex}, this.value)" class="p-2 border rounded dark:bg-gray-700 dark:border-gray-600 text-sm focus:ring-2 focus:ring-indigo-500">
                     <option value="easy" ${word.difficulty === 'easy' ? 'selected' : ''}>Dễ</option>
                     <option value="medium" ${!word.difficulty || word.difficulty === 'medium' ? 'selected' : ''}>Trung bình</option>
                     <option value="hard" ${word.difficulty === 'hard' ? 'selected' : ''}>Khó</option>
                 </select>
-                
-                <button onclick="editVocabWord(${index})" class="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md" title="Sửa từ">
+                <button onclick="editVocabWord(${originalIndex})" class="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md" title="Sửa từ">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg>
                 </button>
-                <button onclick="deleteVocabWord(${index})" class="p-2 bg-red-500 hover:bg-red-600 text-white rounded-md" title="Xóa từ">
+                <button onclick="deleteVocabWord(${originalIndex})" class="p-2 bg-red-500 hover:bg-red-600 text-white rounded-md" title="Xóa từ">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
             </div>
@@ -107,7 +128,7 @@ export async function handleVocabSubmit() {
     setState({ vocabList: newVocabList });
 
     await saveMasterVocab();
-    renderVocabManagementList();
+    renderVocabManagementList('all'); // Hiển thị lại toàn bộ danh sách
     cancelVocabEdit();
 }
 
@@ -127,7 +148,7 @@ export function editVocabWord(index) {
     
     document.getElementById('vocab-submit-btn').textContent = "Lưu thay đổi";
     document.getElementById('vocab-cancel-edit-btn').classList.remove('hidden');
-    window.scrollTo(0, 0); // Cuộn lên đầu trang để dễ chỉnh sửa
+    window.scrollTo(0, 0);
 }
 
 /**
@@ -141,12 +162,12 @@ export async function deleteVocabWord(index) {
         
         setState({ vocabList: newVocabList });
         await saveMasterVocab();
-        renderVocabManagementList();
+        renderVocabManagementList('all');
     }
 }
 
 /**
- * THÊM MỚI: Cập nhật nhanh độ khó của từ và tự động lưu.
+ * Cập nhật nhanh độ khó của từ và tự động lưu.
  */
 export async function updateWordDifficulty(index, newDifficulty) {
     state.vocabList[index].difficulty = newDifficulty;
@@ -170,4 +191,11 @@ export async function updateWordDifficulty(index, newDifficulty) {
             itemEl.classList.remove('bg-green-50', 'dark:bg-green-900/50');
         }, 1000);
     }
+}
+
+/**
+ * THÊM MỚI: Hàm trung gian để gọi từ HTML onchange.
+ */
+export function filterVocabManagementList(category) {
+    renderVocabManagementList(category);
 }

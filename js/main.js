@@ -27,6 +27,8 @@ function attachGlobalFunctions() {
     window.handleVocabSubmit = vocabManager.handleVocabSubmit;
     window.editVocabWord = vocabManager.editVocabWord;
     window.deleteVocabWord = vocabManager.deleteVocabWord;
+    window.updateWordDifficulty = vocabManager.updateWordDifficulty;
+    window.filterVocabManagementList = vocabManager.filterVocabManagementList;
     window.cancelVocabEdit = cancelVocabEdit;
     window.importFromGoogleSheet = data.importFromGoogleSheet;
 
@@ -49,15 +51,12 @@ function attachGlobalFunctions() {
     window.listenForPronunciation = game.listenForPronunciation;
     window.startFillBlank = game.startFillBlank;
     window.checkFillBlank = game.checkFillBlank;
-    window.updateWordDifficulty = vocabManager.updateWordDifficulty;
 }
 
 /**
  * Gán các sự kiện cho các element không có onclick.
- * ĐÃ SỬA: Thêm sự kiện cho bộ lọc độ khó.
  */
 function addEventListeners() {
-    // Sửa tên hàm và thêm sự kiện mới
     DOMElements.categoryFilterEl.addEventListener('change', applyFilters);
     document.getElementById('difficulty-filter').addEventListener('change', applyFilters);
     
@@ -66,7 +65,6 @@ function addEventListeners() {
     document.getElementById('switch-profile-btn').onclick = profile.switchProfile;
     document.getElementById('back-to-menu-btn').onclick = () => showScreen('main-menu');
 }
-
 
 /**
  * Khởi tạo ứng dụng khi DOM đã sẵn sàng.
