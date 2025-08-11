@@ -5,7 +5,7 @@
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from './firebase.js';
 import { setState } from './state.js';
-import { DOMElements, showScreen, applyFilters, populateScreenHTML, cancelVocabEdit, setupVoiceOptions } from './ui.js';
+import { DOMElements, showScreen, applyFilters, populateScreenHTML, cancelVocabEdit, setupVoiceOptions, toggleControls } from './ui.js';
 import * as profile from './profile.js';
 import * as data from './data.js';
 import * as game from './gameModes.js';
@@ -46,7 +46,7 @@ function attachGlobalFunctions() {
     // Exam mode
     window.startExam = exam.startExam;
     
-    // THÊM MỚI: Các hàm cho chế độ mới
+    // Các hàm cho chế độ mới
     window.startPronunciation = game.startPronunciation;
     window.listenForPronunciation = game.listenForPronunciation;
     window.startFillBlank = game.startFillBlank;
@@ -64,6 +64,9 @@ function addEventListeners() {
     document.getElementById('create-profile-btn').onclick = profile.createNewProfile;
     document.getElementById('switch-profile-btn').onclick = profile.switchProfile;
     document.getElementById('back-to-menu-btn').onclick = () => showScreen('main-menu');
+    
+    // Sự kiện cho nút ẩn/hiện
+    document.getElementById('toggle-controls-btn').addEventListener('click', toggleControls);
 }
 
 /**

@@ -27,8 +27,15 @@ export const DOMElements = {
     confirmDeleteBtn: document.getElementById('confirm-delete-btn'),
 };
 
+export function toggleControls() {
+    const content = document.getElementById('collapsible-content');
+    const arrow = document.getElementById('toggle-arrow');
+    content.classList.toggle('hidden');
+    arrow.classList.toggle('rotate-180');
+}
+
 export function populateScreenHTML() {
-    // Cập nhật Main Menu với các nút mới
+    // Chỉ tạo các nút chế độ học
     DOMElements.mainMenu.innerHTML = `
         <button onclick="showScreen('spelling-screen')" class="btn-glowing bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Đánh Vần</button>
         <button onclick="showScreen('reading-screen')" class="btn-glowing bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Flashcard</button>
@@ -36,12 +43,8 @@ export function populateScreenHTML() {
         <button onclick="showScreen('mcq-screen')" class="btn-glowing bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Trắc Nghiệm</button>
         <button onclick="showScreen('listening-screen')" class="btn-glowing bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Luyện Nghe</button>
         <button onclick="showScreen('shuffle-screen')" class="btn-glowing bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Xem Toàn Bộ</button>
-        <button onclick="showScreen('stats-screen')" class="btn-glowing bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Thống kê</button>
-        <button onclick="showScreen('exam-screen')" class="btn-glowing bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Luyện thi</button>
-        <button onclick="showScreen('achievements-screen')" class="btn-glowing bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Thành tựu</button>
         <button onclick="showScreen('pronunciation-screen')" class="btn-glowing bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Luyện Phát Âm</button>
         <button onclick="showScreen('fill-blank-screen')" class="btn-glowing bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Điền Từ</button>
-        <button onclick="showScreen('settings-screen')" class="col-span-full btn-glowing bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Quản lý từ vựng</button>
     `;
 
     // Các màn hình cũ (giữ nguyên)
@@ -54,7 +57,6 @@ export function populateScreenHTML() {
     
     document.getElementById('settings-screen').innerHTML = `
         <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4 text-center">Quản lý từ vựng</h2>
-        
         <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6">
             <h3 id="vocab-form-title" class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Thêm từ mới</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -74,7 +76,6 @@ export function populateScreenHTML() {
             </div>
             <p id="vocab-form-feedback" class="text-red-500 text-sm mt-2 h-4"></p>
         </div>
-
         <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mt-6">
             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Import từ Google Sheet</h3>
             <div class="bg-blue-100 dark:bg-blue-900 border-l-4 border-blue-500 text-blue-700 dark:text-blue-200 p-4 rounded-lg mb-4 text-sm" role="alert">
@@ -89,15 +90,11 @@ export function populateScreenHTML() {
             <button onclick="importFromGoogleSheet()" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Import và Ghi đè</button>
             <div id="import-feedback" class="mt-2 h-5 text-sm"></div>
         </div>
-
         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 mt-6">Danh sách của bạn</h3>
-        
         <div id="vocab-list-filter-container"></div> 
-        
         <div id="vocab-management-list" class="space-y-2 max-h-80 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg"></div>
     `;
 
-    // HTML cho các màn hình mới
     document.getElementById('pronunciation-screen').innerHTML = `
         <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Luyện Phát Âm</h2>
         <p class="text-gray-600 dark:text-gray-400 mb-6">Hãy đọc to từ sau đây:</p>
@@ -127,8 +124,17 @@ export function populateScreenHTML() {
 }
 
 export function showScreen(screenId) {
+    // Ẩn khối điều khiển khi chuyển sang màn hình khác
+    const content = document.getElementById('collapsible-content');
+    const arrow = document.getElementById('toggle-arrow');
+    if (screenId !== 'main-menu') {
+        content.classList.add('hidden');
+        arrow.classList.remove('rotate-180');
+    }
+    
+    document.getElementById('collapsible-controls-container')?.classList.toggle('hidden', screenId !== 'main-menu');
     DOMElements.mainMenu.style.display = screenId === 'main-menu' ? 'grid' : 'none';
-    DOMElements.dashboard.style.display = screenId === 'main-menu' ? 'block' : 'none';
+    
     DOMElements.appScreensContainer.classList.toggle('hidden', screenId === 'main-menu');
     document.querySelectorAll('.app-screen').forEach(s => s.classList.add('hidden'));
     const targetScreen = document.getElementById(screenId);
