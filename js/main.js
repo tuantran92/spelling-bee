@@ -55,18 +55,38 @@ function attachGlobalFunctions() {
 
 /**
  * Gán các sự kiện cho các element không có onclick.
+ * ĐÃ SỬA LỖI: Thêm kiểm tra null để tránh crash ứng dụng.
  */
 function addEventListeners() {
-    DOMElements.categoryFilterEl.addEventListener('change', applyFilters);
-    document.getElementById('difficulty-filter').addEventListener('change', applyFilters);
+    // Hàm phụ để gán sự kiện an toàn
+    const safeAddEventListener = (id, event, handler) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener(event, handler);
+        } else {
+            console.warn(`Element with ID '${id}' not found.`);
+        }
+    };
     
-    document.getElementById('cancel-delete-btn').onclick = () => DOMElements.deleteConfirmModal.classList.add('hidden');
-    document.getElementById('create-profile-btn').onclick = profile.createNewProfile;
-    document.getElementById('switch-profile-btn').onclick = profile.switchProfile;
-    document.getElementById('back-to-menu-btn').onclick = () => showScreen('main-menu');
+    const safeAddOnClick = (id, handler) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.onclick = handler;
+        } else {
+            console.warn(`Element with ID '${id}' not found.`);
+        }
+    };
+
+    // Gán sự kiện bằng các hàm an toàn
+    safeAddEventListener('category-filter', 'change', applyFilters);
+    safeAddEventListener('difficulty-filter', 'change', applyFilters);
     
-    // Sự kiện cho nút ẩn/hiện
-    document.getElementById('toggle-controls-btn').addEventListener('click', toggleControls);
+    safeAddOnClick('cancel-delete-btn', () => DOMElements.deleteConfirmModal.classList.add('hidden'));
+    safeAddOnClick('create-profile-btn', profile.createNewProfile);
+    safeAddOnClick('switch-profile-btn', profile.switchProfile);
+    safeAddOnClick('back-to-menu-btn', () => showScreen('main-menu'));
+    
+    safeAddEventListener('toggle-controls-btn', 'click', toggleControls);
 }
 
 /**
