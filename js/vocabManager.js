@@ -14,6 +14,7 @@ export function startSettings() {
 
 /**
  * Hiển thị danh sách từ vựng trong trang quản lý.
+ * ĐÃ SỬA: Thêm hiển thị nhãn độ khó.
  */
 export function renderVocabManagementList() {
     const listContainer = document.getElementById('vocab-management-list');
@@ -22,12 +23,26 @@ export function renderVocabManagementList() {
         listContainer.innerHTML = '<p class="text-center text-gray-500">Danh sách của bạn đang trống.</p>';
         return;
     }
+    
+    // Định nghĩa nhãn cho độ khó
+    const difficulties = {
+        easy: { text: 'Dễ', class: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
+        medium: { text: 'Trung bình', class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' },
+        hard: { text: 'Khó', class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' }
+    };
+
     state.vocabList.forEach((word, index) => {
         const item = document.createElement('div');
         item.className = 'p-3 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-between';
+        
+        const difficultyInfo = difficulties[word.difficulty] || difficulties.medium;
+
         item.innerHTML = `
             <div>
-                <p class="font-bold text-gray-900 dark:text-gray-100">${word.word} - <span class="font-normal">${word.meaning}</span></p>
+                <div class="flex items-center gap-2">
+                    <p class="font-bold text-gray-900 dark:text-gray-100">${word.word} - <span class="font-normal">${word.meaning}</span></p>
+                    <span class="text-xs font-medium px-2 py-0.5 rounded-full ${difficultyInfo.class}">${difficultyInfo.text}</span>
+                </div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 italic">${word.example || ''}</p>
             </div>
             <div class="flex gap-2">
@@ -45,12 +60,14 @@ export function renderVocabManagementList() {
 
 /**
  * Xử lý việc thêm hoặc sửa một từ.
+ * ĐÃ SỬA: Lấy và lưu giá trị độ khó.
  */
 export async function handleVocabSubmit() {
     const wordInput = document.getElementById('vocab-word');
     const meaningInput = document.getElementById('vocab-meaning');
     const exampleInput = document.getElementById('vocab-example');
     const categoryInput = document.getElementById('vocab-category');
+    const difficultyInput = document.getElementById('vocab-difficulty'); // Lấy element mới
     const feedbackEl = document.getElementById('vocab-form-feedback');
 
     const word = wordInput.value.trim().toLowerCase();
@@ -70,7 +87,8 @@ export async function handleVocabSubmit() {
         word: word,
         meaning: meaning,
         example: exampleInput.value.trim(),
-        category: categoryInput.value.trim() || 'Chung'
+        category: categoryInput.value.trim() || 'Chung',
+        difficulty: difficultyInput.value // Lưu độ khó
     };
 
     const newVocabList = [...state.vocabList];
@@ -88,7 +106,7 @@ export async function handleVocabSubmit() {
 
 /**
  * Chuẩn bị form để sửa một từ.
- * @param {number} index - Vị trí của từ trong vocabList.
+ * ĐÃ SỬA: Đặt giá trị cho ô chọn độ khó khi sửa.
  */
 export function editVocabWord(index) {
     setState({ editingWordIndex: index });
@@ -99,6 +117,7 @@ export function editVocabWord(index) {
     document.getElementById('vocab-meaning').value = word.meaning;
     document.getElementById('vocab-example').value = word.example;
     document.getElementById('vocab-category').value = word.category;
+    document.getElementById('vocab-difficulty').value = word.difficulty || 'medium'; // Đặt giá trị độ khó
     
     document.getElementById('vocab-submit-btn').textContent = "Lưu thay đổi";
     document.getElementById('vocab-cancel-edit-btn').classList.remove('hidden');
@@ -106,7 +125,7 @@ export function editVocabWord(index) {
 
 /**
  * Xóa một từ khỏi danh sách.
- * @param {number} index - Vị trí của từ trong vocabList.
+ * (Không thay đổi)
  */
 export async function deleteVocabWord(index) {
     const wordToDelete = state.vocabList[index].word;

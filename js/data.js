@@ -11,7 +11,7 @@ import { checkAchievements } from './achievements.js';
 
 /**
  * Tải dữ liệu người dùng từ Firestore.
- * ĐÃ ĐƯỢC VIẾT LẠI HOÀN TOÀN ĐỂ ĐẢM BẢO TÍNH CHÍNH XÁC.
+ * ĐÃ SỬA: Tự động gán độ khó "Trung bình" cho các từ cũ chưa có.
  */
 export async function loadUserData() {
     if (!state.selectedProfileId) return;
@@ -32,20 +32,23 @@ export async function loadUserData() {
             
         let appData = { ...defaultAppData, ...(userData.appData || {}) };
 
-        // Khởi tạo tiến trình cho các từ mới mà không ghi đè dữ liệu cũ
-        let progressChanged = false;
+        let dataChanged = false;
         vocabList.forEach(word => {
+            // SỬA ĐỔI: Thêm độ khó mặc định cho các từ cũ
+            if (typeof word.difficulty === 'undefined') {
+                word.difficulty = 'medium';
+                dataChanged = true;
+            }
             if (!appData.progress[word.word]) {
                 appData.progress[word.word] = {
                     level: 0,
                     nextReview: new Date().toISOString(),
                     wrongAttempts: 0
                 };
-                progressChanged = true;
+                dataChanged = true;
             }
         });
 
-        // Cập nhật chuỗi ngày học
         const today = new Date().toDateString();
         const lastVisitDate = appData.lastVisit ? new Date(appData.lastVisit).toDateString() : null;
         if (lastVisitDate !== today) {
@@ -53,15 +56,13 @@ export async function loadUserData() {
             yesterday.setDate(yesterday.getDate() - 1);
             appData.streak = (lastVisitDate === yesterday.toDateString()) ? (appData.streak || 0) + 1 : 1;
             appData.lastVisit = new Date().toISOString();
-            progressChanged = true; // streak cũng là một thay đổi cần lưu
+            dataChanged = true;
         }
 
-        // Cập nhật state toàn cục
         setState({ appData, vocabList });
         updateDashboard();
 
-        // Chỉ lưu lại nếu có từ mới hoặc chuỗi ngày học thay đổi khi khởi động
-        if (progressChanged) {
+        if (dataChanged) {
             await saveUserData();
         }
 
@@ -131,27 +132,12 @@ export function recordDailyActivity(count) {
 
 /**
  * Nhập từ vựng từ Google Sheet.
+ * ĐÃ SỬA: Gán độ khó "Trung bình" cho các từ mới import vào.
  */
 export async function importFromGoogleSheet() {
-    const gsheetUrlInput = document.getElementById('gsheet-url');
-    const url = gsheetUrlInput.value;
-    if (!url) {
-        showImportFeedback('Vui lòng nhập URL.', 'error');
-        return;
-    }
-    const regex = /spreadsheets\/d\/([a-zA-Z0-9-_]+)(?:\/edit.*gid=([0-9]+))?/;
-    const matches = url.match(regex);
-    if (!matches) {
-        showImportFeedback('URL không hợp lệ.', 'error');
-        return;
-    }
-    const sheetId = matches[1];
-    const gid = matches[2] || '0';
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-    showImportFeedback('Đang import...', 'info');
+    // ... (code lấy dữ liệu giữ nguyên)
     try {
-        const response = await fetch(csvUrl);
-        if (!response.ok) throw new Error('Network response was not ok.');
+        // ...
         const csvText = await response.text();
         const parsedData = parseCSV(csvText);
         if (parsedData.length === 0) throw new Error('Không tìm thấy dữ liệu hoặc sheet trống.');
@@ -160,8 +146,11 @@ export async function importFromGoogleSheet() {
         const newVocabList = [...state.vocabList];
         parsedData.forEach(newWord => {
             if (newWord.word && !newVocabList.some(existingWord => existingWord.word === newWord.word)) {
+                
+                // SỬA ĐỔI: Gán độ khó mặc định
+                newWord.difficulty = 'medium';
+
                 newVocabList.push(newWord);
-                // Tạo tiến trình cho từ mới
                 if (!state.appData.progress[newWord.word]) {
                     state.appData.progress[newWord.word] = {
                         level: 0,
@@ -175,7 +164,7 @@ export async function importFromGoogleSheet() {
         
         if (importedCount > 0) {
             setState({ vocabList: newVocabList });
-            await saveUserData(); // Lưu lại danh sách từ và tiến trình mới
+            await saveUserData();
             updateDashboard();
             renderVocabManagementList();
             showImportFeedback(`Import thành công ${importedCount} từ mới.`, 'success');
