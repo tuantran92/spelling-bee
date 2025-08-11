@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Luyện Từ Vựng PRO - Firebase</title>
+    
+    <script>
+        // Xử lý Dark Mode ngay lập tức để tránh "nháy" giao diện
+        if (localStorage.getItem('darkMode') === 'true' || 
+           (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
@@ -114,7 +125,7 @@
                         
                         <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
                             <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cài đặt chung</h3>
-                            <button id="dark-mode-toggle" onclick="toggleDarkMode()" class="w-full md:w-auto flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg">
+                            <button id="dark-mode-toggle" onclick="toggleDarkMode()" class="w-full md:w-auto flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold p-2 rounded-lg">
                                 </button>
                         </div>
                     </div>
