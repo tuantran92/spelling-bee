@@ -5,7 +5,6 @@
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from './firebase.js';
 import { setState } from './state.js';
-// SỬA LỖI: Xóa import DOMElements
 import { showScreen, applyFilters, populateScreenHTML, cancelVocabEdit, setupVoiceOptions, toggleControls, toggleDarkMode } from './ui.js';
 import * as profile from './profile.js';
 import * as data from './data.js';
@@ -89,6 +88,13 @@ function addEventListeners() {
     safeAddOnClick('back-to-menu-btn', () => showScreen('main-menu'));
     
     safeAddEventListener('toggle-controls-btn', 'click', toggleControls);
+
+    safeAddEventListener('rate-slider', 'input', (event) => {
+        const rateValue = document.getElementById('rate-value');
+        if (rateValue) {
+            rateValue.textContent = parseFloat(event.target.value).toFixed(1);
+        }
+    });
 }
 
 /**

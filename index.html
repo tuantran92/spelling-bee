@@ -133,7 +133,17 @@
                                 <div id="vocab-source" class="text-gray-600 dark:text-gray-300 pt-2 text-center md:text-left"></div>
                             </div>
 
-                             <div class="flex items-center justify-center">
+                             <div class="space-y-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="voice-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Giọng đọc:</label>
+                                        <select id="voice-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></select>
+                                    </div>
+                                    <div>
+                                        <label for="rate-slider" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tốc độ: <span id="rate-value">1.0</span>x</label>
+                                        <input id="rate-slider" type="range" min="0.5" max="2" step="0.1" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-500 mt-2">
+                                    </div>
+                                </div>
                                 <button onclick="showScreen('settings-screen')" class="w-full btn-glowing bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">Quản lý từ vựng</button>
                              </div>
                          </div>
@@ -166,29 +176,10 @@
     </div>
     
     <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 text-center max-w-sm w-full">
-            <h2 class="text-xl font-bold text-red-600 dark:text-red-400">Xác nhận xóa hồ sơ</h2>
-            <p class="text-gray-600 dark:text-gray-300 my-4">
-                Để xóa hồ sơ "<strong id="profile-to-delete-name"></strong>", vui lòng nhập mật khẩu.
-            </p>
-            <input type="password" id="delete-password-input" class="w-full p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập mật khẩu để xác nhận...">
-            <p id="delete-feedback" class="mt-2 h-4 text-sm text-red-500"></p>
-            <div class="flex justify-center gap-4 mt-6">
-                <button id="cancel-delete-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-lg">Hủy</button>
-                <button id="confirm-delete-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">Xóa</button>
-            </div>
         </div>
-    </div>
 
     <div id="achievement-unlocked-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50">
-        <div class="achievement-modal-popup bg-gradient-to-br from-yellow-300 to-orange-400 dark:from-yellow-500 dark:to-orange-600 rounded-2xl shadow-2xl p-6 md:p-8 text-center max-w-sm w-full text-white relative">
-             <button onclick="document.getElementById('achievement-unlocked-modal').classList.add('hidden')" class="absolute top-2 right-2 text-white/70 hover:text-white">&times;</button>
-            <div id="achievement-icon" class="text-6xl mb-4">🏆</div>
-            <h2 class="text-2xl font-bold">Mở khóa thành tựu!</h2>
-            <p id="achievement-name" class="text-xl font-semibold mt-2"></p>
-            <p id="achievement-description" class="mt-1"></p>
         </div>
-    </div>
 
     <script type="module" src="./js/main.js"></script>
 </body>
