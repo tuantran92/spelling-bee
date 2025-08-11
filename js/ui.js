@@ -8,39 +8,25 @@ import * as exam from './exam.js';
 import * as achievements from './achievements.js';
 import { saveUserData } from './data.js';
 
-// SỬA LỖI: Chuyển DOMElements thành một hàm để đảm bảo các phần tử đã được tải
-const getDOMElements = () => ({
-    profileSelectionContainer: document.getElementById('profile-selection-container'),
-    profileListEl: document.getElementById('profile-list'),
-    profileFeedbackEl: document.getElementById('profile-feedback'),
-    loadingContainer: document.getElementById('loading-container'),
-    mainAppContainer: document.getElementById('main-app-container'),
-    mainMenu: document.getElementById('main-menu'),
-    dashboard: document.getElementById('dashboard'),
-    appScreensContainer: document.getElementById('app-screens'),
-    vocabSourceEl: document.getElementById('vocab-source'),
-    categoryFilterEl: document.getElementById('category-filter'),
-    streakDisplayEl: document.getElementById('streak-display'),
-    progressBarEl: document.getElementById('progress-bar'),
-    userIdDisplayEl: document.getElementById('user-id-display'),
-    deleteConfirmModal: document.getElementById('delete-confirm-modal'),
-    profileToDeleteNameEl: document.getElementById('profile-to-delete-name'),
-    confirmDeleteBtn: document.getElementById('confirm-delete-btn'),
-});
-
+// SỬA LỖI: Không định nghĩa DOMElements ở đây nữa để tránh lỗi timing.
+// Thay vào đó, mỗi hàm sẽ tự gọi document.getElementById khi cần.
 
 export function toggleControls() {
     const content = document.getElementById('collapsible-content');
     const arrow = document.getElementById('toggle-arrow');
-    content.classList.toggle('hidden');
-    arrow.classList.toggle('rotate-180');
+    if (content && arrow) {
+        content.classList.toggle('hidden');
+        arrow.classList.toggle('rotate-180');
+    }
 }
 
 export function updateDarkModeButton() {
     const toggleBtn = document.getElementById('dark-mode-toggle');
     if (!toggleBtn) return;
+
     const isDarkMode = document.documentElement.classList.contains('dark');
     toggleBtn.title = isDarkMode ? "Chuyển sang chế độ Sáng" : "Chuyển sang chế độ Tối";
+    
     if (isDarkMode) {
         toggleBtn.innerHTML = `
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 14.95a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z" clip-rule="evenodd" /></svg>
@@ -68,12 +54,12 @@ export function toggleDarkMode() {
 }
 
 export function populateScreenHTML() {
-    const DOMElements = getDOMElements(); // Lấy các phần tử DOM một cách an toàn
-    if (!DOMElements.mainMenu) {
+    const mainMenu = document.getElementById('main-menu');
+    if (!mainMenu) {
         console.error("Main menu element not found!");
         return;
     }
-    DOMElements.mainMenu.innerHTML = `
+    mainMenu.innerHTML = `
         <button onclick="showScreen('spelling-screen')" class="btn-glowing bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Đánh Vần</button>
         <button onclick="showScreen('reading-screen')" class="btn-glowing bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Flashcard</button>
         <button onclick="showScreen('scramble-screen')" class="btn-glowing bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Sắp Xếp Chữ</button>
@@ -168,9 +154,12 @@ export function showScreen(screenId) {
     if (controlsContainer) {
         controlsContainer.style.display = isMainMenu ? 'block' : 'none';
     }
+    
+    const mainMenu = document.getElementById('main-menu');
+    const appScreensContainer = document.getElementById('app-screens');
 
-    getDOMElements().mainMenu.style.display = isMainMenu ? 'grid' : 'none';
-    getDOMElements().appScreensContainer.classList.toggle('hidden', isMainMenu);
+    if (mainMenu) mainMenu.style.display = isMainMenu ? 'grid' : 'none';
+    if (appScreensContainer) appScreensContainer.classList.toggle('hidden', isMainMenu);
     
     document.querySelectorAll('.app-screen').forEach(s => s.classList.add('hidden'));
     const targetScreen = document.getElementById(screenId);
@@ -198,55 +187,64 @@ export function updateDashboard() {
     updateStreakDisplay();
     populateCategoryFilter();
     updateProgressBar();
-    const DOMElements = getDOMElements();
-    if (state.vocabList && state.vocabList.length > 0) {
-        DOMElements.vocabSourceEl.textContent = `Bộ từ hiện tại: ${state.vocabList.length} từ`;
-    } else {
-        DOMElements.vocabSourceEl.innerHTML = `
-            <span class="text-orange-500 font-semibold">Bộ từ vựng đang trống!</span> 
-            <p class="text-sm text-gray-500 dark:text-gray-400">Vào "Quản lý từ vựng" để thêm từ hoặc import từ Google Sheet.</p>
-        `;
+    const vocabSourceEl = document.getElementById('vocab-source');
+    if (vocabSourceEl) {
+        if (state.vocabList && state.vocabList.length > 0) {
+            vocabSourceEl.textContent = `Bộ từ hiện tại: ${state.vocabList.length} từ`;
+        } else {
+            vocabSourceEl.innerHTML = `
+                <span class="text-orange-500 font-semibold">Bộ từ vựng đang trống!</span> 
+                <p class="text-sm text-gray-500 dark:text-gray-400">Vào "Quản lý từ vựng" để thêm từ hoặc import từ Google Sheet.</p>
+            `;
+        }
     }
 }
 
 function updateStreakDisplay() {
-    const DOMElements = getDOMElements();
-    DOMElements.streakDisplayEl.innerHTML = `🔥 ${state.appData.streak || 0}`;
+    const streakDisplayEl = document.getElementById('streak-display');
+    if (streakDisplayEl) streakDisplayEl.innerHTML = `🔥 ${state.appData.streak || 0}`;
 }
 
 function updateProgressBar() {
-    const DOMElements = getDOMElements();
+    const progressBarEl = document.getElementById('progress-bar');
+    if (!progressBarEl) return;
+    
     const totalWords = state.filteredVocabList.length;
     if (totalWords === 0) {
-        DOMElements.progressBarEl.style.width = '0%';
-        DOMElements.progressBarEl.textContent = '0%';
+        progressBarEl.style.width = '0%';
+        progressBarEl.textContent = '0%';
         return;
     }
     const learnedWords = state.filteredVocabList.filter(w => state.appData.progress[w.word]?.level > 0).length;
     const percentage = Math.round((learnedWords / totalWords) * 100);
-    DOMElements.progressBarEl.style.width = `${percentage}%`;
-    DOMElements.progressBarEl.textContent = `${percentage}%`;
+    progressBarEl.style.width = `${percentage}%`;
+    progressBarEl.textContent = `${percentage}%`;
 }
 
 function populateCategoryFilter() {
-    const DOMElements = getDOMElements();
+    const categoryFilterEl = document.getElementById('category-filter');
+    if (!categoryFilterEl) return;
+
     const categories = [...new Set(state.vocabList.map(v => v.category || 'Chung'))];
-    const currentCategory = DOMElements.categoryFilterEl.value;
-    DOMElements.categoryFilterEl.innerHTML = '<option value="all">Tất cả chủ đề</option>';
+    const currentCategory = categoryFilterEl.value;
+    categoryFilterEl.innerHTML = '<option value="all">Tất cả chủ đề</option>';
     categories.sort().forEach(cat => {
         const option = document.createElement('option');
         option.value = cat;
         option.textContent = cat;
-        DOMElements.categoryFilterEl.appendChild(option);
+        categoryFilterEl.appendChild(option);
     });
-    if (currentCategory) DOMElements.categoryFilterEl.value = currentCategory;
+    if (currentCategory) categoryFilterEl.value = currentCategory;
     applyFilters();
 }
 
 export function applyFilters() {
-    const DOMElements = getDOMElements();
-    const selectedCategory = DOMElements.categoryFilterEl.value;
-    const selectedDifficulty = document.getElementById('difficulty-filter').value;
+    const categoryFilterEl = document.getElementById('category-filter');
+    const difficultyFilterEl = document.getElementById('difficulty-filter');
+    if (!categoryFilterEl || !difficultyFilterEl) return;
+
+    const selectedCategory = categoryFilterEl.value;
+    const selectedDifficulty = difficultyFilterEl.value;
 
     let filteredVocabList = [...state.vocabList];
 
@@ -264,13 +262,15 @@ export function applyFilters() {
 
 export function showImportFeedback(message, type) {
     const feedbackEl = document.getElementById('import-feedback');
-    feedbackEl.textContent = message;
-    const colorClasses = {
-        success: 'text-green-500',
-        error: 'text-red-500',
-        info: 'text-blue-500'
-    };
-    feedbackEl.className = `mt-2 h-5 text-sm ${colorClasses[type] || 'text-gray-500'}`;
+    if (feedbackEl) {
+        feedbackEl.textContent = message;
+        const colorClasses = {
+            success: 'text-green-500',
+            error: 'text-red-500',
+            info: 'text-blue-500'
+        };
+        feedbackEl.className = `mt-2 h-5 text-sm ${colorClasses[type] || 'text-gray-500'}`;
+    }
 }
 
 export function cancelVocabEdit() {
