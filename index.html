@@ -58,48 +58,49 @@
 
     <div id="app-wrapper" class="w-full">
         <div id="profile-selection-container" class="w-full max-w-md mx-auto">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 text-center">
-                <h1 class="text-2xl md:text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-4">Chào mừng bạn!</h1>
-                <p class="text-gray-600 dark:text-gray-300 mb-6">Vui lòng chọn hồ sơ của bạn hoặc tạo mới để bắt đầu.</p>
-                <div id="profile-list" class="space-y-2 mb-6"><div class="loader mx-auto"></div></div>
-                <div class="mt-4 space-y-3">
-                    <input type="text" id="profile-name-input" class="w-full p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập tên của bạn...">
-                    <input type="password" id="profile-password-input" class="w-full p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="Tạo mật khẩu...">
-                    <button id="create-profile-btn" class="w-full mt-3 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Tạo & Bắt đầu</button>
-                </div>
-                <p id="profile-feedback" class="mt-4 h-6 text-sm text-red-500"></p>
             </div>
-        </div>
 
         <div id="loading-container" class="w-full max-w-3xl mx-auto text-center hidden">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
-                <div class="loader mx-auto"></div>
-                <p class="mt-4 text-gray-600 dark:text-gray-300">Đang tải dữ liệu của bạn...</p>
             </div>
-        </div>
 
         <div id="main-app-container" class="w-full max-w-3xl mx-auto hidden">
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
+                
                 <header class="text-center mb-6 relative">
-                    <button id="switch-profile-btn" title="Đổi người dùng" class="absolute top-0 right-0 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2 px-3 rounded-lg transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
-                    </button>
+                    <div class="absolute top-0 right-0 flex items-center gap-2">
+                        <button id="dark-mode-toggle" onclick="toggleDarkMode()" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold p-2 rounded-lg"></button>
+                        <button id="switch-profile-btn" title="Đổi người dùng" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold p-2 rounded-lg transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </div>
+
                     <h1 class="text-3xl md:text-4xl font-bold text-indigo-600 dark:text-indigo-400">Luyện Từ Vựng PRO</h1>
-                    <div id="vocab-source" class="text-gray-600 dark:text-gray-300 mt-2 text-center"></div>
-                    <p id="user-id-display" class="text-xs text-gray-400 mt-1"></p>
+                    <p id="user-id-display" class="text-sm text-gray-500 dark:text-gray-400 mt-1"></p>
+                    
+                    <div class="mt-4 flex justify-center items-center gap-6">
+                        <div class="text-center">
+                            <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Chuỗi học</div>
+                            <div id="streak-display" class="text-2xl font-bold text-orange-500">🔥 0</div>
+                        </div>
+                        <div class="w-full max-w-xs">
+                            <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 text-left">Tiến trình học</div>
+                            <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-600">
+                                <div id="progress-bar" class="bg-green-500 h-4 rounded-full progress-bar-fill text-xs font-medium text-white text-center p-0.5 leading-none" style="width: 0%">0%</div>
+                            </div>
+                        </div>
+                    </div>
                 </header>
 
                 <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <div id="toggle-controls-btn" class="flex justify-between items-center cursor-pointer">
-                        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Bảng điều khiển & Cài đặt</h2>
+                        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Bộ lọc & Cài đặt</h2>
                         <svg id="toggle-arrow" class="w-6 h-6 transition-transform transform text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </div>
 
-                    <div id="collapsible-content" class="mt-4 transition-all duration-300">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                            
+                    <div id="collapsible-content" class="mt-4 transition-all duration-300 hidden">
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                             <div class="space-y-4">
                                 <div>
                                     <label for="category-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Học theo chủ đề:</label>
@@ -114,28 +115,13 @@
                                         <option value="hard">Khó</option>
                                     </select>
                                 </div>
+                                <div id="vocab-source" class="text-gray-600 dark:text-gray-300 pt-2 text-center md:text-left"></div>
                             </div>
 
-                            <div class="space-y-4">
-                                <div class="flex justify-between items-center gap-4">
-                                    <div class="text-center">
-                                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Chuỗi học</div>
-                                        <div id="streak-display" class="text-2xl font-bold text-orange-500">🔥 0</div>
-                                    </div>
-                                    <div class="w-full">
-                                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tiến trình học</div>
-                                        <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-600">
-                                            <div id="progress-bar" class="bg-green-500 h-4 rounded-full progress-bar-fill text-xs font-medium text-white text-center p-0.5 leading-none" style="width: 0%">0%</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-                                    <button onclick="showScreen('settings-screen')" class="flex-grow btn-glowing bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">Quản lý từ vựng</button>
-                                    <button id="dark-mode-toggle" onclick="toggleDarkMode()" class="flex-shrink-0 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold p-2 rounded-lg"></button>
-                                </div>
-                            </div>
-
-                        </div>
+                            <div class="flex items-center justify-center">
+                                <button onclick="showScreen('settings-screen')" class="w-full btn-glowing bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">Quản lý từ vựng</button>
+                             </div>
+                         </div>
                     </div>
                 </div>
 
@@ -143,52 +129,11 @@
                 </div>
 
                 <div id="app-screens" class="hidden">
-                    <button id="back-to-menu-btn" class="mb-6 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg inline-flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-                        Quay lại Menu
-                    </button>
-                    <div id="spelling-screen" class="app-screen hidden text-center"></div>
-                    <div id="reading-screen" class="app-screen hidden text-center"></div>
-                    <div id="shuffle-screen" class="app-screen hidden"></div>
-                    <div id="scramble-screen" class="app-screen hidden text-center"></div>
-                    <div id="mcq-screen" class="app-screen hidden text-center"></div>
-                    <div id="listening-screen" class="app-screen hidden text-center"></div>
-                    <div id="settings-screen" class="app-screen hidden"></div>
-                    <div id="stats-screen" class="app-screen hidden"></div>
-                    <div id="exam-screen" class="app-screen hidden"></div>
-                    <div id="achievements-screen" class="app-screen hidden"></div>
-                    <div id="pronunciation-screen" class="app-screen hidden text-center"></div>
-                    <div id="fill-blank-screen" class="app-screen hidden text-center"></div>
-                </div>
+                    </div>
             </div>
         </div>
     </div>
     
-    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 text-center max-w-sm w-full">
-            <h2 class="text-xl font-bold text-red-600 dark:text-red-400">Xác nhận xóa hồ sơ</h2>
-            <p class="text-gray-600 dark:text-gray-300 my-4">
-                Để xóa hồ sơ "<strong id="profile-to-delete-name"></strong>", vui lòng nhập mật khẩu.
-            </p>
-            <input type="password" id="delete-password-input" class="w-full p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập mật khẩu để xác nhận...">
-            <p id="delete-feedback" class="mt-2 h-4 text-sm text-red-500"></p>
-            <div class="flex justify-center gap-4 mt-6">
-                <button id="cancel-delete-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-lg">Hủy</button>
-                <button id="confirm-delete-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">Xóa</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="achievement-unlocked-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50">
-        <div class="achievement-modal-popup bg-gradient-to-br from-yellow-300 to-orange-400 dark:from-yellow-500 dark:to-orange-600 rounded-2xl shadow-2xl p-6 md:p-8 text-center max-w-sm w-full text-white relative">
-             <button onclick="document.getElementById('achievement-unlocked-modal').classList.add('hidden')" class="absolute top-2 right-2 text-white/70 hover:text-white">&times;</button>
-            <div id="achievement-icon" class="text-6xl mb-4">🏆</div>
-            <h2 class="text-2xl font-bold">Mở khóa thành tựu!</h2>
-            <p id="achievement-name" class="text-xl font-semibold mt-2"></p>
-            <p id="achievement-description" class="mt-1"></p>
-        </div>
-    </div>
-
     <script type="module" src="./js/main.js"></script>
 </body>
 </html>
