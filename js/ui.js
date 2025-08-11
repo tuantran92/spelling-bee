@@ -116,38 +116,26 @@ export function populateScreenHTML() {
 }
 
 export function showScreen(screenId) {
-    if (screenId !== 'main-menu') {
-        const wordsToReview = game.getWordsToReview();
-        const allowedWhenFinished = ['settings-screen', 'shuffle-screen', 'stats-screen', 'exam-screen', 'achievements-screen'];
-        if (wordsToReview.length === 0 && !allowedWhenFinished.includes(screenId)) {
-            // Vẫn cho phép vào các chế độ mới kể cả khi đã ôn hết
-            const newModes = ['pronunciation-screen', 'fill-blank-screen'];
-            if (!newModes.includes(screenId)) {
-                 alert("Chúc mừng! Bạn đã ôn hết các từ cho hôm nay. Hãy quay lại vào ngày mai nhé!");
-                 return;
-            }
-        }
-    }
+    // SỬA ĐỔI: Loại bỏ bước kiểm tra `wordsToReview` ở đây.
+    // Việc kiểm tra sẽ được thực hiện bên trong mỗi hàm bắt đầu game.
     DOMElements.mainMenu.style.display = screenId === 'main-menu' ? 'grid' : 'none';
     DOMElements.dashboard.style.display = screenId === 'main-menu' ? 'block' : 'none';
     DOMElements.appScreensContainer.classList.toggle('hidden', screenId === 'main-menu');
     document.querySelectorAll('.app-screen').forEach(s => s.classList.add('hidden'));
     const targetScreen = document.getElementById(screenId);
-    if(targetScreen) {
+    if (targetScreen) {
         targetScreen.classList.remove('hidden');
-        // Cập nhật bộ điều hướng màn hình
         const screenInitializers = {
-            'spelling-screen': game.startSpelling, 
-            'reading-screen': game.startReading, 
-            'shuffle-screen': game.startShuffle, 
-            'scramble-screen': game.startScramble, 
-            'mcq-screen': game.startMcq, 
+            'spelling-screen': game.startSpelling,
+            'reading-screen': game.startReading,
+            'shuffle-screen': game.startShuffle,
+            'scramble-screen': game.startScramble,
+            'mcq-screen': game.startMcq,
             'listening-screen': game.startListening,
             'settings-screen': vocabManager.startSettings,
             'stats-screen': stats.renderStatisticsPage,
             'exam-screen': exam.setupExamScreen,
             'achievements-screen': achievements.renderAchievementsPage,
-            // Thêm các hàm khởi tạo cho màn hình mới
             'pronunciation-screen': game.startPronunciation,
             'fill-blank-screen': game.startFillBlank,
         };

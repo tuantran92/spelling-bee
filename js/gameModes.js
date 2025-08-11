@@ -5,42 +5,27 @@ import { updateWordLevel, recordDailyActivity, saveUserData } from './data.js';
 import { scrambleWord } from './utils.js';
 import { populateScreenHTML } from './ui.js';
 
-// --- Biến cho Speech Recognition ---
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
 
 /**
- * Lấy một từ ngẫu nhiên từ danh sách cần ôn tập.
- * @returns {object|null} - Đối tượng từ vựng hoặc null nếu không có từ nào cần ôn.
+ * Lấy một từ ngẫu nhiên từ danh sách đã được lọc để chơi game.
+ * @returns {object|null} - Đối tượng từ vựng hoặc null nếu danh sách trống.
  */
 function getNextWord() {
-    const wordsToReview = getWordsToReview();
-    return wordsToReview.length > 0 ? wordsToReview[Math.floor(Math.random() * wordsToReview.length)] : null;
-}
-
-/**
- * Lọc ra danh sách các từ cần ôn tập trong hôm nay.
- * @returns {Array<object>} - Mảng các từ cần ôn tập.
- */
-export function getWordsToReview() {
-    const now = new Date();
-    return state.filteredVocabList.filter(word => {
-        if (!state.appData.progress[word.word]) return true;
-        const reviewDate = new Date(state.appData.progress[word.word].nextReview);
-        return reviewDate <= now;
-    });
+    const gameList = state.filteredVocabList;
+    if (gameList.length === 0) return null;
+    return gameList[Math.floor(Math.random() * gameList.length)];
 }
 
 /**
  * Sử dụng API của trình duyệt để đọc một từ.
- * @param {string} word - Từ cần đọc.
- * @param {Event} [event] - Sự kiện click (để ngăn chặn lan truyền).
  */
 export function speakWord(word, event) {
     if (event) event.stopPropagation();
     if (typeof SpeechSynthesisUtterance === "undefined") return;
     const synth = window.speechSynthesis;
-    synth.cancel(); 
+    synth.cancel();
     const utterance = new SpeechSynthesisUtterance(word);
     const voiceSelect = document.getElementById('voice-select');
     const rateSlider = document.getElementById('rate-slider');
@@ -51,39 +36,30 @@ export function speakWord(word, event) {
         const selectedVoice = state.availableVoices.find(voice => voice.name === selectedVoiceName);
         if (selectedVoice) utterance.voice = selectedVoice;
     } else {
-         utterance.lang = 'en-US';
+        utterance.lang = 'en-US';
     }
     synth.speak(utterance);
 }
 
-// --- Các chế độ chơi cũ (giữ nguyên) ---
+// --- Chế độ Đánh Vần ---
 export function startSpelling() {
     const newWord = getNextWord();
+    if (!document.getElementById('spelling-input')) populateScreenHTML();
     const screenEl = document.getElementById('spelling-screen');
     if (!newWord) {
-        screenEl.innerHTML = `<p class="text-green-500">Tuyệt vời! Bạn đã ôn hết từ cho hôm nay.</p>`;
+        screenEl.innerHTML = `<p class="text-orange-500">Không có từ nào phù hợp với bộ lọc của bạn.</p>`;
         return;
-    }
-    if (!document.getElementById('spelling-input')) {
-        populateScreenHTML();
     }
     setState({ currentWord: newWord });
     document.getElementById('spelling-meaning').textContent = state.currentWord.meaning;
     document.getElementById('spelling-example').textContent = state.currentWord.example || '';
-    const inputEl = document.getElementById('spelling-input');
-    inputEl.value = '';
+    document.getElementById('spelling-input').value = '';
     document.getElementById('spelling-result').textContent = '';
-    inputEl.focus();
-    
+    document.getElementById('spelling-input').focus();
     const speakBtn = document.getElementById('spelling-speak-btn');
     if (speakBtn) {
-        const newSpeakBtn = speakBtn.cloneNode(true);
-        speakBtn.parentNode.replaceChild(newSpeakBtn, speakBtn);
-        newSpeakBtn.addEventListener('click', (event) => {
-            speakWord(state.currentWord.word, event);
-        });
+        speakBtn.onclick = (event) => speakWord(state.currentWord.word, event);
     }
-    
     speakWord(newWord.word);
 }
 
@@ -103,45 +79,46 @@ export function checkSpelling() {
     }
 }
 
+// --- Chế độ Flashcard ---
 export function startReading() {
     setState({ currentFlashcardIndex: 0 });
     updateFlashcard();
     const rateSlider = document.getElementById("rate-slider");
     const rateValue = document.getElementById("rate-value");
-    if(rateSlider && rateValue) {
+    if (rateSlider && rateValue) {
         rateSlider.oninput = () => { rateValue.textContent = parseFloat(rateSlider.value).toFixed(1); };
     }
 }
 
 export function updateFlashcard() {
-    const wordsToReview = getWordsToReview();
+    const gameList = state.filteredVocabList;
+    if (!document.getElementById("flashcard")) populateScreenHTML();
     const readingScreen = document.getElementById("reading-screen");
-    if (wordsToReview.length === 0) {
-        readingScreen.innerHTML = '<p class="text-green-500">Tuyệt vời! Bạn đã ôn hết từ cho hôm nay.</p>';
+    if (gameList.length === 0) {
+        readingScreen.innerHTML = '<p class="text-orange-500">Không có từ nào phù hợp với bộ lọc của bạn.</p>';
         return;
     }
-    if (!document.getElementById("flashcard")) {
-        populateScreenHTML();
-    }
-    const word = wordsToReview[state.currentFlashcardIndex];
+    const word = gameList[state.currentFlashcardIndex];
     setState({ currentWord: word });
     document.getElementById("flashcard").classList.remove("is-flipped");
     document.getElementById("flashcard-front").innerHTML = `<p class="text-2xl md:text-3xl font-bold text-white">${word.word}</p><button onclick="speakWord('${word.word}', event)" class="mt-4 bg-white/20 hover:bg-white/30 p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>`;
     document.getElementById("flashcard-back").innerHTML = `<p class="text-xl md:text-2xl font-semibold text-white">${word.meaning}</p><p class="text-sm text-gray-200 italic mt-2 px-2">${word.example || ""}</p>`;
-    document.getElementById("card-counter").textContent = `${state.currentFlashcardIndex + 1} / ${wordsToReview.length}`;
+    document.getElementById("card-counter").textContent = `${state.currentFlashcardIndex + 1} / ${gameList.length}`;
     speakWord(word.word);
 }
 
 export function changeFlashcard(direction) {
-    const wordsToReview = getWordsToReview();
-    if (wordsToReview.length === 0) return;
-    const newIndex = (state.currentFlashcardIndex + direction + wordsToReview.length) % wordsToReview.length;
+    const gameList = state.filteredVocabList;
+    if (gameList.length === 0) return;
+    const newIndex = (state.currentFlashcardIndex + direction + gameList.length) % gameList.length;
     setState({ currentFlashcardIndex: newIndex });
     updateFlashcard();
+    // Ghi nhận hoạt động khi người dùng lướt qua thẻ
     recordDailyActivity(1);
     saveUserData();
 }
 
+// --- Chế độ Xem Toàn Bộ ---
 export function startShuffle() {
     const filterEl = document.getElementById("shuffle-category-filter");
     if (!filterEl) return;
@@ -160,9 +137,7 @@ export function startShuffle() {
             : state.vocabList.filter(v => (v.category || 'Chung') === selectedCategory);
         renderShuffleList(listToRender);
     };
-    const newFilterEl = filterEl.cloneNode(true); 
-    filterEl.parentNode.replaceChild(newFilterEl, filterEl);
-    newFilterEl.addEventListener('change', applyShuffleFilter);
+    filterEl.onchange = applyShuffleFilter;
     renderShuffleList(state.vocabList);
 }
 
@@ -173,7 +148,6 @@ function renderShuffleList(list) {
         listEl.innerHTML = '<li class="text-gray-500 text-center">Không có từ nào trong chủ đề này.</li>';
         return;
     }
-    
     list.forEach(word => {
         const li = document.createElement("li");
         const level = state.appData.progress[word.word]?.level || 0;
@@ -186,15 +160,14 @@ function renderShuffleList(list) {
     });
 }
 
+// --- Chế độ Sắp Xếp Chữ ---
 export function startScramble() {
     const newWord = getNextWord();
+    if (!document.getElementById('scrambled-word-display')) populateScreenHTML();
     const screenEl = document.getElementById("scramble-screen");
     if (!newWord) {
-        screenEl.innerHTML = '<p class="text-green-500">Tuyệt vời! Bạn đã ôn hết từ cho hôm nay.</p>';
+        screenEl.innerHTML = '<p class="text-orange-500">Không có từ nào phù hợp với bộ lọc của bạn.</p>';
         return;
-    }
-    if (!document.getElementById('scrambled-word-display')) {
-        populateScreenHTML();
     }
     setState({ currentWord: newWord });
     const scrambled = scrambleWord(state.currentWord.word);
@@ -207,10 +180,9 @@ export function startScramble() {
         span.textContent = letter;
         displayEl.appendChild(span);
     });
-    const inputEl = document.getElementById("scramble-input");
-    inputEl.value = "";
+    document.getElementById("scramble-input").value = "";
     document.getElementById("scramble-result").textContent = "";
-    inputEl.focus();
+    document.getElementById("scramble-input").focus();
 }
 
 export function checkScramble() {
@@ -229,21 +201,21 @@ export function checkScramble() {
     }
 }
 
+// --- Chế độ Trắc Nghiệm ---
 export function startMcq() {
-    const wordsToReview = getWordsToReview();
+    const gameList = state.filteredVocabList;
+    if (!document.getElementById('mcq-options')) populateScreenHTML();
     const screenEl = document.getElementById("mcq-screen");
-    if (wordsToReview.length < 4) {
-        screenEl.innerHTML = '<p class="text-red-500">Cần ít nhất 4 từ trong danh sách ôn tập để chơi chế độ này.</p>';
+    if (gameList.length < 4) {
+        screenEl.innerHTML = '<p class="text-red-500">Cần ít nhất 4 từ trong bộ lọc để chơi chế độ này.</p>';
         return;
     }
-    if (!document.getElementById('mcq-options')) {
-        populateScreenHTML();
-    }
-    const correctWord = wordsToReview[Math.floor(Math.random() * wordsToReview.length)];
+    const correctWord = gameList[Math.floor(Math.random() * gameList.length)];
     setState({ currentWord: correctWord });
     const options = [correctWord];
+    const fullVocabList = state.vocabList;
     while (options.length < 4) {
-        const randomWord = state.filteredVocabList[Math.floor(Math.random() * state.filteredVocabList.length)];
+        const randomWord = fullVocabList[Math.floor(Math.random() * fullVocabList.length)];
         if (!options.some(opt => opt.word === randomWord.word)) {
             options.push(randomWord);
         }
@@ -260,16 +232,10 @@ export function startMcq() {
         optionsEl.appendChild(button);
     });
     document.getElementById("mcq-result").textContent = "";
-
     const speakBtn = document.getElementById('mcq-speak-btn');
     if (speakBtn) {
-        const newSpeakBtn = speakBtn.cloneNode(true);
-        speakBtn.parentNode.replaceChild(newSpeakBtn, speakBtn);
-        newSpeakBtn.addEventListener('click', (event) => {
-            speakWord(state.currentWord.word, event);
-        });
+        speakBtn.onclick = (event) => speakWord(state.currentWord.word, event);
     }
-    
     speakWord(state.currentWord.word);
 }
 
@@ -299,21 +265,19 @@ export function checkMcq(clickedButton, isCorrect) {
     }
 }
 
+// --- Chế độ Luyện Nghe ---
 export function startListening() {
     const newWord = getNextWord();
+    if (!document.getElementById('listening-input')) populateScreenHTML();
     const screenEl = document.getElementById("listening-screen");
     if (!newWord) {
-        screenEl.innerHTML = '<p class="text-green-500">Bạn đã ôn hết từ cho hôm nay!</p>';
+        screenEl.innerHTML = '<p class="text-orange-500">Không có từ nào phù hợp với bộ lọc của bạn.</p>';
         return;
     }
-    if (!document.getElementById('listening-input')) {
-        populateScreenHTML();
-    }
     setState({ currentWord: newWord });
-    const inputEl = document.getElementById("listening-input");
-    inputEl.value = "";
+    document.getElementById("listening-input").value = "";
     document.getElementById("listening-result").textContent = "";
-    inputEl.focus();
+    document.getElementById("listening-input").focus();
     speakWord(state.currentWord.word);
 }
 
@@ -332,24 +296,17 @@ export function checkListening() {
     }
 }
 
-
-// --- THÊM MỚI: Chế độ Luyện Phát Âm ---
-
+// --- Chế độ Luyện Phát Âm ---
 export function startPronunciation() {
     if (!SpeechRecognition) {
-        document.getElementById('pronunciation-screen').innerHTML = `
-            <h2 class="text-2xl font-semibold text-red-500 dark:text-red-400 mb-4">Lỗi Tương Thích</h2>
-            <p class="text-gray-600 dark:text-gray-400">Trình duyệt của bạn không hỗ trợ API Nhận dạng Giọng nói. Vui lòng sử dụng Google Chrome hoặc một trình duyệt khác được hỗ trợ.</p>
-        `;
+        document.getElementById('pronunciation-screen').innerHTML = `<h2 class="text-2xl font-semibold text-red-500 dark:text-red-400 mb-4">Lỗi Tương Thích</h2><p class="text-gray-600 dark:text-gray-400">Trình duyệt của bạn không hỗ trợ API Nhận dạng Giọng nói. Vui lòng sử dụng Google Chrome hoặc một trình duyệt khác được hỗ trợ.</p>`;
         return;
     }
-
     const newWord = getNextWord();
     if (!newWord) {
-        document.getElementById('pronunciation-screen').innerHTML = `<p class="text-green-500">Tuyệt vời! Bạn đã ôn hết từ cho hôm nay.</p>`;
+        document.getElementById('pronunciation-screen').innerHTML = `<p class="text-orange-500">Không có từ nào phù hợp với bộ lọc của bạn.</p>`;
         return;
     }
-    
     setState({ currentWord: newWord });
     document.getElementById('pronunciation-word').textContent = newWord.word;
     document.getElementById('pronunciation-transcript').textContent = '';
@@ -364,27 +321,21 @@ export function listenForPronunciation() {
     const statusEl = document.getElementById('pronunciation-status');
     const transcriptEl = document.getElementById('pronunciation-transcript');
     const resultEl = document.getElementById('pronunciation-result');
-
     recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-
     recognition.onstart = () => {
         statusEl.textContent = 'Đang nghe...';
         recordBtn.disabled = true;
         recordBtn.classList.add('is-recording');
     };
-
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript.trim().toLowerCase();
         transcriptEl.textContent = transcript;
-
         const correctWord = state.currentWord.word.toLowerCase();
-        const isCorrect = transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"") === correctWord;
-        
+        const isCorrect = transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "") === correctWord;
         updateWordLevel(state.currentWord, isCorrect);
-
         if (isCorrect) {
             resultEl.textContent = '✅ Phát âm chính xác!';
             resultEl.className = 'mt-4 h-6 text-lg font-medium text-green-500';
@@ -394,7 +345,6 @@ export function listenForPronunciation() {
             resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
         }
     };
-
     recognition.onerror = (event) => {
         if (event.error === 'no-speech' || event.error === 'audio-capture') {
             statusEl.textContent = 'Không nghe thấy gì, thử lại nhé.';
@@ -405,30 +355,20 @@ export function listenForPronunciation() {
             console.error('Speech recognition error:', event.error);
         }
     };
-
     recognition.onend = () => {
         statusEl.textContent = 'Nhấn nút để ghi âm';
         recordBtn.disabled = false;
         recordBtn.classList.remove('is-recording');
     };
-
     recognition.start();
 }
 
-
-// --- NÂNG CẤP: Chế độ Điền vào chỗ trống với API ---
-
-/**
- * Tìm câu ví dụ cho một từ, ưu tiên ví dụ của người dùng, sau đó đến API.
- * @param {string} word - Từ cần tìm ví dụ.
- * @returns {Promise<string|null>} - Một câu ví dụ hoặc null.
- */
+// --- Chế độ Điền Từ ---
 async function findExampleSentence(word) {
     try {
         const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
         if (!response.ok) return null;
         const data = await response.json();
-        
         if (data && data.length > 0) {
             for (const entry of data) {
                 for (const meaning of entry.meanings) {
@@ -447,73 +387,48 @@ async function findExampleSentence(word) {
     }
 }
 
-/**
- * Hiển thị giao diện cho chế độ Điền từ.
- * @param {string} sentence - Câu ví dụ.
- * @param {object} wordObj - Đối tượng từ vựng.
- */
-function populateFillBlankUI(sentence, wordObj) {
-    const screenEl = document.getElementById('fill-blank-screen');
-    const regex = new RegExp(`\\b${wordObj.word}\\b`, 'ig');
-    const sentenceWithBlank = sentence.replace(regex, '_______');
-
-    screenEl.innerHTML = `
-        <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Điền vào chỗ trống</h2>
-        <div id="fill-blank-sentence" class="p-6 bg-gray-100 dark:bg-gray-700 rounded-lg text-lg md:text-xl text-gray-800 dark:text-gray-200 mb-6 leading-relaxed">${sentenceWithBlank}</div>
-        <input type="text" id="fill-blank-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập từ còn thiếu...">
-        <div class="mt-4">
-            <button onclick="checkFillBlank()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button>
-            <button onclick="startFillBlank()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Câu khác</button>
-        </div>
-        <p id="fill-blank-result" class="mt-4 h-6 text-lg font-medium"></p>
-    `;
-    document.getElementById('fill-blank-input').focus();
-}
-
 export async function startFillBlank() {
     const screenEl = document.getElementById('fill-blank-screen');
     screenEl.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Đang tìm câu ví dụ, vui lòng chờ...</p><div class="loader mx-auto mt-4"></div>`;
-
-    const wordsToTry = [...getWordsToReview()].sort(() => 0.5 - Math.random());
-    
+    const wordsToTry = [...state.filteredVocabList].sort(() => 0.5 - Math.random());
     if (wordsToTry.length === 0) {
-        screenEl.innerHTML = `<p class="text-green-500">Tuyệt vời! Bạn đã ôn hết từ cho hôm nay.</p>`;
+        screenEl.innerHTML = `<p class="text-orange-500">Không có từ nào phù hợp với bộ lọc của bạn.</p>`;
         return;
     }
-
     let exampleFound = false;
     for (const wordObj of wordsToTry) {
         let exampleSentence = null;
-        // Ưu tiên ví dụ của người dùng
         if (wordObj.example && wordObj.example.toLowerCase().includes(wordObj.word.toLowerCase())) {
             exampleSentence = wordObj.example;
         } else {
-            // Nếu không có, tìm bằng API
             exampleSentence = await findExampleSentence(wordObj.word);
         }
-
         if (exampleSentence) {
             setState({ currentWord: wordObj });
             populateFillBlankUI(exampleSentence, wordObj);
             exampleFound = true;
-            break; 
+            break;
         }
     }
-
     if (!exampleFound) {
         screenEl.innerHTML = `<p class="text-orange-500">Không tìm thấy câu ví dụ nào phù hợp. Vui lòng thử lại sau hoặc thêm ví dụ cho các từ của bạn.</p>`;
     }
 }
 
+function populateFillBlankUI(sentence, wordObj) {
+    const screenEl = document.getElementById('fill-blank-screen');
+    const regex = new RegExp(`\\b${wordObj.word}\\b`, 'ig');
+    const sentenceWithBlank = sentence.replace(regex, '_______');
+    screenEl.innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Điền vào chỗ trống</h2><div id="fill-blank-sentence" class="p-6 bg-gray-100 dark:bg-gray-700 rounded-lg text-lg md:text-xl text-gray-800 dark:text-gray-200 mb-6 leading-relaxed">${sentenceWithBlank}</div><input type="text" id="fill-blank-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập từ còn thiếu..."><div class="mt-4"><button onclick="checkFillBlank()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button><button onclick="startFillBlank()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Câu khác</button></div><p id="fill-blank-result" class="mt-4 h-6 text-lg font-medium"></p>`;
+    document.getElementById('fill-blank-input').focus();
+}
 
 export function checkFillBlank() {
     const userAnswer = document.getElementById('fill-blank-input').value.trim().toLowerCase();
     const resultEl = document.getElementById('fill-blank-result');
     if (!userAnswer) return;
-
     const isCorrect = userAnswer === state.currentWord.word.toLowerCase();
     updateWordLevel(state.currentWord, isCorrect);
-
     if (isCorrect) {
         resultEl.textContent = '✅ Chính xác!';
         resultEl.className = 'mt-4 h-6 text-lg font-medium text-green-500';
