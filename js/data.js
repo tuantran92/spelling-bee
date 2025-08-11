@@ -86,6 +86,7 @@ export async function saveUserData() {
 
 /**
  * Cập nhật cấp độ của một từ sau khi trả lời.
+ * ĐÃ SỬA: Thêm ghi nhận số lần sai vào wrongAttempts.
  */
 export function updateWordLevel(wordObj, isCorrect) {
     if (!wordObj || !wordObj.word) return;
@@ -104,6 +105,7 @@ export function updateWordLevel(wordObj, isCorrect) {
         wordProgress.level = Math.min(wordProgress.level + 1, SRS_INTERVALS.length - 1);
     } else {
         wordProgress.level = Math.max(0, wordProgress.level - 2);
+        // SỬA ĐỔI TẠI ĐÂY: Tăng bộ đếm số lần sai
         wordProgress.wrongAttempts = (wordProgress.wrongAttempts || 0) + 1;
     }
     const intervalDays = SRS_INTERVALS[wordProgress.level];
