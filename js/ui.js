@@ -6,7 +6,7 @@ import * as vocabManager from './vocabManager.js';
 import * as stats from './statistics.js';
 import * as exam from './exam.js';
 import * as achievements from './achievements.js';
-
+import { saveUserData } from './data.js';
 
 export const DOMElements = {
     profileSelectionContainer: document.getElementById('profile-selection-container'),
@@ -34,8 +34,35 @@ export function toggleControls() {
     arrow.classList.toggle('rotate-180');
 }
 
+export function updateDarkModeButton() {
+    const toggleBtn = document.getElementById('dark-mode-toggle');
+    if (!toggleBtn) return;
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    if (isDarkMode) {
+        toggleBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 14.95a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z" clip-rule="evenodd" /></svg>
+            <span>Chế độ Sáng</span>
+        `;
+    } else {
+        toggleBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
+            <span>Chế độ Tối</span>
+        `;
+    }
+}
+
+export function toggleDarkMode() {
+    document.documentElement.classList.toggle('dark');
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    if (!state.appData.settings) {
+        state.appData.settings = {};
+    }
+    state.appData.settings.darkMode = isDarkMode;
+    saveUserData();
+    updateDarkModeButton();
+}
+
 export function populateScreenHTML() {
-    // SỬA ĐỔI: Trả 3 nút về lại menu chính
     DOMElements.mainMenu.innerHTML = `
         <button onclick="showScreen('spelling-screen')" class="btn-glowing bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Đánh Vần</button>
         <button onclick="showScreen('reading-screen')" class="btn-glowing bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Flashcard</button>
@@ -50,7 +77,6 @@ export function populateScreenHTML() {
         <button onclick="showScreen('achievements-screen')" class="btn-glowing bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg shadow-md">Thành tựu</button>
     `;
 
-    // Các màn hình cũ (giữ nguyên)
     document.getElementById('spelling-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Điền từ đúng cho nghĩa sau:</h2><div class="flex justify-center items-center gap-4 mb-4"><p id="spelling-meaning" class="text-xl bg-gray-100 dark:bg-gray-700 p-4 rounded-lg text-gray-900 dark:text-gray-100"></p><button id="spelling-speak-btn" class="p-3 bg-indigo-500 hover:bg-indigo-600 rounded-full text-white shadow-md" title="Nghe lại"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button></div><div id="spelling-example" class="text-gray-600 dark:text-gray-400 italic mb-4"></div><input type="text" id="spelling-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập từ tiếng Anh..."><div class="mt-4"><button onclick="checkSpelling()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button><button onclick="startSpelling()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Từ khác</button></div><p id="spelling-result" class="mt-4 h-6 text-lg font-medium"></p>`;
     document.getElementById('reading-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Luyện Nghe & Phát Âm</h2><div class="perspective-1000"><div id="flashcard" class="flashcard relative w-full h-56 md:h-64 cursor-pointer" onclick="this.classList.toggle('is-flipped')"><div class="flashcard-inner relative w-full h-full"><div id="flashcard-front" class="flashcard-front absolute w-full h-full bg-teal-500 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg"></div><div id="flashcard-back" class="flashcard-back absolute w-full h-full bg-teal-700 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg"></div></div></div></div><div class="mt-6 flex justify-center items-center gap-4"><button onclick="changeFlashcard(-1)" class="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 p-3 rounded-full shadow-md"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button><span id="card-counter" class="text-gray-700 dark:text-gray-300 font-medium"></span><button onclick="changeFlashcard(1)" class="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 p-3 rounded-full shadow-md"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button></div><div id="reading-options" class="mt-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg space-y-4"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label for="voice-select" class="block mb-1 text-sm font-medium text-gray-900 dark:text-gray-300">Giọng đọc:</label><select id="voice-select" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"></select></div><div><label for="rate-slider" class="block mb-1 text-sm font-medium text-gray-900 dark:text-gray-300">Tốc độ: <span id="rate-value">1.0</span>x</label><input id="rate-slider" type="range" min="0.5" max="2" step="0.1" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-500"></div></div></div>`;
     document.getElementById('shuffle-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4 text-center">Danh sách từ vựng</h2><div class="mb-4"><label for="shuffle-category-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Lọc theo chủ đề:</label><select id="shuffle-category-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></select></div><div class="text-sm text-gray-600 dark:text-gray-400 mb-4">Màu sắc thể hiện mức độ thành thạo: <span class="text-green-500">Tốt</span>, <span class="text-yellow-500">Đang học</span>, <span class="text-red-500">Cần ôn</span>.</div><ul id="vocab-list-display" class="space-y-2 max-h-80 overflow-y-auto"></ul>`;
@@ -128,9 +154,8 @@ export function populateScreenHTML() {
 
 export function showScreen(screenId) {
     const isMainMenu = screenId === 'main-menu';
-    
-    // Ẩn/hiện khối điều khiển dựa trên việc có ở menu chính hay không
-    const controlsContainer = document.getElementById('toggle-controls-btn').parentElement;
+
+    const controlsContainer = document.getElementById('toggle-controls-btn')?.parentElement;
     if (controlsContainer) {
         controlsContainer.style.display = isMainMenu ? 'block' : 'none';
     }

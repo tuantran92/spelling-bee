@@ -5,7 +5,7 @@
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from './firebase.js';
 import { setState } from './state.js';
-import { DOMElements, showScreen, applyFilters, populateScreenHTML, cancelVocabEdit, setupVoiceOptions, toggleControls } from './ui.js';
+import { DOMElements, showScreen, applyFilters, populateScreenHTML, cancelVocabEdit, setupVoiceOptions, toggleControls, toggleDarkMode } from './ui.js';
 import * as profile from './profile.js';
 import * as data from './data.js';
 import * as game from './gameModes.js';
@@ -22,6 +22,7 @@ function attachGlobalFunctions() {
     
     // UI
     window.showScreen = showScreen;
+    window.toggleDarkMode = toggleDarkMode;
 
     // Vocab Management
     window.handleVocabSubmit = vocabManager.handleVocabSubmit;
@@ -55,10 +56,8 @@ function attachGlobalFunctions() {
 
 /**
  * Gán các sự kiện cho các element không có onclick.
- * ĐÃ SỬA LỖI: Thêm kiểm tra null để tránh crash ứng dụng.
  */
 function addEventListeners() {
-    // Hàm phụ để gán sự kiện an toàn
     const safeAddEventListener = (id, event, handler) => {
         const element = document.getElementById(id);
         if (element) {
@@ -77,7 +76,6 @@ function addEventListeners() {
         }
     };
 
-    // Gán sự kiện bằng các hàm an toàn
     safeAddEventListener('category-filter', 'change', applyFilters);
     safeAddEventListener('difficulty-filter', 'change', applyFilters);
     
