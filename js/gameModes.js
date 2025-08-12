@@ -34,6 +34,53 @@ export function speakWord(word, event) {
     synth.speak(utterance);
 }
 
+/**
+ * CHỨC NĂNG MỚI: Bắt đầu chế độ học theo gợi ý
+ * @param {string} containerId 
+ */
+export function startSuggestionMode(containerId) {
+    const container = document.getElementById(containerId);
+    const suggestions = state.suggestions;
+    if (!container) return;
+
+    if (!suggestions.difficult.length && !suggestions.new.length) {
+        container.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Gợi ý</h2><p>Không có gợi ý nào vào lúc này. Hãy học thêm để hệ thống có dữ liệu nhé!</p>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <h2 class="text-2xl font-semibold mb-4">Học theo gợi ý</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+            <div>
+                <div class="p-4 bg-red-50 dark:bg-red-900/40 rounded-lg h-full">
+                    <h4 class="font-bold text-red-800 dark:text-red-300 mb-2">Từ khó cần ôn lại</h4>
+                    ${suggestions.difficult.length > 0 ? `
+                        <ul class="space-y-2">
+                            ${suggestions.difficult.map(w => `
+                                <li class="font-medium text-gray-700 dark:text-gray-300 flex justify-between items-center">
+                                    <span>${w.word}</span>
+                                    <button onclick="speakWord('${w.word}', event)" class="p-1"><svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
+                                </li>`).join('')}
+                        </ul>` : '<p class="text-sm text-gray-500">Không có từ khó nào.</p>'}
+                </div>
+            </div>
+            <div>
+                <div class="p-4 bg-green-50 dark:bg-green-900/40 rounded-lg h-full">
+                    <h4 class="font-bold text-green-800 dark:text-green-300 mb-2">Từ mới nên học</h4>
+                     ${suggestions.new.length > 0 ? `
+                        <ul class="space-y-2">
+                             ${suggestions.new.map(w => `
+                                <li class="font-medium text-gray-700 dark:text-gray-300 flex justify-between items-center">
+                                    <span>${w.word}</span>
+                                    <button onclick="speakWord('${w.word}', event)" class="p-1"><svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
+                                </li>`).join('')}
+                        </ul>` : '<p class="text-sm text-gray-500">Không có từ mới nào.</p>'}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 // --- Chế độ Ôn tập Thông minh ---
 export function renderReviewCard(containerId) {
     const screenEl = document.getElementById(containerId);
@@ -79,7 +126,8 @@ export function renderReviewCard(containerId) {
     speakWord(word.word);
 }
 
-window.handleReviewAnswer = (isCorrect) => {
+// *** SỬA LỖI: Chuyển thành hàm được export ***
+export function handleReviewAnswer(isCorrect) {
     const { words, currentIndex } = state.reviewSession;
     const word = words[currentIndex];
 
@@ -377,7 +425,7 @@ export function checkListening() {
     }
 }
 
-// --- Luyện Phát Âm (Pronunciation) - ĐÃ SỬA ---
+// --- Luyện Phát Âm (Pronunciation) ---
 export function startPronunciation(containerId) {
     const container = document.getElementById(containerId);
     if (!SpeechRecognition) {
@@ -447,7 +495,7 @@ export function listenForPronunciation() {
 }
 
 
-// --- Điền vào chỗ trống (Fill Blank) - ĐÃ SỬA ---
+// --- Điền vào chỗ trống (Fill Blank) ---
 export async function startFillBlank(containerId) {
     const screenEl = document.getElementById(containerId);
     screenEl.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Điền vào chỗ trống</h2><p class="text-gray-500">Đang tìm câu ví dụ...</p><div class="loader mx-auto mt-4"></div>`;
@@ -490,7 +538,7 @@ function populateFillBlankUI(containerId, sentence, wordObj) {
     screenEl.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Điền vào chỗ trống</h2>
         <div id="fill-blank-sentence" class="p-6 bg-gray-100 dark:bg-gray-700 rounded-lg text-lg mb-6">${sentenceWithBlank}</div>
-        <input type="text" id="fill-blank-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 rounded-lg focus:ring-2 dark:bg-gray-700" placeholder="Nhập từ còn thiếu...">
+        <input type="text" id="fill-blank-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 dark:bg-gray-700" placeholder="Nhập từ còn thiếu...">
         <div class="mt-4">
             <button onclick="checkFillBlank()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button>
         </div>

@@ -4,12 +4,12 @@ import { state, setState } from './state.js';
 import { saveMasterVocab, importFromGoogleSheet as dataImport } from './data.js';
 
 // --- PHÂN TRANG ---
-const ITEMS_PER_PAGE = 30; // Số lượng từ hiển thị mỗi lần tải
+const ITEMS_PER_PAGE = 30;
 let currentLoadedCount = ITEMS_PER_PAGE;
-let fullFilteredList = []; // Lưu trữ danh sách đã lọc đầy đủ
+let fullFilteredList = [];
 
 /**
- * Hiển thị giao diện quản lý từ vựng vào một container được chỉ định.
+ * Hàm này chỉ được gọi MỘT LẦN để thiết lập cấu trúc và các event listeners.
  * @param {string} containerId - ID của container để render nội dung vào.
  */
 export function renderVocabManagementList(containerId) {
@@ -22,47 +22,56 @@ export function renderVocabManagementList(containerId) {
         <div class="flex flex-col md:flex-row gap-4 mb-4">
             <div class="flex-grow">
                  <label for="vocab-search-input" class="block text-sm font-medium text-gray-500 dark:text-gray-400">Tìm kiếm</label>
-                 <input type="text" id="vocab-search-input" oninput="handleFilterChange()" placeholder="Nhập từ hoặc nghĩa..." class="mt-1 block w-full p-2 border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+                 <input type="text" id="vocab-search-input" placeholder="Nhập từ hoặc nghĩa..." class="mt-1 block w-full p-2 border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div class="flex-grow">
                 <label for="vocab-list-category-filter" class="block text-sm font-medium text-gray-500 dark:text-gray-400">Chủ đề</label>
-                <select id="vocab-list-category-filter" onchange="handleFilterChange()" class="mt-1 block w-full p-2 border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+                <select id="vocab-list-category-filter" class="mt-1 block w-full p-2 border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
                     ${categories.map(cat => `<option value="${cat}">${cat === 'all' ? 'Tất cả' : cat}</option>`).join('')}
                 </select>
             </div>
         </div>
-        <div id="vocab-list-display" class="space-y-2">
-            </div>
-        <div id="vocab-load-more-container" class="mt-6 text-center">
-            </div>
+        <div id="vocab-list-display" class="space-y-2"></div>
+        <div id="vocab-load-more-container" class="mt-6 text-center"></div>
         <div class="mt-6 border-t dark:border-gray-700 pt-4">
              <button onclick="importFromGoogleSheet()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Import từ Google Sheet</button>
              <div id="import-feedback" class="mt-2 h-5 text-sm text-center"></div>
         </div>
     `;
 
+    // Gán Event Listeners một cách đáng tin cậy
+    document.getElementById('vocab-search-input').addEventListener('input', handleFilterChange);
+    document.getElementById('vocab-list-category-filter').addEventListener('change', handleFilterChange);
+    
+    // Sử dụng Event Delegation cho các nút "Tải thêm" và dropdown độ khó
+    container.addEventListener('click', (event) => {
+        if (event.target && event.target.id === 'load-more-btn') {
+            loadMoreVocab();
+        }
+    });
+
+    container.addEventListener('change', (event) => {
+        if (event.target && event.target.classList.contains('difficulty-select')) {
+            const index = parseInt(event.target.dataset.index, 10);
+            const newDifficulty = event.target.value;
+            updateWordDifficulty(index, newDifficulty);
+        }
+    });
+
     handleFilterChange(); // Render danh sách lần đầu
 }
 
-/**
- * Được gọi khi người dùng thay đổi bộ lọc. Reset lại danh sách và hiển thị trang đầu tiên.
- */
-window.handleFilterChange = () => {
-    currentLoadedCount = ITEMS_PER_PAGE; // Reset lại số lượng
+// Các hàm này giờ là hàm nội bộ, không cần export
+function handleFilterChange() {
+    currentLoadedCount = ITEMS_PER_PAGE;
     filterAndDisplayVocab();
 }
 
-/**
- * Được gọi khi nhấn nút "Tải thêm".
- */
-window.loadMoreVocab = () => {
-    currentLoadedCount += ITEMS_PER_PAGE; // Tăng số lượng hiển thị
+function loadMoreVocab() {
+    currentLoadedCount += ITEMS_PER_PAGE;
     filterAndDisplayVocab();
 }
 
-/**
- * Lọc danh sách gốc và chỉ hiển thị một phần (phân trang).
- */
 function filterAndDisplayVocab() {
     const listContainer = document.getElementById('vocab-list-display');
     const loadMoreContainer = document.getElementById('vocab-load-more-container');
@@ -71,24 +80,29 @@ function filterAndDisplayVocab() {
     const searchTerm = document.getElementById('vocab-search-input').value.trim().toLowerCase();
     const categoryFilter = document.getElementById('vocab-list-category-filter').value;
 
-    // 1. Lọc để có danh sách đầy đủ
     fullFilteredList = state.vocabList.filter(word => {
         const categoryMatch = categoryFilter === 'all' || (word.category || 'Chung') === categoryFilter;
         const searchMatch = !searchTerm || word.word.toLowerCase().includes(searchTerm) || word.meaning.toLowerCase().includes(searchTerm);
         return categoryMatch && searchMatch;
     });
 
-    // 2. Cắt danh sách để chỉ lấy phần cần hiển thị
     const itemsToDisplay = fullFilteredList.slice(0, currentLoadedCount);
 
-    // 3. Render các từ trong danh sách đã cắt
     if (itemsToDisplay.length === 0) {
         listContainer.innerHTML = '<p class="text-center text-gray-500 py-8">Không tìm thấy từ nào.</p>';
     } else {
         listContainer.innerHTML = itemsToDisplay.map(word => {
             const originalIndex = state.vocabList.findIndex(v => v.word === word.word);
+            
+            const difficultyClasses = {
+                easy: 'border-l-4 border-green-500',
+                medium: 'border-l-4 border-yellow-500',
+                hard: 'border-l-4 border-red-500'
+            };
+            const difficultyClass = difficultyClasses[word.difficulty] || difficultyClasses.medium;
+
             return `
-                <div class="p-3 bg-gray-100 dark:bg-gray-700/60 rounded-lg">
+                <div id="vocab-item-${originalIndex}" class="p-3 bg-gray-100 dark:bg-gray-700/60 rounded-lg transition-colors duration-300 ${difficultyClass}">
                     <div class="flex justify-between items-start">
                         <div>
                             <p class="font-bold text-gray-900 dark:text-gray-100">${word.word}</p>
@@ -99,42 +113,77 @@ function filterAndDisplayVocab() {
                             <button onclick="deleteVocabWord(${originalIndex})" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Xóa"><svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                         </div>
                     </div>
-                    ${word.example ? `<p class="text-xs text-gray-500 dark:text-gray-500 italic mt-1 pl-1">Vd: ${word.example}</p>`: ''}
+                     <div class="flex items-center justify-between mt-2">
+                        ${word.example ? `<p class="text-xs text-gray-500 dark:text-gray-500 italic pl-1 truncate max-w-[60%]">Vd: ${word.example}</p>`: '<div></div>'}
+                        <select data-index="${originalIndex}" class="difficulty-select text-xs p-1 border rounded dark:bg-gray-600 dark:border-gray-500 focus:ring-1 focus:ring-indigo-500">
+                            <option value="easy" ${word.difficulty === 'easy' ? 'selected' : ''}>Dễ</option>
+                            <option value="medium" ${!word.difficulty || word.difficulty === 'medium' ? 'selected' : ''}>Trung bình</option>
+                            <option value="hard" ${word.difficulty === 'hard' ? 'selected' : ''}>Khó</option>
+                        </select>
+                    </div>
                 </div>
             `;
         }).join('');
     }
 
-    // 4. Hiển thị nút "Tải thêm" nếu cần
     loadMoreContainer.innerHTML = '';
     if (currentLoadedCount < fullFilteredList.length) {
         loadMoreContainer.innerHTML = `
-            <button onclick="loadMoreVocab()" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-semibold py-2 px-6 rounded-lg">
+            <button id="load-more-btn" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-semibold py-2 px-6 rounded-lg">
                 Tải thêm (${fullFilteredList.length - currentLoadedCount} từ nữa)
             </button>
         `;
     }
 }
 
+async function updateWordDifficulty(index, newDifficulty) {
+    if (state.vocabList[index]) {
+        state.vocabList[index].difficulty = newDifficulty;
+        await saveMasterVocab();
 
-// CÁC HÀM CÒN LẠI GIỮ NGUYÊN
+        const itemEl = document.getElementById(`vocab-item-${index}`);
+        if (itemEl) {
+            itemEl.classList.remove('border-green-500', 'border-yellow-500', 'border-red-500');
+            if (newDifficulty === 'easy') {
+                itemEl.classList.add('border-green-500');
+            } else if (newDifficulty === 'hard') {
+                itemEl.classList.add('border-red-500');
+            } else {
+                itemEl.classList.add('border-yellow-500');
+            }
+
+            const originalBg = 'bg-gray-100';
+            const originalDarkBg = 'dark:bg-gray-700/60';
+            itemEl.classList.remove(originalBg, originalDarkBg);
+            itemEl.classList.add('bg-green-100', 'dark:bg-green-900/50');
+            setTimeout(() => {
+                itemEl.classList.remove('bg-green-100', 'dark:bg-green-900/50');
+            }, 1000);
+        }
+    }
+}
+
 export function openVocabForm(wordIndex = -1) {
     setState({ editingWordIndex: wordIndex });
     const isEditing = wordIndex > -1;
     const word = isEditing ? state.vocabList[wordIndex] : {};
-
     const modalContainer = document.getElementById('vocab-form-modal');
     modalContainer.innerHTML = `
         <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md mx-auto relative">
              <button onclick="closeVocabForm()" class="absolute top-2 right-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-2 z-10">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
-            <h3 id="vocab-form-title" class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">${isEditing ? 'Sửa từ' : 'Thêm từ mới'}</h3>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">${isEditing ? 'Sửa từ' : 'Thêm từ mới'}</h3>
             <div class="space-y-4">
                 <input type="text" id="vocab-word" placeholder="Từ vựng (tiếng Anh)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" value="${word.word || ''}">
                 <input type="text" id="vocab-meaning" placeholder="Nghĩa (tiếng Việt)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" value="${word.meaning || ''}">
                 <input type="text" id="vocab-example" placeholder="Ví dụ (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" value="${word.example || ''}">
                 <input type="text" id="vocab-category" placeholder="Chủ đề (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" value="${word.category || ''}">
+                <select id="vocab-difficulty" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                    <option value="easy" ${word.difficulty === 'easy' ? 'selected' : ''}>Dễ</option>
+                    <option value="medium" ${!word.difficulty || word.difficulty === 'medium' ? 'selected' : ''}>Trung bình</option>
+                    <option value="hard" ${word.difficulty === 'hard' ? 'selected' : ''}>Khó</option>
+                </select>
             </div>
             <p id="vocab-form-feedback" class="text-red-500 text-sm mt-2 h-4"></p>
             <div class="flex gap-2 mt-4">
@@ -158,7 +207,6 @@ export async function handleVocabSubmit() {
     const word = document.getElementById('vocab-word').value.trim().toLowerCase();
     const meaning = document.getElementById('vocab-meaning').value.trim();
     const feedbackEl = document.getElementById('vocab-form-feedback');
-
     if (!word || !meaning) {
         feedbackEl.textContent = "Từ vựng và nghĩa không được để trống.";
         return;
@@ -169,15 +217,13 @@ export async function handleVocabSubmit() {
         feedbackEl.textContent = "Từ này đã tồn tại.";
         return;
     }
-
     const newWord = {
         word: word,
         meaning: meaning,
         example: document.getElementById('vocab-example').value.trim(),
         category: document.getElementById('vocab-category').value.trim() || 'Chung',
-        difficulty: 'medium'
+        difficulty: document.getElementById('vocab-difficulty').value
     };
-
     const newVocabList = [...state.vocabList];
     if (isEditing) {
         newVocabList[state.editingWordIndex] = newWord;
@@ -185,9 +231,8 @@ export async function handleVocabSubmit() {
         newVocabList.push(newWord);
     }
     setState({ vocabList: newVocabList });
-
     await saveMasterVocab();
-    handleFilterChange(); // Cập nhật lại danh sách có phân trang
+    handleFilterChange();
     closeVocabForm();
 }
 
@@ -200,7 +245,7 @@ export async function deleteVocabWord(index) {
     if (confirm(`Bạn có chắc muốn xóa từ "${wordToDelete}"?`)) {
         state.vocabList.splice(index, 1);
         await saveMasterVocab();
-        handleFilterChange(); // Cập nhật lại danh sách có phân trang
+        handleFilterChange();
     }
 }
 

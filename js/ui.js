@@ -6,7 +6,7 @@ import * as vocabManager from './vocabManager.js';
 import * as stats from './statistics.js';
 import * as exam from './exam.js';
 import * as achievements from './achievements.js';
-import { getReviewableWords, saveUserData, generateSuggestions } from './data.js';
+import { getReviewableWords, saveUserData, updateAndCacheSuggestions } from './data.js';
 import * as profile from './profile.js';
 
 // ===================================================================
@@ -40,6 +40,11 @@ export function showTab(tabId) {
         selectedButton.classList.add('active');
     }
 
+    // Cập nhật gợi ý khi người dùng quay lại tab "Học"
+    if (tabId === 'home-tab') {
+        updateAndCacheSuggestions();
+    }
+    
     // Render nội dung cho tab khi nó được hiển thị
     switch (tabId) {
         case 'home-tab':
@@ -81,6 +86,7 @@ export function showGameScreen(screenId) {
     container.appendChild(gameScreenEl);
 
     const screenInitializers = {
+        'suggestion-screen': game.startSuggestionMode,
         'review-screen': game.renderReviewCard,
         'spelling-screen': game.startSpelling,
         'reading-screen': game.startReading,
@@ -123,7 +129,6 @@ export function renderHomeTab() {
     const profileName = state.appData.profileName || "Bạn";
     const streak = state.appData.streak || 0;
     const reviewCount = getReviewableWords().length;
-
     const { type, value } = state.appData.settings?.dailyGoal || { type: 'words', value: 20 };
     const { words, minutes } = state.appData.dailyProgress || { words: 0, minutes: 0 };
     const progressValue = type === 'words' ? words : Math.floor(minutes);
@@ -159,11 +164,10 @@ export function renderHomeTab() {
             </div>
         </div>
 
-        <div id="smart-suggestion-container" class="mb-8"></div>
-
         <div>
-            <h3 class="text-lg font-semibold mb-4">Luyện tập thêm</h3>
+            <h3 class="text-lg font-semibold mb-4">Luyện tập</h3>
             <div class="space-y-3">
+                ${renderPracticeModeItem('Học theo gợi ý', 'Tập trung vào từ khó và từ mới', 'suggestion-screen', 'bg-purple-100 dark:bg-purple-800')}
                 ${renderPracticeModeItem('Đánh Vần', 'Luyện kỹ năng viết đúng chính tả', 'spelling-screen')}
                 ${renderPracticeModeItem('Flashcard', 'Học từ với thẻ ghi nhớ', 'reading-screen')}
                 ${renderPracticeModeItem('Trắc Nghiệm', 'Chọn nghĩa đúng của từ', 'mcq-screen')}
@@ -174,8 +178,6 @@ export function renderHomeTab() {
             </div>
         </div>
     `;
-
-    renderSuggestions();
 }
 
 /**
@@ -184,19 +186,15 @@ export function renderHomeTab() {
 export function renderVocabTab() {
     const container = document.getElementById('vocab-tab');
     if (!container) return;
-
     container.innerHTML = `
         <header class="mb-4">
             <h1 class="text-2xl font-bold">Kho từ vựng</h1>
         </header>
-        <div id="vocab-management-content">
-            </div>
-
+        <div id="vocab-management-content"></div>
         <button onclick="openVocabForm()" class="fixed bottom-20 right-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg z-40">
             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
         </button>
     `;
-    // Gọi hàm của vocabManager để render nội dung chi tiết
     vocabManager.renderVocabManagementList('vocab-management-content');
 }
 
@@ -206,28 +204,19 @@ export function renderVocabTab() {
 export function renderProgressTab() {
     const container = document.getElementById('progress-tab');
     if (!container) return;
-
     container.innerHTML = `
         <header class="mb-6">
             <h1 class="text-2xl font-bold">Tiến độ của bạn</h1>
         </header>
-
         <div class="flex border-b border-gray-200 dark:border-gray-700 mb-4">
             <button id="progress-sub-tab-stats" class="sub-tab-btn active-sub-tab px-4 py-2 font-semibold" onclick="showProgressSubTab('stats')">Tổng quan</button>
             <button id="progress-sub-tab-achievements" class="sub-tab-btn px-4 py-2 font-semibold" onclick="showProgressSubTab('achievements')">Thành tựu</button>
         </div>
-
-        <div id="stats-sub-tab-content" class="sub-tab-content active">
-            </div>
-        <div id="achievements-sub-tab-content" class="sub-tab-content">
-            </div>
+        <div id="stats-sub-tab-content" class="sub-tab-content active"></div>
+        <div id="achievements-sub-tab-content" class="sub-tab-content"></div>
     `;
-
-    // Render nội dung cho tab con mặc định
     stats.renderStatisticsPage('stats-sub-tab-content');
     achievements.renderAchievementsPage('achievements-sub-tab-content');
-
-    // Mặc định hiển thị tab Tổng quan
     showProgressSubTab('stats');
 }
 
@@ -237,132 +226,138 @@ export function renderProgressTab() {
 export function renderProfileTab() {
     const container = document.getElementById('profile-tab');
     if (!container) return;
-
     const goal = state.appData.settings?.dailyGoal || { type: 'words', value: 20 };
     const isDarkMode = document.documentElement.classList.contains('dark');
-
     container.innerHTML = `
         <header class="text-center mb-8">
-            <div class="relative inline-block">
-                <div class="w-24 h-24 rounded-full bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center text-4xl font-bold text-indigo-600 dark:text-indigo-300">
-                    ${(state.appData.profileName || 'A').charAt(0).toUpperCase()}
-                </div>
-            </div>
+            <div class="relative inline-block"><div class="w-24 h-24 rounded-full bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center text-4xl font-bold text-indigo-600 dark:text-indigo-300">${(state.appData.profileName || 'A').charAt(0).toUpperCase()}</div></div>
             <h1 class="text-2xl font-bold mt-4">${state.appData.profileName || ''}</h1>
         </header>
-
         <div class="space-y-4">
             <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2">TÀI KHOẢN</h3>
             <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg">
                 ${renderSettingsItem('switch-profile-btn', 'Đổi hồ sơ', 'profile.switchProfile()')}
                 ${renderSettingsItem('delete-profile-btn', 'Xóa hồ sơ này', 'profile.promptDeleteProfile()', 'text-red-500')}
             </div>
-
             <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2 mt-6">CÀI ĐẶT</h3>
-             <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
-                 <div class="flex justify-between items-center">
-                    <label for="dark-mode-toggle-switch">Chế độ tối</label>
-                    <button id="dark-mode-toggle-switch" onclick="toggleDarkMode()" class="p-2 rounded-lg text-2xl">
-                        ${isDarkMode ? '🌙' : '☀️'}
-                    </button>
+            <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
+                <h4 class="font-medium mb-2">Tùy chọn học</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="category-filter" class="block text-xs font-medium text-gray-700 dark:text-gray-300">Chủ đề</label>
+                        <select id="category-filter" onchange="applyFilters()" class="mt-1 block w-full p-2 border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500"></select>
+                    </div>
+                    <div>
+                        <label for="difficulty-filter" class="block text-xs font-medium text-gray-700 dark:text-gray-300">Độ khó</label>
+                        <select id="difficulty-filter" onchange="applyFilters()" class="mt-1 block w-full p-2 border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500">
+                            <option value="all">Tất cả</option>
+                            <option value="easy">Dễ</option>
+                            <option value="medium">Trung bình</option>
+                            <option value="hard">Khó</option>
+                        </select>
+                    </div>
                 </div>
-                <hr class="border-gray-200 dark:border-gray-600 my-2">
-                <div>
-                    <label for="voice-select" class="block text-sm font-medium mb-1">Giọng đọc</label>
-                    <select id="voice-select" class="w-full p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></select>
-                </div>
-                <div class="mt-2">
-                    <label for="rate-slider" class="block text-sm font-medium">Tốc độ: <span id="rate-value">1.0</span>x</label>
-                    <input id="rate-slider" type="range" min="0.5" max="2" step="0.1" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-500 mt-1">
-                </div>
-             </div>
-
-             <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
-                <label class="block text-sm font-medium mb-2">Mục tiêu hàng ngày</label>
-                 <div class="flex items-center gap-2">
-                     <select id="goal-type-select" class="block w-2/3 p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                         <option value="words" ${goal.type === 'words' ? 'selected' : ''}>Ôn từ</option>
-                         <option value="minutes" ${goal.type === 'minutes' ? 'selected' : ''}>Dành thời gian</option>
-                     </select>
-                     <input type="number" id="goal-value-input" value="${goal.value}" min="1" class="block w-1/3 p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                     <span id="goal-unit-label" class="text-sm text-gray-600 dark:text-gray-400">${goal.type === 'words' ? 'từ' : 'phút'}</span>
-                 </div>
+                 <p id="filter-result-info" class="text-center text-xs text-gray-500 mt-2 h-4"></p>
             </div>
-
+            <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
+                <div class="flex justify-between items-center"><label for="dark-mode-toggle-switch">Chế độ tối</label><button id="dark-mode-toggle-switch" onclick="toggleDarkMode()" class="p-2 rounded-lg text-2xl">${isDarkMode ? '🌙' : '☀️'}</button></div>
+                <hr class="border-gray-200 dark:border-gray-600 my-2">
+                <div><label for="voice-select" class="block text-sm font-medium mb-1">Giọng đọc</label><select id="voice-select" class="w-full p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></select></div>
+                <div class="mt-2"><label for="rate-slider" class="block text-sm font-medium">Tốc độ: <span id="rate-value">1.0</span>x</label><input id="rate-slider" type="range" min="0.5" max="2" step="0.1" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-500 mt-1"></div>
+            </div>
+            <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="block text-sm font-medium mb-2">Mục tiêu hàng ngày</label>
+                <div class="flex items-center gap-2">
+                    <select id="goal-type-select" class="block w-2/3 p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                        <option value="words" ${goal.type === 'words' ? 'selected' : ''}>Ôn từ</option>
+                        <option value="minutes" ${goal.type === 'minutes' ? 'selected' : ''}>Dành thời gian</option>
+                    </select>
+                    <input type="number" id="goal-value-input" value="${goal.value}" min="1" class="block w-1/3 p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                    <span id="goal-unit-label" class="text-sm text-gray-600 dark:text-gray-400">${goal.type === 'words' ? 'từ' : 'phút'}</span>
+                </div>
+            </div>
             <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2 mt-6">KHÁC</h3>
-             <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg">
+            <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg">
                 ${renderSettingsItem('exam-mode-btn', 'Luyện thi', "showGameScreen('exam-screen')")}
-             </div>
+            </div>
         </div>
     `;
-
-    // Cần gọi lại các hàm này để gán event listener và load options
+    
+    populateFilters();
+    applyFilters();
     setupVoiceOptions();
     addSettingsEventListeners();
 }
-
 
 // ===================================================================
 // UI HELPERS & COMPONENT RENDERERS
 // ===================================================================
 
-/**
- * Hiển thị sub-tab trong trang Tiến độ.
- * @param {'stats' | 'achievements'} subTabName
- */
+function populateFilters() {
+    const categoryFilterEl = document.getElementById('category-filter');
+    const difficultyFilterEl = document.getElementById('difficulty-filter');
+    if (!categoryFilterEl || !difficultyFilterEl) return;
+
+    const categories = ['all', ...new Set(state.vocabList.map(v => v.category || 'Chung'))];
+    categoryFilterEl.innerHTML = categories.map(cat => `<option value="${cat}">${cat === 'all' ? 'Tất cả chủ đề' : cat}</option>`).join('');
+
+    categoryFilterEl.value = state.activeFilters.category;
+    difficultyFilterEl.value = state.activeFilters.difficulty;
+}
+
+export function applyFilters() {
+    const category = document.getElementById('category-filter')?.value || 'all';
+    const difficulty = document.getElementById('difficulty-filter')?.value || 'all';
+    setState({ activeFilters: { category, difficulty } });
+    let filtered = state.vocabList;
+
+    if (category !== 'all') {
+        filtered = filtered.filter(v => (v.category || 'Chung') === category);
+    }
+    if (difficulty !== 'all') {
+        filtered = filtered.filter(v => (v.difficulty || 'medium') === difficulty);
+    }
+
+    setState({ filteredVocabList: filtered });
+
+    const infoEl = document.getElementById('filter-result-info');
+    if (infoEl) {
+        if (filtered.length < state.vocabList.length) {
+            infoEl.textContent = `Áp dụng cho ${filtered.length} từ`;
+        } else {
+            infoEl.textContent = 'Áp dụng cho tất cả từ';
+        }
+    }
+}
+
 export function showProgressSubTab(subTabName) {
     document.querySelectorAll('.sub-tab-content').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.sub-tab-btn').forEach(el => el.classList.remove('active-sub-tab'));
-
     document.getElementById(`${subTabName}-sub-tab-content`).style.display = 'block';
     document.getElementById(`progress-sub-tab-${subTabName}`).classList.add('active-sub-tab');
 }
 
-
-function renderPracticeModeItem(title, description, screenId) {
-    return `
-        <div onclick="showGameScreen('${screenId}')" class="flex items-center gap-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-            <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-800 rounded-lg"></div>
-            <div class="flex-grow">
-                <p class="font-semibold">${title}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">${description}</p>
-            </div>
-            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-        </div>
-    `;
+function renderPracticeModeItem(title, description, screenId, iconBgClass = 'bg-indigo-100 dark:bg-indigo-800') {
+    return `<div onclick="showGameScreen('${screenId}')" class="flex items-center gap-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><div class="w-10 h-10 ${iconBgClass} rounded-lg flex items-center justify-center"></div><div class="flex-grow"><p class="font-semibold">${title}</p><p class="text-sm text-gray-500 dark:text-gray-400">${description}</p></div><svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></div>`;
 }
 
 function renderSettingsItem(id, text, onclickAction, textColor = '') {
-    return `
-        <div id="${id}" onclick="${onclickAction}" class="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600/50 rounded-lg">
-            <span class="font-medium ${textColor}">${text}</span>
-            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-        </div>
-    `;
+    return `<div id="${id}" onclick="${onclickAction}" class="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600/50 first:rounded-t-lg last:rounded-b-lg"><span class="font-medium ${textColor}">${text}</span><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></div>`;
 }
 
 export function handleGoalChange() {
     const typeSelect = document.getElementById('goal-type-select');
     const valueInput = document.getElementById('goal-value-input');
     const unitLabel = document.getElementById('goal-unit-label');
-
     if (!typeSelect || !valueInput || !unitLabel) return;
-
     const goalType = typeSelect.value;
     const goalValue = parseInt(valueInput.value) || 1;
     valueInput.value = goalValue;
-
     unitLabel.textContent = goalType === 'words' ? 'từ' : 'phút';
-
     state.appData.settings.dailyGoal = { type: goalType, value: goalValue };
     saveUserData();
-    renderHomeTab(); // Re-render để cập nhật thẻ mục tiêu
+    renderHomeTab();
 }
-
-
-// ===================================================================
-// DYNAMIC CONTENT UPDATERS
-// ===================================================================
 
 export function updateDashboard() {
     if (document.getElementById('home-tab')?.classList.contains('active')) {
@@ -379,7 +374,6 @@ export function toggleDarkMode() {
     } else {
         document.documentElement.classList.remove('dark');
     }
-    // Re-render tab profile để cập nhật nút toggle
     if(document.getElementById('profile-tab')?.classList.contains('active')) {
         renderProfileTab();
     }
@@ -412,68 +406,22 @@ export function setupVoiceOptions() {
     populateVoiceList();
 }
 
-
 export function renderSuggestions() {
-    const container = document.getElementById('smart-suggestion-container');
-    const suggestions = generateSuggestions();
-
-    if (!container) return;
-
-    const hasSuggestions = suggestions.difficult.length > 0 || suggestions.new.length > 0;
-
-    if (!hasSuggestions) {
-        container.innerHTML = '';
-        return;
-    }
-
-    container.innerHTML = `
-        <h3 class="text-lg font-semibold mb-4">Gợi ý cho bạn</h3>
-        <div class="flex space-x-4 overflow-x-auto pb-2">
-            ${suggestions.difficult.length > 0 ? `
-                <div class="flex-shrink-0 w-4/5 md:w-1/2">
-                    <div class="p-4 bg-red-50 dark:bg-red-900/40 rounded-lg">
-                        <h4 class="font-bold text-red-800 dark:text-red-300 mb-2">Từ khó</h4>
-                        <ul class="space-y-1">
-                        ${suggestions.difficult.map(w => `
-                            <li class="text-sm font-medium text-gray-700 dark:text-gray-300">${w.word}</li>
-                        `).join('')}
-                        </ul>
-                    </div>
-                </div>
-            ` : ''}
-            ${suggestions.new.length > 0 ? `
-                <div class="flex-shrink-0 w-4/5 md:w-1/2">
-                     <div class="p-4 bg-green-50 dark:bg-green-900/40 rounded-lg">
-                        <h4 class="font-bold text-green-800 dark:text-green-300 mb-2">Từ mới nên học</h4>
-                         <ul class="space-y-1">
-                        ${suggestions.new.map(w => `
-                            <li class="text-sm font-medium text-gray-700 dark:text-gray-300">${w.word}</li>
-                        `).join('')}
-                        </ul>
-                    </div>
-                </div>
-            ` : ''}
-        </div>
-    `;
+    // This function is no longer needed as suggestions are a game mode now.
 }
 
 export function addSettingsEventListeners() {
     const safeAddEventListener = (id, event, handler) => {
         const element = document.getElementById(id);
         if (element) {
-            // Remove old listener before adding new one to prevent duplication
             element.removeEventListener(event, handler);
             element.addEventListener(event, handler);
         }
     };
-
-     safeAddEventListener('rate-slider', 'input', (event) => {
+    safeAddEventListener('rate-slider', 'input', (event) => {
         const rateValue = document.getElementById('rate-value');
-        if (rateValue) {
-            rateValue.textContent = parseFloat(event.target.value).toFixed(1);
-        }
+        if (rateValue) rateValue.textContent = parseFloat(event.target.value).toFixed(1);
     });
-
     safeAddEventListener('goal-type-select', 'change', handleGoalChange);
     safeAddEventListener('goal-value-input', 'change', handleGoalChange);
 }

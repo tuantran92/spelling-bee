@@ -9,6 +9,17 @@ export const state = {
     currentFlashcardIndex: 0,
     availableVoices: [],
     
+    suggestions: {
+        difficult: [],
+        new: []
+    },
+
+    // *** THÊM MỚI: Lưu trạng thái của bộ lọc ***
+    activeFilters: {
+        category: 'all',
+        difficulty: 'all'
+    },
+
     appData: {
         profileName: '',
         streak: 0,

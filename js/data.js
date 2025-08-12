@@ -10,10 +10,15 @@ import { checkAchievements } from './achievements.js';
 
 const MASTER_VOCAB_ID = "sharedList";
 
-export function generateSuggestions() {
+/**
+ * *** THAY ĐỔI: Tính toán và LƯU LẠI gợi ý vào state ***
+ * Hàm này sẽ không còn tính toán ngẫu nhiên liên tục nữa.
+ */
+export function updateAndCacheSuggestions() {
     const { appData, vocabList } = state;
     if (!appData.progress || vocabList.length === 0) {
-        return { difficult: [], new: [] };
+        setState({ suggestions: { difficult: [], new: [] } });
+        return;
     }
 
     const difficultWords = Object.entries(appData.progress)
@@ -25,12 +30,13 @@ export function generateSuggestions() {
         .filter(Boolean);
 
     const learnedWordsSet = new Set(Object.keys(appData.progress).filter(word => appData.progress[word].level > 0));
-    let newWords = vocabList.filter(v => !learnedWordsSet.has(v.word))
-        .sort(() => 0.5 - Math.random())
+    const newWords = vocabList.filter(v => !learnedWordsSet.has(v.word))
+        .sort(() => 0.5 - Math.random()) // Vẫn giữ random ở đây để mỗi lần refresh tab Học sẽ có gợi ý mới
         .slice(0, 5);
 
-    return { difficult: difficultWords, new: newWords };
+    setState({ suggestions: { difficult: difficultWords, new: newWords } });
 }
+
 
 export function getReviewableWords() {
     const now = new Date();
@@ -40,7 +46,6 @@ export function getReviewableWords() {
         return new Date(progress.nextReview) <= now;
     });
     
-    // Khởi tạo/Cập nhật phiên ôn tập với các từ đến hạn
     setState({ reviewSession: { isActive: true, words: reviewable.sort(() => 0.5 - Math.random()), currentIndex: 0 } });
     return reviewable;
 }
@@ -123,6 +128,9 @@ export async function loadUserData(profileName) {
     }
 
     setState({ appData, vocabList: masterList, filteredVocabList: masterList });
+    
+    // *** THAY ĐỔI: Tạo gợi ý lần đầu khi load user data ***
+    updateAndCacheSuggestions();
     
     if (dataChanged) {
         await saveUserData();
