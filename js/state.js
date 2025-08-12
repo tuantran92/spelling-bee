@@ -17,7 +17,6 @@ export const state = {
         streak: 0,
         lastVisit: null,
         progress: {}, // { word: { level: 0, nextReview: '...', wrongAttempts: 0 } }
-        // THÊM MỚI: Dữ liệu cho các tính năng mới
         dailyActivity: {}, // { 'YYYY-MM-DD': count }
         achievements: {}, // { 'streak3': true }
         examHistory: [], // { date: '...', score: 80, time: 120, results: [...] }
@@ -25,7 +24,6 @@ export const state = {
     
     editingWordIndex: -1,       // Index của từ đang được sửa (-1 là thêm mới)
 
-    // THÊM MỚI: Trạng thái cho chế độ Luyện thi
     examState: {
         isActive: false,
         questions: [],
@@ -37,6 +35,13 @@ export const state = {
             questionCount: 10,
             timeLimit: 120 // seconds
         }
+    },
+
+    // THÊM MỚI: Trạng thái cho chế độ Ôn tập Thông minh
+    reviewSession: {
+        isActive: false,
+        words: [],
+        currentIndex: 0
     }
 };
 

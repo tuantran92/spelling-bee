@@ -1,9 +1,11 @@
 // js/gameModes.js
 
 import { state, setState } from './state.js';
-import { updateWordLevel, recordDailyActivity, saveUserData } from './data.js';
+import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords } from './data.js';
 import { scrambleWord } from './utils.js';
-import { populateScreenHTML } from './ui.js';
+import { populateScreenHTML, showScreen, updateReviewButton } from './ui.js';
+
+// --- CÁC HÀM CŨ KHÔNG THAY ĐỔI ---
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
@@ -34,6 +36,103 @@ export function speakWord(word, event) {
     synth.speak(utterance);
 }
 
+// ... (Giữ nguyên các hàm: startSpelling, checkSpelling, startReading, updateFlashcard, changeFlashcard, startShuffle, renderShuffleList, startScramble, checkScramble, startMcq, checkMcq, startListening, checkListening, startPronunciation, listenForPronunciation, startFillBlank, checkFillBlank)
+
+
+// --- THÊM MỚI: CHẾ ĐỘ ÔN TẬP THÔNG MINH ---
+
+/**
+ * Bắt đầu phiên Ôn tập Thông minh.
+ */
+export function startSmartReview() {
+    const reviewWords = getReviewableWords();
+
+    if (reviewWords.length === 0) {
+        alert("Tuyệt vời! Bạn đã ôn hết các từ cần ôn trong hôm nay.");
+        return;
+    }
+    
+    setState({ 
+        reviewSession: {
+            isActive: true,
+            words: reviewWords.sort(() => 0.5 - Math.random()), // Xáo trộn các từ cần ôn
+            currentIndex: 0
+        }
+    });
+
+    // Gọi showScreen để chuyển giao diện
+    showScreen('review-screen'); 
+    renderReviewCard();
+}
+
+/**
+ * Hiển thị thẻ flashcard cho từ cần ôn tập hiện tại.
+ */
+function renderReviewCard() {
+    const screenEl = document.getElementById('review-screen');
+    const { words, currentIndex } = state.reviewSession;
+    const word = words[currentIndex];
+
+    screenEl.innerHTML = `
+        <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Ôn tập Thông minh</h2>
+        <div class="perspective-1000">
+            <div id="review-flashcard" class="flashcard relative w-full h-56 md:h-64 cursor-pointer" onclick="this.classList.toggle('is-flipped')">
+                <div class="flashcard-inner relative w-full h-full">
+                    <div id="review-flashcard-front" class="flashcard-front absolute w-full h-full bg-cyan-600 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg">
+                        <p class="text-2xl md:text-3xl font-bold text-white">${word.word}</p>
+                        <button onclick="speakWord('${word.word}', event)" class="mt-4 bg-white/20 hover:bg-white/30 p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
+                    </div>
+                    <div id="review-flashcard-back" class="flashcard-back absolute w-full h-full bg-cyan-800 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg">
+                         <p class="text-xl md:text-2xl font-semibold text-white">${word.meaning}</p><p class="text-sm text-gray-200 italic mt-2 px-2">${word.example || ""}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="review-controls" class="mt-6 flex flex-col items-center gap-4">
+            <p class="text-gray-600 dark:text-gray-400">Bạn có nhớ từ này không?</p>
+            <div class="flex gap-4">
+                <button onclick="handleReviewAnswer(false)" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg shadow-md">Không nhớ</button>
+                <button onclick="handleReviewAnswer(true)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md">Nhớ</button>
+            </div>
+            <p id="review-card-counter" class="text-gray-700 dark:text-gray-300 font-medium">${currentIndex + 1} / ${words.length}</p>
+        </div>
+    `;
+    speakWord(word.word);
+}
+
+/**
+ * Xử lý câu trả lời của người dùng và chuyển sang từ tiếp theo.
+ * @param {boolean} isCorrect - Người dùng có nhớ từ hay không.
+ */
+window.handleReviewAnswer = (isCorrect) => {
+    const { words, currentIndex } = state.reviewSession;
+    const word = words[currentIndex];
+
+    // Cập nhật cấp độ SRS và lưu dữ liệu
+    updateWordLevel(word, isCorrect); 
+
+    // Chuyển sang từ tiếp theo
+    if (currentIndex + 1 < words.length) {
+        state.reviewSession.currentIndex++;
+        renderReviewCard();
+    } else {
+        finishReviewSession();
+    }
+}
+
+/**
+ * Kết thúc phiên ôn tập.
+ */
+function finishReviewSession() {
+    setState({ 
+        reviewSession: { isActive: false, words: [], currentIndex: 0 } 
+    });
+    alert("Hoàn thành! Bạn đã ôn tập xong các từ cho hôm nay.");
+    updateReviewButton(); // Cập nhật lại số lượng từ trên nút
+    showScreen('main-menu');
+}
+
+// ... (Giữ nguyên các hàm cũ không thay đổi ở đây)
 // --- Chế độ Đánh Vần ---
 export function startSpelling() {
     const newWord = getNextWord();

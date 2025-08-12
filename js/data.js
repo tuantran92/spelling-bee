@@ -4,12 +4,33 @@ import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/
 import { db } from './firebase.js';
 import { state, setState } from './state.js';
 import { SRS_INTERVALS } from './config.js';
-import { updateDashboard, showImportFeedback, updateDarkModeButton } from './ui.js';
+import { updateDashboard, showImportFeedback, updateDarkModeButton, updateReviewButton } from './ui.js';
 import { renderVocabManagementList } from './vocabManager.js';
 import { parseCSV } from './utils.js';
 import { checkAchievements } from './achievements.js';
 
 const MASTER_VOCAB_ID = "sharedList";
+
+/**
+ * THÊM MỚI: Lấy danh sách các từ cần ôn tập trong ngày.
+ * @returns {Array<object>} Danh sách các từ vựng cần ôn tập.
+ */
+export function getReviewableWords() {
+    const now = new Date();
+    // Đặt về đầu ngày để so sánh chính xác
+    now.setHours(0, 0, 0, 0); 
+
+    const reviewable = state.vocabList.filter(wordObj => {
+        const progress = state.appData.progress[wordObj.word];
+        if (!progress || progress.level === 0) {
+            return false; // Bỏ qua từ chưa học
+        }
+        const nextReviewDate = new Date(progress.nextReview);
+        nextReviewDate.setHours(0, 0, 0, 0);
+        return nextReviewDate <= now;
+    });
+    return reviewable;
+}
 
 async function loadMasterVocab() {
     try {
@@ -46,22 +67,19 @@ export async function loadUserData() {
     const defaultAppData = {
         streak: 0, lastVisit: null, progress: {},
         dailyActivity: {}, achievements: {}, examHistory: [],
-        settings: { darkMode: undefined } // Để undefined để xử lý logic khởi tạo
+        settings: { darkMode: undefined }
     };
 
     let appData = { ...defaultAppData, ...(userData.appData || {}) };
     
-    // SỬA LỖI & NÂNG CẤP: Logic khởi tạo Dark Mode
     let themeChanged = false;
     if (appData.settings?.darkMode === undefined) {
-        // Nếu chưa có cài đặt, lấy theo hệ thống và lưu lại
         const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (!appData.settings) appData.settings = {};
         appData.settings.darkMode = prefersDark;
-        themeChanged = true; // Đánh dấu để lưu lại
+        themeChanged = true;
     }
 
-    // Áp dụng theme
     if (appData.settings.darkMode) {
         document.documentElement.classList.add('dark');
     } else {
@@ -91,7 +109,7 @@ export async function loadUserData() {
     }
 
     setState({ appData, vocabList: masterList });
-    updateDashboard();
+    updateDashboard(); // Hàm này sẽ gọi cả updateReviewButton
     updateDarkModeButton();
 
     if (progressChanged || themeChanged) {
