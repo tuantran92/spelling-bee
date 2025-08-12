@@ -13,9 +13,25 @@ import * as vocabManager from './vocabManager.js';
 import * as exam from './exam.js';
 
 /**
+ * THÊM MỚI: Chứa danh sách các màn hình game để chọn ngẫu nhiên.
+ */
+const learningGameModes = ['spelling-screen', 'reading-screen', 'scramble-screen', 'mcq-screen', 'listening-screen', 'pronunciation-screen', 'fill-blank-screen'];
+
+/**
+ * THÊM MỚI: Bắt đầu một chế độ học ngẫu nhiên.
+ */
+function startRandomMode() {
+    const randomScreen = learningGameModes[Math.floor(Math.random() * learningGameModes.length)];
+    showScreen(randomScreen);
+}
+
+/**
  * Gán các hàm vào đối tượng window để HTML có thể gọi qua onclick.
  */
 function attachGlobalFunctions() {
+    // SỬA ĐỔI: Thêm hàm mới
+    window.startRandomMode = startRandomMode;
+
     // Profile
     window.createNewProfile = profile.createNewProfile;
     window.switchProfile = profile.switchProfile;

@@ -50,18 +50,63 @@ export function populateScreenHTML() {
         console.error("Main menu element not found!");
         return;
     }
+    // SỬA ĐỔI TOÀN BỘ: Cấu trúc lại Menu chính với layout mới
     mainMenu.innerHTML = `
-        <button onclick="showScreen('spelling-screen')" class="btn-glowing bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Đánh Vần</button>
-        <button onclick="showScreen('reading-screen')" class="btn-glowing bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Flashcard</button>
-        <button onclick="showScreen('scramble-screen')" class="btn-glowing bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Sắp Xếp Chữ</button>
-        <button onclick="showScreen('mcq-screen')" class="btn-glowing bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Trắc Nghiệm</button>
-        <button onclick="showScreen('listening-screen')" class="btn-glowing bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Luyện Nghe</button>
-        <button onclick="showScreen('shuffle-screen')" class="btn-glowing bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Xem Toàn Bộ</button>
-        <button onclick="showScreen('pronunciation-screen')" class="btn-glowing bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Luyện Phát Âm</button>
-        <button onclick="showScreen('fill-blank-screen')" class="btn-glowing bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">Điền Từ</button>
-        <button onclick="showScreen('stats-screen')" class="btn-glowing bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md">Thống kê</button>
-        <button onclick="showScreen('exam-screen')" class="btn-glowing bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md">Luyện thi</button>
-        <button onclick="showScreen('achievements-screen')" class="btn-glowing bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg shadow-md">Thành tựu</button>
+        <div class="w-full grid grid-cols-4 gap-3 md:gap-4">
+            
+            <button onclick="startRandomMode()" class="col-span-4 flex items-center justify-center gap-3 text-lg font-bold py-4 px-4 rounded-xl shadow-lg transition-transform transform hover:scale-105 bg-gradient-to-r from-green-400 to-blue-500 text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>Học ngay! (Ngẫu nhiên)</span>
+            </button>
+
+            <div class="col-span-4 text-center my-2">
+                <span class="text-sm text-gray-500 dark:text-gray-400">hoặc chọn một chế độ</span>
+            </div>
+
+            <button onclick="showScreen('spelling-screen')" class="col-span-2 flex flex-col items-center justify-center gap-2 p-4 rounded-xl shadow-md bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:-translate-y-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                <span class="font-semibold text-gray-800 dark:text-gray-200">Đánh Vần</span>
+            </button>
+            <button onclick="showScreen('reading-screen')" class="col-span-2 flex flex-col items-center justify-center gap-2 p-4 rounded-xl shadow-md bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:-translate-y-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                <span class="font-semibold text-gray-800 dark:text-gray-200">Flashcard</span>
+            </button>
+
+            <button onclick="showScreen('mcq-screen')" class="col-span-2 md:col-span-1 flex flex-col items-center justify-center gap-2 py-3 px-2 rounded-xl shadow-md bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:-translate-y-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>
+                <span class="font-medium text-sm text-gray-700 dark:text-gray-300">Trắc Nghiệm</span>
+            </button>
+            <button onclick="showScreen('listening-screen')" class="col-span-2 md:col-span-1 flex flex-col items-center justify-center gap-2 py-3 px-2 rounded-xl shadow-md bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:-translate-y-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                <span class="font-medium text-sm text-gray-700 dark:text-gray-300">Luyện Nghe</span>
+            </button>
+            <button onclick="showScreen('scramble-screen')" class="col-span-2 md:col-span-1 flex flex-col items-center justify-center gap-2 py-3 px-2 rounded-xl shadow-md bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:-translate-y-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>
+                <span class="font-medium text-sm text-gray-700 dark:text-gray-300">Sắp Xếp Chữ</span>
+            </button>
+             <button onclick="showScreen('pronunciation-screen')" class="col-span-2 md:col-span-1 flex flex-col items-center justify-center gap-2 py-3 px-2 rounded-xl shadow-md bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:-translate-y-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                <span class="font-medium text-sm text-gray-700 dark:text-gray-300">Phát Âm</span>
+            </button>
+            
+            <button onclick="showScreen('stats-screen')" class="col-span-1 flex flex-col items-center justify-center pt-2 pb-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                <span class="text-xs text-gray-600 dark:text-gray-400 mt-1">Thống kê</span>
+            </button>
+            <button onclick="showScreen('achievements-screen')" class="col-span-1 flex flex-col items-center justify-center pt-2 pb-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-12v4m-2-2h4m5 4v4m-2-2h4M17 3l4 4M5 21l4-4M17 21l-4-4M3 17l4 4" /></svg>
+                <span class="text-xs text-gray-600 dark:text-gray-400 mt-1">Thành tựu</span>
+            </button>
+            <button onclick="showScreen('exam-screen')" class="col-span-1 flex flex-col items-center justify-center pt-2 pb-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 14l9-5-9-5-9 5 9 5z" /><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-5.998 12.078 12.078 0 01.665-6.479L12 14z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-5.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>
+                <span class="text-xs text-gray-600 dark:text-gray-400 mt-1">Luyện thi</span>
+            </button>
+             <button onclick="showScreen('settings-screen')" class="col-span-1 flex flex-col items-center justify-center pt-2 pb-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <span class="text-xs text-gray-600 dark:text-gray-400 mt-1">Cài đặt</span>
+            </button>
+
+        </div>
     `;
 
     document.getElementById('spelling-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Điền từ đúng cho nghĩa sau:</h2><div class="flex justify-center items-center gap-4 mb-4"><p id="spelling-meaning" class="text-xl bg-gray-100 dark:bg-gray-700 p-4 rounded-lg text-gray-900 dark:text-gray-100"></p><button id="spelling-speak-btn" class="p-3 bg-indigo-500 hover:bg-indigo-600 rounded-full text-white shadow-md" title="Nghe lại"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button></div><div id="spelling-example" class="text-gray-600 dark:text-gray-400 italic mb-4"></div><input type="text" id="spelling-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập từ tiếng Anh..."><div class="mt-4"><button onclick="checkSpelling()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button><button onclick="startSpelling()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Từ khác</button></div><p id="spelling-result" class="mt-4 h-6 text-lg font-medium"></p>`;
@@ -149,7 +194,7 @@ export function showScreen(screenId) {
     const mainMenu = document.getElementById('main-menu');
     const appScreensContainer = document.getElementById('app-screens');
 
-    if (mainMenu) mainMenu.style.display = isMainMenu ? 'grid' : 'none';
+    if (mainMenu) mainMenu.style.display = isMainMenu ? 'block' : 'none'; // Sửa lại để hiển thị dạng block thay vì grid
     if (appScreensContainer) appScreensContainer.classList.toggle('hidden', isMainMenu);
     
     document.querySelectorAll('.app-screen').forEach(s => s.classList.add('hidden'));
