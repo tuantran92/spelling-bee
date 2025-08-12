@@ -35,7 +35,7 @@ export function speakWord(word, event) {
 }
 
 // --- Chế độ Ôn tập Thông minh ---
-
+// ... (Các hàm cho chế độ này không đổi)
 export function startSmartReview() {
     const reviewWords = getReviewableWords();
     if (reviewWords.length === 0) {
@@ -49,7 +49,6 @@ export function startSmartReview() {
             currentIndex: 0
         }
     });
-    // Sử dụng window.showScreen vì nó được gán global trong main.js
     window.showScreen('review-screen');
 }
 
@@ -112,7 +111,95 @@ function finishReviewSession() {
     window.showScreen('main-menu');
 }
 
-// --- Chế độ Đánh Vần ---
+// --- Chế độ Sắp Xếp Chữ ---
+
+// THÊM MỚI: Hàm để ẩn/hiện gợi ý
+export function toggleScrambleHint() {
+    const hintText = document.getElementById('scramble-hint-text');
+    const hintButton = document.getElementById('scramble-hint-btn');
+    if (hintText && hintButton) {
+        hintText.classList.toggle('hidden');
+        hintButton.textContent = hintText.classList.contains('hidden') ? 'Hiện Gợi ý' : 'Ẩn Gợi ý';
+    }
+}
+
+// SỬA ĐỔI: Cập nhật giao diện và logic của startScramble
+export function startScramble() {
+    const newWord = getNextWord();
+    const screenEl = document.getElementById("scramble-screen");
+    if (!document.getElementById('scrambled-word-display')) {
+        populateScreenHTML();
+    }
+    
+    // Sửa đổi phần HTML để có nút Gợi ý
+    screenEl.innerHTML = `
+        <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Sắp xếp các chữ cái sau:</h2>
+        <div class="text-gray-600 dark:text-gray-400 mb-4 h-8 flex items-center justify-center">
+            <button id="scramble-hint-btn" onclick="toggleScrambleHint()" class="bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-500">
+                Hiện Gợi ý
+            </button>
+            <span id="scramble-hint-text" class="hidden ml-2 italic">Từ này có nghĩa là "<span id="scramble-meaning" class="font-semibold"></span>"</span>
+        </div>
+        <div id="scrambled-word-display" class="flex justify-center items-center gap-2 my-6 flex-wrap"></div>
+        <input type="text" id="scramble-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập đáp án của bạn...">
+        <div class="mt-4">
+            <button onclick="checkScramble()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button>
+            <button onclick="startScramble()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Từ khác</button>
+        </div>
+        <p id="scramble-result" class="mt-4 h-6 text-lg font-medium"></p>
+    `;
+    
+    if (!newWord) {
+        document.getElementById('scrambled-word-display').innerHTML = '<p class="text-orange-500">Không có từ nào phù hợp với bộ lọc của bạn.</p>';
+        return;
+    }
+
+    setState({ currentWord: newWord });
+    const scrambled = scrambleWord(state.currentWord.word);
+    
+    document.getElementById("scramble-meaning").textContent = state.currentWord.meaning;
+    
+    const displayEl = document.getElementById("scrambled-word-display");
+    displayEl.innerHTML = "";
+    scrambled.split("").forEach(letter => {
+        const span = document.createElement("span");
+        span.className = "bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-100 text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg shadow-md";
+        span.textContent = letter;
+        displayEl.appendChild(span);
+    });
+    
+    const inputEl = document.getElementById("scramble-input");
+    inputEl.value = "";
+    inputEl.focus();
+
+    inputEl.onkeydown = (event) => {
+        if (event.key === 'Enter') {
+            checkScramble();
+        }
+    };
+}
+
+
+export function checkScramble() {
+    const userAnswer = document.getElementById("scramble-input").value.trim().toLowerCase();
+    const resultEl = document.getElementById("scramble-result");
+    if (!userAnswer) return;
+    const isCorrect = userAnswer === state.currentWord.word.toLowerCase();
+    updateWordLevel(state.currentWord, isCorrect);
+    if (isCorrect) {
+        resultEl.textContent = "✅ Chính xác!";
+        resultEl.className = "mt-4 h-6 text-lg font-medium text-green-500";
+        setTimeout(startScramble, 1500);
+    } else {
+        resultEl.textContent = "❌ Sai rồi! Thử lại đi.";
+        resultEl.className = "mt-4 h-6 text-lg font-medium text-red-500";
+    }
+}
+
+
+// --- CÁC HÀM CŨ KHÔNG THAY ĐỔI ---
+// (Toàn bộ các hàm còn lại của file không đổi)
+// ...
 export function startSpelling() {
     const newWord = getNextWord();
     if (!document.getElementById('spelling-input')) populateScreenHTML();
@@ -168,7 +255,6 @@ export function checkSpelling() {
     }
 }
 
-// --- Chế độ Flashcard ---
 export function startReading() {
     setState({ currentFlashcardIndex: 0 });
     updateFlashcard();
@@ -201,7 +287,6 @@ export function changeFlashcard(direction) {
     saveUserData();
 }
 
-// --- Chế độ Xem Toàn Bộ ---
 export function startShuffle() {
     const filterEl = document.getElementById("shuffle-category-filter");
     if (!filterEl) return;
@@ -243,55 +328,6 @@ function renderShuffleList(list) {
     });
 }
 
-// --- Chế độ Sắp Xếp Chữ ---
-export function startScramble() {
-    const newWord = getNextWord();
-    if (!document.getElementById('scrambled-word-display')) populateScreenHTML();
-    const screenEl = document.getElementById("scramble-screen");
-    if (!newWord) {
-        screenEl.innerHTML = '<p class="text-orange-500">Không có từ nào phù hợp với bộ lọc của bạn.</p>';
-        return;
-    }
-    setState({ currentWord: newWord });
-    const scrambled = scrambleWord(state.currentWord.word);
-    document.getElementById("scramble-meaning").textContent = state.currentWord.meaning;
-    const displayEl = document.getElementById("scrambled-word-display");
-    displayEl.innerHTML = "";
-    scrambled.split("").forEach(letter => {
-        const span = document.createElement("span");
-        span.className = "bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-100 text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg shadow-md";
-        span.textContent = letter;
-        displayEl.appendChild(span);
-    });
-    const inputEl = document.getElementById("scramble-input");
-    inputEl.value = "";
-    document.getElementById("scramble-result").textContent = "";
-    inputEl.focus();
-
-    inputEl.onkeydown = (event) => {
-        if (event.key === 'Enter') {
-            checkScramble();
-        }
-    };
-}
-
-export function checkScramble() {
-    const userAnswer = document.getElementById("scramble-input").value.trim().toLowerCase();
-    const resultEl = document.getElementById("scramble-result");
-    if (!userAnswer) return;
-    const isCorrect = userAnswer === state.currentWord.word.toLowerCase();
-    updateWordLevel(state.currentWord, isCorrect);
-    if (isCorrect) {
-        resultEl.textContent = "✅ Chính xác!";
-        resultEl.className = "mt-4 h-6 text-lg font-medium text-green-500";
-        setTimeout(startScramble, 1500);
-    } else {
-        resultEl.textContent = "❌ Sai rồi! Thử lại đi.";
-        resultEl.className = "mt-4 h-6 text-lg font-medium text-red-500";
-    }
-}
-
-// --- Chế độ Trắc Nghiệm ---
 export function startMcq() {
     const gameList = state.filteredVocabList;
     if (!document.getElementById('mcq-options')) populateScreenHTML();
@@ -355,7 +391,6 @@ export function checkMcq(clickedButton, isCorrect) {
     }
 }
 
-// --- Chế độ Luyện Nghe ---
 export function startListening() {
     const newWord = getNextWord();
     if (!document.getElementById('listening-input')) populateScreenHTML();
@@ -410,8 +445,6 @@ export function checkListening() {
     }
 }
 
-
-// --- Chế độ Luyện Phát Âm ---
 export function startPronunciation() {
     if (!SpeechRecognition) {
         document.getElementById('pronunciation-screen').innerHTML = `<h2 class="text-2xl font-semibold text-red-500 dark:text-red-400 mb-4">Lỗi Tương Thích</h2><p class="text-gray-600 dark:text-gray-400">Trình duyệt của bạn không hỗ trợ API Nhận dạng Giọng nói. Vui lòng sử dụng Google Chrome hoặc một trình duyệt khác được hỗ trợ.</p>`;
@@ -478,7 +511,6 @@ export function listenForPronunciation() {
     recognition.start();
 }
 
-// --- Chế độ Điền Từ ---
 async function findExampleSentence(word) {
     try {
         const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);

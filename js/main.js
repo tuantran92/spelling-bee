@@ -81,12 +81,11 @@ function attachGlobalFunctions() {
     window.speakWord = game.speakWord;
     window.checkScramble = game.checkScramble;
     window.startScramble = game.startScramble;
+    window.toggleScrambleHint = game.toggleScrambleHint; // THÊM DÒNG NÀY
     window.checkMcq = game.checkMcq;
     window.checkListening = game.checkListening;
     window.startListening = game.startListening;
     
-    // SỬA LỖI: Chỉ gán các hàm được export từ module 'game'
-    // hàm handleReviewAnswer đã được gán vào window trực tiếp từ file gameModes.js
     window.startSmartReview = game.startSmartReview;
 
     // Exam mode
@@ -115,7 +114,7 @@ function addEventListeners() {
     
     document.body.addEventListener('click', (e) => {
         if (e.target.id === 'create-profile-btn') profile.createNewProfile();
-        if (e.target.id === 'switch-profile-btn') profile.switchProfile();
+        if (e.target.id === 'switch-profile-btn') profile.switchProfile;
         if (e.target.id === 'back-to-menu-btn') window.showScreen('main-menu'); 
         if (e.target.closest('#toggle-controls-btn')) toggleControls();
         if (e.target.closest('#cancel-delete-btn')) {
