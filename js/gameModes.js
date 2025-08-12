@@ -81,7 +81,9 @@ export function startSuggestionMode(containerId) {
     `;
 }
 
-// --- Chế độ Ôn tập Thông minh ---
+/**
+ * *** THAY ĐỔI: Hiển thị cả Tiếng Anh và Tiếng Việt cùng lúc ***
+ */
 export function renderReviewCard(containerId) {
     const screenEl = document.getElementById(containerId);
     if (!screenEl) return;
@@ -101,17 +103,15 @@ export function renderReviewCard(containerId) {
 
     screenEl.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Ôn tập Thông minh</h2>
-        <div class="perspective-1000">
-            <div id="review-flashcard" class="flashcard relative w-full h-56 md:h-64 cursor-pointer" onclick="this.classList.toggle('is-flipped')">
-                <div class="flashcard-inner relative w-full h-full">
-                    <div class="flashcard-front absolute w-full h-full bg-cyan-600 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg">
-                        <p class="text-2xl md:text-3xl font-bold text-white">${word.word}</p>
-                        <button onclick="speakWord('${word.word}', event)" class="mt-4 bg-white/20 hover:bg-white/30 p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
-                    </div>
-                    <div class="flashcard-back absolute w-full h-full bg-cyan-800 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg">
-                         <p class="text-xl md:text-2xl font-semibold text-white">${word.meaning}</p><p class="text-sm text-gray-200 italic mt-2 px-2">${word.example || ""}</p>
-                    </div>
+        <div class="relative w-full h-56 md:h-64">
+            <div id="review-card" class="absolute w-full h-full bg-cyan-600 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg">
+                <div class="text-center">
+                    <p class="text-2xl md:text-3xl font-bold text-white">${word.word}</p>
+                    <p class="text-xl md:text-2xl text-cyan-200 mt-2">- ${word.meaning} -</p>
                 </div>
+                <button onclick="speakWord('${word.word}', event)" class="mt-4 bg-white/20 hover:bg-white/30 p-3 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                </button>
             </div>
         </div>
         <div id="review-controls" class="mt-6 flex flex-col items-center gap-4">
