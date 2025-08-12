@@ -16,7 +16,6 @@ import * as profile from './profile.js';
 export function showTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
-
     document.getElementById(tabId)?.classList.add('active');
     document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`)?.classList.add('active');
 
@@ -25,25 +24,16 @@ export function showTab(tabId) {
     }
     
     switch (tabId) {
-        case 'home-tab':
-            renderHomeTab();
-            break;
-        case 'vocab-tab':
-            renderVocabTab();
-            break;
-        case 'progress-tab':
-            renderProgressTab();
-            break;
-        case 'profile-tab':
-            renderProfileTab();
-            break;
+        case 'home-tab': renderHomeTab(); break;
+        case 'vocab-tab': renderVocabTab(); break;
+        case 'progress-tab': renderProgressTab(); break;
+        case 'profile-tab': renderProfileTab(); break;
     }
 }
 
 export function showGameScreen(screenId) {
     const container = document.getElementById('game-screen-container');
     if (!container) return;
-
     const gameScreenEl = document.createElement('div');
     gameScreenEl.id = screenId;
     gameScreenEl.className = 'game-screen active';
@@ -56,7 +46,6 @@ export function showGameScreen(screenId) {
         </div>
     `;
     container.appendChild(gameScreenEl);
-
     const screenInitializers = {
         'suggestion-screen': game.startSuggestionMode,
         'review-screen': game.renderReviewCard,
@@ -69,10 +58,7 @@ export function showGameScreen(screenId) {
         'pronunciation-screen': game.startPronunciation,
         'fill-blank-screen': game.startFillBlank,
     };
-
-    if (screenInitializers[screenId]) {
-        screenInitializers[screenId](`${screenId}-content`);
-    }
+    if (screenInitializers[screenId]) { screenInitializers[screenId](`${screenId}-content`); }
 }
 
 export function closeGameScreen(screenId) {
@@ -86,7 +72,6 @@ export function closeGameScreen(screenId) {
 export function renderHomeTab() {
     const container = document.getElementById('home-tab');
     if (!container) return;
-
     const profileName = state.appData.profileName || "Bạn";
     const streak = state.appData.streak || 0;
     const reviewCount = getReviewableWords().length;
@@ -98,11 +83,11 @@ export function renderHomeTab() {
     container.innerHTML = `
         <header class="flex justify-between items-center mb-6">
             <div>
-                <h1 class="text-2xl font-bold">Chào, ${profileName}!</h1>
+                <h1 class="text-2xl lg:text-3xl font-bold">Chào, ${profileName}!</h1>
                 <p class="text-gray-500 dark:text-gray-400">Sẵn sàng để học chưa?</p>
             </div>
             <div class="text-center">
-                <div class="text-3xl">🔥</div>
+                <div class="text-3xl lg:text-4xl">🔥</div>
                 <div class="font-bold text-orange-500">${streak}</div>
             </div>
         </header>
@@ -126,8 +111,8 @@ export function renderHomeTab() {
         </div>
 
         <div>
-            <h3 class="text-lg font-semibold mb-4">Luyện tập</h3>
-            <div class="space-y-3">
+            <h3 class="text-lg lg:text-xl font-semibold mb-4">Luyện tập</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 ${renderPracticeModeItem('Học theo gợi ý', 'Tập trung vào từ khó và từ mới', 'suggestion-screen')}
                 ${renderPracticeModeItem('Đánh Vần', 'Luyện kỹ năng viết đúng chính tả', 'spelling-screen')}
                 ${renderPracticeModeItem('Flashcard', 'Học từ với thẻ ghi nhớ', 'reading-screen')}
@@ -145,12 +130,10 @@ export function renderVocabTab() {
     const container = document.getElementById('vocab-tab');
     if (!container) return;
     container.innerHTML = `
-        <header class="mb-4">
-            <h1 class="text-2xl font-bold">Kho từ vựng</h1>
-        </header>
+        <header class="mb-4"><h1 class="text-2xl font-bold">Kho từ vựng</h1></header>
         <div id="vocab-management-content"></div>
         <button onclick="openVocabForm()" class="fixed bottom-20 right-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg z-40">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
         </button>
     `;
     vocabManager.renderVocabManagementList('vocab-management-content');
@@ -160,9 +143,7 @@ export function renderProgressTab() {
     const container = document.getElementById('progress-tab');
     if (!container) return;
     container.innerHTML = `
-        <header class="mb-6">
-            <h1 class="text-2xl font-bold">Tiến độ của bạn</h1>
-        </header>
+        <header class="mb-6"><h1 class="text-2xl font-bold">Tiến độ của bạn</h1></header>
         <div class="flex border-b border-gray-200 dark:border-gray-700 mb-4">
             <button id="progress-sub-tab-stats" class="sub-tab-btn active-sub-tab px-4 py-2 font-semibold" onclick="showProgressSubTab('stats')">Tổng quan</button>
             <button id="progress-sub-tab-achievements" class="sub-tab-btn px-4 py-2 font-semibold" onclick="showProgressSubTab('achievements')">Thành tựu</button>
@@ -185,52 +166,53 @@ export function renderProfileTab() {
             <div class="relative inline-block"><div class="w-24 h-24 rounded-full bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center text-4xl font-bold text-indigo-600 dark:text-indigo-300">${(state.appData.profileName || 'A').charAt(0).toUpperCase()}</div></div>
             <h1 class="text-2xl font-bold mt-4">${state.appData.profileName || ''}</h1>
         </header>
-        <div class="space-y-4">
-            <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2">TÀI KHOẢN</h3>
-            <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg">
-                ${renderSettingsItem('switch-profile-btn', 'Đổi hồ sơ', 'profile.switchProfile()')}
-                ${renderSettingsItem('delete-profile-btn', 'Xóa hồ sơ này', 'profile.promptDeleteProfile()', 'text-red-500')}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2">TÀI KHOẢN</h3>
+                <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg">
+                    ${renderSettingsItem('switch-profile-btn', 'Đổi hồ sơ', 'profile.switchProfile()')}
+                    ${renderSettingsItem('delete-profile-btn', 'Xóa hồ sơ này', 'profile.promptDeleteProfile()', 'text-red-500')}
+                </div>
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2 mt-6">KHÁC</h3>
+                <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg">
+                    ${renderSettingsItem('exam-mode-btn', 'Luyện thi', "showGameScreen('exam-screen')")}
+                </div>
             </div>
-            <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2 mt-6">CÀI ĐẶT</h3>
-            <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
-                <h4 class="font-medium mb-2">Tùy chọn học</h4>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="category-filter" class="block text-xs font-medium text-gray-700 dark:text-gray-300">Chủ đề</label>
-                        <select id="category-filter" onchange="applyFilters()" class="mt-1 block w-full p-2 border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500"></select>
+            <div class="space-y-4">
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2">CÀI ĐẶT</h3>
+                <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
+                    <h4 class="font-medium mb-2">Tùy chọn học</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="category-filter" class="block text-xs font-medium text-gray-700 dark:text-gray-300">Chủ đề</label>
+                            <select id="category-filter" onchange="applyFilters()" class="mt-1 block w-full p-2 border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500"></select>
+                        </div>
+                        <div>
+                            <label for="difficulty-filter" class="block text-xs font-medium text-gray-700 dark:text-gray-300">Độ khó</label>
+                            <select id="difficulty-filter" onchange="applyFilters()" class="mt-1 block w-full p-2 border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500">
+                                <option value="all">Tất cả</option><option value="easy">Dễ</option><option value="medium">Trung bình</option><option value="hard">Khó</option>
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <label for="difficulty-filter" class="block text-xs font-medium text-gray-700 dark:text-gray-300">Độ khó</label>
-                        <select id="difficulty-filter" onchange="applyFilters()" class="mt-1 block w-full p-2 border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500">
-                            <option value="all">Tất cả</option>
-                            <option value="easy">Dễ</option>
-                            <option value="medium">Trung bình</option>
-                            <option value="hard">Khó</option>
+                     <p id="filter-result-info" class="text-center text-xs text-gray-500 mt-2 h-4"></p>
+                </div>
+                <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
+                    <div class="flex justify-between items-center"><label for="dark-mode-toggle-switch">Chế độ tối</label><button id="dark-mode-toggle-switch" onclick="toggleDarkMode()" class="p-2 rounded-lg text-2xl">${isDarkMode ? '🌙' : '☀️'}</button></div>
+                    <hr class="border-gray-200 dark:border-gray-600 my-2">
+                    <div><label for="voice-select" class="block text-sm font-medium mb-1">Giọng đọc</label><select id="voice-select" class="w-full p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></select></div>
+                    <div class="mt-2"><label for="rate-slider" class="block text-sm font-medium">Tốc độ: <span id="rate-value">1.0</span>x</label><input id="rate-slider" type="range" min="0.5" max="2" step="0.1" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-500 mt-1"></div>
+                </div>
+                 <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
+                    <label class="block text-sm font-medium mb-2">Mục tiêu hàng ngày</label>
+                    <div class="flex items-center gap-2">
+                        <select id="goal-type-select" class="block w-2/3 p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                            <option value="words" ${goal.type === 'words' ? 'selected' : ''}>Ôn từ</option>
+                            <option value="minutes" ${goal.type === 'minutes' ? 'selected' : ''}>Dành thời gian</option>
                         </select>
+                        <input type="number" id="goal-value-input" value="${goal.value}" min="1" class="block w-1/3 p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                        <span id="goal-unit-label" class="text-sm text-gray-600 dark:text-gray-400">${goal.type === 'words' ? 'từ' : 'phút'}</span>
                     </div>
                 </div>
-                 <p id="filter-result-info" class="text-center text-xs text-gray-500 mt-2 h-4"></p>
-            </div>
-            <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
-                <div class="flex justify-between items-center"><label for="dark-mode-toggle-switch">Chế độ tối</label><button id="dark-mode-toggle-switch" onclick="toggleDarkMode()" class="p-2 rounded-lg text-2xl">${isDarkMode ? '🌙' : '☀️'}</button></div>
-                <hr class="border-gray-200 dark:border-gray-600 my-2">
-                <div><label for="voice-select" class="block text-sm font-medium mb-1">Giọng đọc</label><select id="voice-select" class="w-full p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></select></div>
-                <div class="mt-2"><label for="rate-slider" class="block text-sm font-medium">Tốc độ: <span id="rate-value">1.0</span>x</label><input id="rate-slider" type="range" min="0.5" max="2" step="0.1" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-500 mt-1"></div>
-            </div>
-            <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
-                <label class="block text-sm font-medium mb-2">Mục tiêu hàng ngày</label>
-                <div class="flex items-center gap-2">
-                    <select id="goal-type-select" class="block w-2/3 p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                        <option value="words" ${goal.type === 'words' ? 'selected' : ''}>Ôn từ</option>
-                        <option value="minutes" ${goal.type === 'minutes' ? 'selected' : ''}>Dành thời gian</option>
-                    </select>
-                    <input type="number" id="goal-value-input" value="${goal.value}" min="1" class="block w-1/3 p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                    <span id="goal-unit-label" class="text-sm text-gray-600 dark:text-gray-400">${goal.type === 'words' ? 'từ' : 'phút'}</span>
-                </div>
-            </div>
-            <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2 mt-6">KHÁC</h3>
-            <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg">
-                ${renderSettingsItem('exam-mode-btn', 'Luyện thi', "showGameScreen('exam-screen')")}
             </div>
         </div>
     `;
@@ -284,9 +266,6 @@ export function showProgressSubTab(subTabName) {
     document.getElementById(`progress-sub-tab-${subTabName}`).classList.add('active-sub-tab');
 }
 
-/**
- * *** THAY ĐỔI: Thêm màu sắc và biểu tượng riêng cho từng chế độ ***
- */
 function renderPracticeModeItem(title, description, screenId) {
     const styles = {
         'suggestion-screen':  { color: 'purple', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>'},
@@ -314,7 +293,6 @@ function renderPracticeModeItem(title, description, screenId) {
                 <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             </div>`;
 }
-
 
 function renderSettingsItem(id, text, onclickAction, textColor = '') {
     return `<div id="${id}" onclick="${onclickAction}" class="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600/50 first:rounded-t-lg last:rounded-b-lg"><span class="font-medium ${textColor}">${text}</span><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></div>`;
