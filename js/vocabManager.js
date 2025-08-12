@@ -17,32 +17,63 @@ export function startSettings() {
 
 /**
  * Hiển thị danh sách từ vựng trong trang quản lý.
- * ĐÃ NÂNG CẤP: Thêm bộ lọc Chủ đề và chỉ render danh sách đã lọc.
+ * ĐÃ NÂNG CẤP: Thêm ô tìm kiếm và logic lọc kết hợp.
  * @param {string} categoryFilter - Chủ đề cần lọc ('all' để hiển thị tất cả).
  */
 export function renderVocabManagementList(categoryFilter = 'all') {
     const listContainer = document.getElementById('vocab-management-list');
-    const filterContainer = document.getElementById('vocab-list-filter-container'); // Container mới cho bộ lọc
+    const filterContainer = document.getElementById('vocab-list-filter-container');
     listContainer.innerHTML = '';
-    
-    // --- Tạo và hiển thị bộ lọc Chủ đề ---
+
+    // --- Lấy giá trị của các bộ lọc hiện tại ---
+    const searchInput = document.getElementById('vocab-search-input');
+    const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    const categorySelect = document.getElementById('vocab-list-category-filter');
+
+    // --- Tạo và hiển thị bộ lọc Chủ đề và Tìm kiếm ---
     const categories = ['all', ...new Set(state.vocabList.map(v => v.category || 'Chung'))];
     filterContainer.innerHTML = `
-        <div class="mb-4">
-            <label for="vocab-list-category-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Lọc theo chủ đề:</label>
-            <select id="vocab-list-category-filter" onchange="filterVocabManagementList(this.value)" class="mt-1 block w-full md:w-1/3 p-2 border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
-                ${categories.map(cat => `<option value="${cat}" ${cat === categoryFilter ? 'selected' : ''}>${cat === 'all' ? 'Tất cả chủ đề' : cat}</option>`).join('')}
-            </select>
+        <div class="flex flex-col md:flex-row gap-4 mb-4">
+            <div class="flex-grow md:w-1/3">
+                <label for="vocab-list-category-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Lọc theo chủ đề:</label>
+                <select id="vocab-list-category-filter" onchange="filterVocabManagementList(this.value)" class="mt-1 block w-full p-2 border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
+                    ${categories.map(cat => `<option value="${cat}" ${cat === categoryFilter ? 'selected' : ''}>${cat === 'all' ? 'Tất cả chủ đề' : cat}</option>`).join('')}
+                </select>
+            </div>
+            <div class="flex-grow md:w-2/3">
+                 <label for="vocab-search-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tìm kiếm từ:</label>
+                 <input type="text" id="vocab-search-input" oninput="filterVocabManagementList()" placeholder="Nhập từ hoặc nghĩa để tìm..." class="mt-1 block w-full p-2 border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" value="${searchTerm}">
+            </div>
         </div>
     `;
+    // Đặt lại focus vào ô tìm kiếm nếu có
+    const newSearchInput = document.getElementById('vocab-search-input');
+    if (searchTerm) {
+        newSearchInput.focus();
+        // Di chuyển con trỏ đến cuối
+        newSearchInput.setSelectionRange(searchTerm.length, searchTerm.length);
+    }
+
 
     // --- Lọc và hiển thị danh sách từ vựng ---
-    const listToRender = categoryFilter === 'all'
-        ? state.vocabList
-        : state.vocabList.filter(word => (word.category || 'Chung') === categoryFilter);
+    let listToRender = state.vocabList;
+
+    // 1. Lọc theo chủ đề
+    if (categoryFilter !== 'all') {
+        listToRender = listToRender.filter(word => (word.category || 'Chung') === categoryFilter);
+    }
+
+    // 2. Lọc theo từ khóa tìm kiếm
+    if (searchTerm) {
+        listToRender = listToRender.filter(word =>
+            word.word.toLowerCase().includes(searchTerm) ||
+            word.meaning.toLowerCase().includes(searchTerm)
+        );
+    }
+
 
     if (listToRender.length === 0) {
-        listContainer.innerHTML = '<p class="text-center text-gray-500">Không có từ nào trong chủ đề này.</p>';
+        listContainer.innerHTML = '<p class="text-center text-gray-500">Không tìm thấy từ nào phù hợp.</p>';
         return;
     }
 
@@ -53,9 +84,7 @@ export function renderVocabManagementList(categoryFilter = 'all') {
     };
 
     listToRender.forEach(word => {
-        // Tìm index gốc của từ trong danh sách đầy đủ để các hàm sửa/xóa hoạt động đúng
         const originalIndex = state.vocabList.findIndex(v => v.word === word.word);
-
         const item = document.createElement('div');
         item.id = `vocab-item-${originalIndex}`;
         item.className = 'p-3 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-between transition-colors duration-300';
@@ -128,7 +157,7 @@ export async function handleVocabSubmit() {
     setState({ vocabList: newVocabList });
 
     await saveMasterVocab();
-    renderVocabManagementList('all'); // Hiển thị lại toàn bộ danh sách
+    renderVocabManagementList('all');
     cancelVocabEdit();
 }
 
@@ -194,8 +223,16 @@ export async function updateWordDifficulty(index, newDifficulty) {
 }
 
 /**
- * THÊM MỚI: Hàm trung gian để gọi từ HTML onchange.
+ * Hàm trung gian được gọi bởi các event onchange/oninput từ HTML.
+ * Nó sẽ gọi lại hàm render chính để cập nhật danh sách.
  */
 export function filterVocabManagementList(category) {
-    renderVocabManagementList(category);
+    let categoryToFilter = category;
+    // Nếu hàm được gọi từ ô tìm kiếm (oninput), `category` sẽ là undefined.
+    // Trong trường hợp đó, ta cần đọc giá trị hiện tại của bộ lọc chủ đề.
+    if (categoryToFilter === undefined) {
+        const categoryFilterEl = document.getElementById('vocab-list-category-filter');
+        categoryToFilter = categoryFilterEl ? categoryFilterEl.value : 'all';
+    }
+    renderVocabManagementList(categoryToFilter);
 }
