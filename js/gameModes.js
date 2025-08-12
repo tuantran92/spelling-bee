@@ -2,10 +2,8 @@
 
 import { state, setState } from './state.js';
 import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords } from './data.js';
-import { scrambleWord } from './utils.js';
+import { scrambleWord, levenshteinDistance } from './utils.js';
 import { populateScreenHTML, showScreen, updateReviewButton } from './ui.js';
-
-// --- CÁC HÀM CŨ KHÔNG THAY ĐỔI ---
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
@@ -36,41 +34,32 @@ export function speakWord(word, event) {
     synth.speak(utterance);
 }
 
-// ... (Giữ nguyên các hàm: startSpelling, checkSpelling, startReading, updateFlashcard, changeFlashcard, startShuffle, renderShuffleList, startScramble, checkScramble, startMcq, checkMcq, startListening, checkListening, startPronunciation, listenForPronunciation, startFillBlank, checkFillBlank)
+// --- Chế độ Ôn tập Thông minh ---
 
-
-// --- THÊM MỚI: CHẾ ĐỘ ÔN TẬP THÔNG MINH ---
-
-/**
- * Bắt đầu phiên Ôn tập Thông minh.
- */
 export function startSmartReview() {
     const reviewWords = getReviewableWords();
-
     if (reviewWords.length === 0) {
         alert("Tuyệt vời! Bạn đã ôn hết các từ cần ôn trong hôm nay.");
         return;
     }
-    
-    setState({ 
+    setState({
         reviewSession: {
             isActive: true,
-            words: reviewWords.sort(() => 0.5 - Math.random()), // Xáo trộn các từ cần ôn
+            words: reviewWords.sort(() => 0.5 - Math.random()),
             currentIndex: 0
         }
     });
-
-    // Gọi showScreen để chuyển giao diện
-    showScreen('review-screen'); 
-    renderReviewCard();
+    // Sử dụng window.showScreen vì nó được gán global trong main.js
+    window.showScreen('review-screen');
 }
 
-/**
- * Hiển thị thẻ flashcard cho từ cần ôn tập hiện tại.
- */
-function renderReviewCard() {
+export function renderReviewCard() {
     const screenEl = document.getElementById('review-screen');
     const { words, currentIndex } = state.reviewSession;
+    if (!words || words.length === 0 || currentIndex >= words.length) {
+        finishReviewSession();
+        return;
+    }
     const word = words[currentIndex];
 
     screenEl.innerHTML = `
@@ -100,18 +89,12 @@ function renderReviewCard() {
     speakWord(word.word);
 }
 
-/**
- * Xử lý câu trả lời của người dùng và chuyển sang từ tiếp theo.
- * @param {boolean} isCorrect - Người dùng có nhớ từ hay không.
- */
 window.handleReviewAnswer = (isCorrect) => {
     const { words, currentIndex } = state.reviewSession;
     const word = words[currentIndex];
 
-    // Cập nhật cấp độ SRS và lưu dữ liệu
-    updateWordLevel(word, isCorrect); 
+    updateWordLevel(word, isCorrect);
 
-    // Chuyển sang từ tiếp theo
     if (currentIndex + 1 < words.length) {
         state.reviewSession.currentIndex++;
         renderReviewCard();
@@ -120,19 +103,15 @@ window.handleReviewAnswer = (isCorrect) => {
     }
 }
 
-/**
- * Kết thúc phiên ôn tập.
- */
 function finishReviewSession() {
-    setState({ 
-        reviewSession: { isActive: false, words: [], currentIndex: 0 } 
+    setState({
+        reviewSession: { isActive: false, words: [], currentIndex: 0 }
     });
     alert("Hoàn thành! Bạn đã ôn tập xong các từ cho hôm nay.");
-    updateReviewButton(); // Cập nhật lại số lượng từ trên nút
-    showScreen('main-menu');
+    updateReviewButton();
+    window.showScreen('main-menu');
 }
 
-// ... (Giữ nguyên các hàm cũ không thay đổi ở đây)
 // --- Chế độ Đánh Vần ---
 export function startSpelling() {
     const newWord = getNextWord();
@@ -149,7 +128,7 @@ export function startSpelling() {
     inputEl.value = '';
     document.getElementById('spelling-result').textContent = '';
     inputEl.focus();
-    
+
     inputEl.onkeydown = (event) => {
         if (event.key === 'Enter') {
             checkSpelling();
@@ -167,15 +146,25 @@ export function checkSpelling() {
     const userAnswer = document.getElementById('spelling-input').value.trim().toLowerCase();
     const resultEl = document.getElementById('spelling-result');
     if (!userAnswer) return;
-    const isCorrect = userAnswer === state.currentWord.word.toLowerCase();
+
+    const correctAnswer = state.currentWord.word.toLowerCase();
+    const isCorrect = userAnswer === correctAnswer;
+
     updateWordLevel(state.currentWord, isCorrect);
+
     if (isCorrect) {
         resultEl.textContent = '✅ Chính xác!';
         resultEl.className = 'mt-4 h-6 text-lg font-medium text-green-500';
         setTimeout(startSpelling, 1500);
     } else {
-        resultEl.textContent = `❌ Sai rồi! Đáp án: ${state.currentWord.word}`;
-        resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
+        const distance = levenshteinDistance(userAnswer, correctAnswer);
+        if (distance <= 2) {
+            resultEl.textContent = `🤔 Gần đúng rồi! Hãy kiểm tra lại chính tả.`;
+            resultEl.className = 'mt-4 h-6 text-lg font-medium text-yellow-500';
+        } else {
+            resultEl.textContent = `❌ Sai rồi! Đáp án: ${state.currentWord.word}`;
+            resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
+        }
     }
 }
 
@@ -399,17 +388,28 @@ export function checkListening() {
     const userAnswer = document.getElementById("listening-input").value.trim().toLowerCase();
     const resultEl = document.getElementById("listening-result");
     if (!userAnswer) return;
-    const isCorrect = userAnswer === state.currentWord.word.toLowerCase();
+
+    const correctAnswer = state.currentWord.word.toLowerCase();
+    const isCorrect = userAnswer === correctAnswer;
+    
     updateWordLevel(state.currentWord, isCorrect);
+
     if (isCorrect) {
         resultEl.textContent = "✅ Chính xác!";
         resultEl.className = "mt-4 h-6 text-lg font-medium text-green-500";
         setTimeout(startListening, 1500);
     } else {
-        resultEl.textContent = `❌ Sai rồi! Đáp án đúng là "${state.currentWord.word}"`;
-        resultEl.className = "mt-4 h-6 text-lg font-medium text-red-500";
+        const distance = levenshteinDistance(userAnswer, correctAnswer);
+        if (distance <= 2) {
+            resultEl.textContent = `🤔 Gần đúng rồi! Nghe lại và thử nhé.`;
+            resultEl.className = "mt-4 h-6 text-lg font-medium text-yellow-500";
+        } else {
+            resultEl.textContent = `❌ Sai rồi! Đáp án đúng là "${state.currentWord.word}"`;
+            resultEl.className = "mt-4 h-6 text-lg font-medium text-red-500";
+        }
     }
 }
+
 
 // --- Chế độ Luyện Phát Âm ---
 export function startPronunciation() {
