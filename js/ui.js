@@ -6,8 +6,7 @@ import * as vocabManager from './vocabManager.js';
 import * as stats from './statistics.js';
 import * as exam from './exam.js';
 import * as achievements from './achievements.js';
-import { getReviewableWords } from './data.js';
-
+import { getReviewableWords, saveUserData } from './data.js';
 
 export function toggleControls() {
     const content = document.getElementById('collapsible-content');
@@ -54,23 +53,19 @@ export function populateScreenHTML() {
     }
     mainMenu.className = 'grid grid-cols-4 gap-3 md:gap-4';
 
-    // SỬA ĐỔI: Thêm lại đầy đủ các nút chức năng đã mất
     mainMenu.innerHTML = `
         <button onclick="startSmartReview()" id="smart-review-btn" class="relative col-span-4 flex items-center justify-center gap-3 text-lg font-bold py-4 px-4 rounded-xl shadow-lg transition-transform transform hover:scale-105 bg-gradient-to-r from-cyan-500 to-blue-600 text-white">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
             <span>Ôn tập thông minh</span>
             <span id="review-count-badge" class="absolute top-0 right-0 -mt-2 -mr-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center hidden">0</span>
         </button>
-
         <button onclick="startRandomMode()" class="col-span-4 flex items-center justify-center gap-3 text-lg font-bold py-4 px-4 rounded-xl shadow-lg transition-transform transform hover:scale-105 bg-gradient-to-r from-green-400 to-teal-500 text-white">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <span>Học ngẫu nhiên</span>
         </button>
-
         <div class="col-span-4 text-center my-2">
             <span class="text-sm text-gray-500 dark:text-gray-400">hoặc chọn một chế độ</span>
         </div>
-
         <button onclick="showScreen('spelling-screen')" class="col-span-2 flex flex-col items-center justify-center gap-2 p-4 rounded-xl shadow-md bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:-translate-y-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
             <span class="font-semibold text-gray-800 dark:text-gray-200">Đánh Vần</span>
@@ -79,7 +74,6 @@ export function populateScreenHTML() {
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
             <span class="font-semibold text-gray-800 dark:text-gray-200">Flashcard</span>
         </button>
-        
         <button onclick="showScreen('mcq-screen')" class="col-span-2 md:col-span-1 flex flex-col items-center justify-center gap-2 py-3 px-2 rounded-xl shadow-md bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all transform hover:-translate-y-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>
             <span class="font-medium text-sm text-gray-700 dark:text-gray-300">Trắc Nghiệm</span>
@@ -96,7 +90,6 @@ export function populateScreenHTML() {
             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
             <span class="font-medium text-sm text-gray-700 dark:text-gray-300">Phát Âm</span>
         </button>
-
         <button onclick="showScreen('stats-screen')" class="col-span-1 flex flex-col items-center justify-center pt-2 pb-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
             <span class="text-xs text-gray-600 dark:text-gray-400 mt-1">Thống kê</span>
@@ -119,6 +112,7 @@ export function populateScreenHTML() {
         document.getElementById('app-screens').insertAdjacentHTML('beforeend', `<div id="review-screen" class="app-screen hidden text-center"></div>`);
     }
 
+    // KHÔI PHỤC LẠI: Đảm bảo các div cho màn hình luôn tồn tại và điền nội dung vào chúng
     document.getElementById('spelling-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Điền từ đúng cho nghĩa sau:</h2><div class="flex justify-center items-center gap-4 mb-4"><p id="spelling-meaning" class="text-xl bg-gray-100 dark:bg-gray-700 p-4 rounded-lg text-gray-900 dark:text-gray-100"></p><button id="spelling-speak-btn" class="p-3 bg-indigo-500 hover:bg-indigo-600 rounded-full text-white shadow-md" title="Nghe lại"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button></div><div id="spelling-example" class="text-gray-600 dark:text-gray-400 italic mb-4"></div><input type="text" id="spelling-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập từ tiếng Anh..."><div class="mt-4"><button onclick="checkSpelling()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button><button onclick="startSpelling()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Từ khác</button></div><p id="spelling-result" class="mt-4 h-6 text-lg font-medium"></p>`;
     document.getElementById('reading-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Flashcard</h2><div class="perspective-1000"><div id="flashcard" class="flashcard relative w-full h-56 md:h-64 cursor-pointer" onclick="this.classList.toggle('is-flipped')"><div class="flashcard-inner relative w-full h-full"><div id="flashcard-front" class="flashcard-front absolute w-full h-full bg-teal-500 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg"></div><div id="flashcard-back" class="flashcard-back absolute w-full h-full bg-teal-700 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg"></div></div></div></div><div class="mt-6 flex justify-center items-center gap-4"><button onclick="changeFlashcard(-1)" class="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 p-3 rounded-full shadow-md"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button><span id="card-counter" class="text-gray-700 dark:text-gray-300 font-medium"></span><button onclick="changeFlashcard(1)" class="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 p-3 rounded-full shadow-md"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button></div>`;
     document.getElementById('shuffle-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4 text-center">Danh sách từ vựng</h2><div class="mb-4"><label for="shuffle-category-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Lọc theo chủ đề:</label><select id="shuffle-category-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></select></div><div class="text-sm text-gray-600 dark:text-gray-400 mb-4">Màu sắc thể hiện mức độ thành thạo: <span class="text-green-500">Tốt</span>, <span class="text-yellow-500">Đang học</span>, <span class="text-red-500">Cần ôn</span>.</div><ul id="vocab-list-display" class="space-y-2 max-h-80 overflow-y-auto"></ul>`;
@@ -195,29 +189,25 @@ export function populateScreenHTML() {
 
 export function showScreen(screenId) {
     const isMainMenu = screenId === 'main-menu';
-
     const controlsContainer = document.getElementById('toggle-controls-btn')?.parentElement;
     if (controlsContainer) {
         controlsContainer.style.display = isMainMenu ? 'block' : 'none';
     }
-    
     const mainMenu = document.getElementById('main-menu');
     const appScreensContainer = document.getElementById('app-screens');
-
     if (mainMenu) mainMenu.style.display = isMainMenu ? 'grid' : 'none';
     if (appScreensContainer) appScreensContainer.classList.toggle('hidden', isMainMenu);
-    
     document.querySelectorAll('.app-screen').forEach(s => s.classList.add('hidden'));
     const targetScreen = document.getElementById(screenId);
-    if(targetScreen) {
+    if (targetScreen) {
         targetScreen.classList.remove('hidden');
         const screenInitializers = {
-            'review-screen': game.renderReviewCard, // Chỉ render, không start lại
-            'spelling-screen': game.startSpelling, 
-            'reading-screen': game.startReading, 
-            'shuffle-screen': game.startShuffle, 
-            'scramble-screen': game.startScramble, 
-            'mcq-screen': game.startMcq, 
+            'review-screen': game.renderReviewCard,
+            'spelling-screen': game.startSpelling,
+            'reading-screen': game.startReading,
+            'shuffle-screen': game.startShuffle,
+            'scramble-screen': game.startScramble,
+            'mcq-screen': game.startMcq,
             'listening-screen': game.startListening,
             'settings-screen': vocabManager.startSettings,
             'stats-screen': stats.renderStatisticsPage,
@@ -235,10 +225,8 @@ export function showScreen(screenId) {
 export function updateReviewButton() {
     const badge = document.getElementById('review-count-badge');
     if (!badge) return;
-
     const count = getReviewableWords().length;
     badge.textContent = count;
-
     if (count > 0) {
         badge.classList.remove('hidden');
     } else {
@@ -246,12 +234,63 @@ export function updateReviewButton() {
     }
 }
 
+export function handleGoalChange() {
+    const typeSelect = document.getElementById('goal-type-select');
+    const valueInput = document.getElementById('goal-value-input');
+    const unitLabel = document.getElementById('goal-unit-label');
+
+    if (!typeSelect || !valueInput || !unitLabel) return;
+
+    const goalType = typeSelect.value;
+    const goalValue = parseInt(valueInput.value) || 1;
+    valueInput.value = goalValue;
+
+    unitLabel.textContent = goalType === 'words' ? 'từ' : 'phút';
+
+    state.appData.settings.dailyGoal = { type: goalType, value: goalValue };
+    saveUserData();
+    updateDashboard();
+}
+
+function updateDailyGoalDisplay() {
+    const displayEl = document.getElementById('daily-goal-display');
+    if (!displayEl) return;
+
+    const settings = state.appData.settings || {};
+    const dailyGoal = settings.dailyGoal || { type: 'words', value: 20 };
+    const dailyProgress = state.appData.dailyProgress || { words: 0, minutes: 0 };
+    
+    const isWords = dailyGoal.type === 'words';
+    const currentValue = isWords ? dailyProgress.words : Math.floor(dailyProgress.minutes);
+    const targetValue = dailyGoal.value;
+    const percentage = targetValue > 0 ? Math.min(Math.round((currentValue / targetValue) * 100), 100) : 0;
+    
+    displayEl.innerHTML = `
+        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Mục tiêu ngày</div>
+        <div class="text-2xl font-bold text-blue-500">${currentValue}/${targetValue}</div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-600 mt-1">
+            <div class="bg-blue-500 h-2.5 rounded-full" style="width: ${percentage}%"></div>
+        </div>
+    `;
+}
 
 export function updateDashboard() {
     updateStreakDisplay();
     populateCategoryFilter();
     updateProgressBar();
-    updateReviewButton(); 
+    updateReviewButton();
+    updateDailyGoalDisplay();
+    
+    const goalTypeSelect = document.getElementById('goal-type-select');
+    const goalValueInput = document.getElementById('goal-value-input');
+    const unitLabel = document.getElementById('goal-unit-label');
+    if(goalTypeSelect && goalValueInput && unitLabel) {
+        const goalSettings = state.appData.settings?.dailyGoal || { type: 'words', value: 20 };
+        goalTypeSelect.value = goalSettings.type;
+        goalValueInput.value = goalSettings.value;
+        unitLabel.textContent = goalSettings.type === 'words' ? 'từ' : 'phút';
+    }
+
     const vocabSourceEl = document.getElementById('vocab-source');
     if (vocabSourceEl) {
         if (state.vocabList && state.vocabList.length > 0) {
@@ -273,7 +312,6 @@ function updateStreakDisplay() {
 function updateProgressBar() {
     const progressBarEl = document.getElementById('progress-bar');
     if (!progressBarEl) return;
-    
     const totalWords = state.filteredVocabList.length;
     if (totalWords === 0) {
         progressBarEl.style.width = '0%';
@@ -289,7 +327,6 @@ function updateProgressBar() {
 function populateCategoryFilter() {
     const categoryFilterEl = document.getElementById('category-filter');
     if (!categoryFilterEl) return;
-
     const categories = [...new Set(state.vocabList.map(v => v.category || 'Chung'))];
     const currentCategory = categoryFilterEl.value;
     categoryFilterEl.innerHTML = '<option value="all">Tất cả chủ đề</option>';
@@ -307,20 +344,15 @@ export function applyFilters() {
     const categoryFilterEl = document.getElementById('category-filter');
     const difficultyFilterEl = document.getElementById('difficulty-filter');
     if (!categoryFilterEl || !difficultyFilterEl) return;
-
     const selectedCategory = categoryFilterEl.value;
     const selectedDifficulty = difficultyFilterEl.value;
-
     let filteredVocabList = [...state.vocabList];
-
     if (selectedCategory !== 'all') {
         filteredVocabList = filteredVocabList.filter(v => (v.category || 'Chung') === selectedCategory);
     }
-
     if (selectedDifficulty !== 'all') {
         filteredVocabList = filteredVocabList.filter(v => (v.difficulty || 'medium') === selectedDifficulty);
     }
-
     setState({ filteredVocabList });
     updateProgressBar();
 }
@@ -367,10 +399,10 @@ export function setupVoiceOptions() {
         state.availableVoices.forEach(voice => {
             const option = document.createElement('option');
             option.textContent = `${voice.name} (${voice.lang})`;
-            option.value = voice.name; 
+            option.value = voice.name;
             voiceSelect.appendChild(option);
         });
-        if(currentVal) voiceSelect.value = currentVal;
+        if (currentVal) voiceSelect.value = currentVal;
     }
     if (synth.onvoiceschanged !== undefined) {
         synth.onvoiceschanged = populateVoiceList;

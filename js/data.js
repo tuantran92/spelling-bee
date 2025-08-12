@@ -11,14 +11,9 @@ import { checkAchievements } from './achievements.js';
 
 const MASTER_VOCAB_ID = "sharedList";
 
-/**
- * THÊM MỚI: Lấy danh sách các từ cần ôn tập trong ngày.
- * @returns {Array<object>} Danh sách các từ vựng cần ôn tập.
- */
 export function getReviewableWords() {
     const now = new Date();
-    // Đặt về đầu ngày để so sánh chính xác
-    now.setHours(0, 0, 0, 0); 
+    now.setHours(0, 0, 0, 0);
 
     const reviewable = state.vocabList.filter(wordObj => {
         const progress = state.appData.progress[wordObj.word];
@@ -59,23 +54,32 @@ export async function loadUserData() {
     if (!state.selectedProfileId) return;
 
     const masterList = await loadMasterVocab();
-
     const userDocRef = doc(db, "users", state.selectedProfileId);
     const userDocSnap = await getDoc(userDocRef);
     const userData = userDocSnap.exists() ? userDocSnap.data() : {};
 
+    // SỬA ĐỔI: Thêm các giá trị mặc định cho mục tiêu hàng ngày
     const defaultAppData = {
         streak: 0, lastVisit: null, progress: {},
         dailyActivity: {}, achievements: {}, examHistory: [],
-        settings: { darkMode: undefined }
+        settings: {
+            darkMode: undefined,
+            dailyGoal: { type: 'words', value: 20 }
+        },
+        dailyProgress: { date: null, words: 0, minutes: 0 }
+    };
+    
+    // Hợp nhất dữ liệu, đảm bảo các thuộc tính mới được thêm vào
+    let appData = {
+        ...defaultAppData,
+        ...(userData.appData || {}),
+        settings: { ...defaultAppData.settings, ...(userData.appData?.settings || {}) },
+        dailyProgress: { ...defaultAppData.dailyProgress, ...(userData.appData?.dailyProgress || {}) }
     };
 
-    let appData = { ...defaultAppData, ...(userData.appData || {}) };
-    
     let themeChanged = false;
     if (appData.settings?.darkMode === undefined) {
         const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (!appData.settings) appData.settings = {};
         appData.settings.darkMode = prefersDark;
         themeChanged = true;
     }
@@ -86,7 +90,7 @@ export async function loadUserData() {
         document.documentElement.classList.remove('dark');
     }
 
-    let progressChanged = false;
+    let dataChanged = false;
     masterList.forEach(word => {
         if (!appData.progress[word.word]) {
             appData.progress[word.word] = {
@@ -94,25 +98,33 @@ export async function loadUserData() {
                 nextReview: new Date().toISOString(),
                 wrongAttempts: 0
             };
-            progressChanged = true;
+            dataChanged = true;
         }
     });
 
-    const today = new Date().toDateString();
+    const todayStr = new Date().toISOString().split('T')[0];
     const lastVisitDate = appData.lastVisit ? new Date(appData.lastVisit).toDateString() : null;
-    if (lastVisitDate !== today) {
+
+    if (new Date(appData.lastVisit).toDateString() !== new Date().toDateString()) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         appData.streak = (lastVisitDate === yesterday.toDateString()) ? (appData.streak || 0) + 1 : 1;
         appData.lastVisit = new Date().toISOString();
-        progressChanged = true;
+        dataChanged = true;
     }
 
+    // THÊM MỚI: Kiểm tra và reset mục tiêu hàng ngày
+    if (appData.dailyProgress.date !== todayStr) {
+        appData.dailyProgress = { date: todayStr, words: 0, minutes: 0 };
+        dataChanged = true;
+    }
+
+
     setState({ appData, vocabList: masterList });
-    updateDashboard(); // Hàm này sẽ gọi cả updateReviewButton
+    updateDashboard();
     updateDarkModeButton();
 
-    if (progressChanged || themeChanged) {
+    if (dataChanged || themeChanged) {
         await saveUserData();
     }
 }
@@ -143,18 +155,30 @@ export function updateWordLevel(wordObj, isCorrect) {
     const nextReviewDate = new Date();
     nextReviewDate.setDate(nextReviewDate.getDate() + intervalDays);
     wordProgress.nextReview = nextReviewDate.toISOString();
-    recordDailyActivity(1);
+    
+    // SỬA ĐỔI: Chỉ tăng số từ đã học nếu isCorrect
+    if (isCorrect) {
+        recordDailyActivity(1);
+    }
     checkAchievements();
     saveUserData();
 }
 
 export function recordDailyActivity(count) {
     const today = new Date().toISOString().split('T')[0];
-    const currentCount = state.appData.dailyActivity?.[today] || 0;
+    const currentActivityCount = state.appData.dailyActivity?.[today] || 0;
     if (!state.appData.dailyActivity) {
         state.appData.dailyActivity = {};
     }
-    state.appData.dailyActivity[today] = currentCount + count;
+    state.appData.dailyActivity[today] = currentActivityCount + count;
+
+    // THÊM MỚI: Cập nhật tiến trình mục tiêu số từ
+    if (state.appData.dailyProgress.date === today) {
+        state.appData.dailyProgress.words += count;
+    } else { // Nếu ngày đã thay đổi, reset
+        state.appData.dailyProgress = { date: today, words: count, minutes: 0 };
+    }
+    updateDashboard();
 }
 
 export async function importFromGoogleSheet() {

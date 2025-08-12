@@ -4,25 +4,37 @@
 // Tất cả các dữ liệu động sẽ được lưu ở đây.
 
 export const state = {
-    authUserId: null,           // ID người dùng từ Firebase Auth
-    selectedProfileId: null,    // ID của hồ sơ đang được chọn
-    vocabList: [],              // Danh sách từ vựng đầy đủ
-    filteredVocabList: [],      // Danh sách từ vựng đã lọc theo chủ đề
-    currentWord: {},            // Từ vựng đang được hiển thị trong game
-    currentFlashcardIndex: 0,   // Vị trí của flashcard hiện tại
-    availableVoices: [],        // Danh sách giọng đọc có sẵn trên trình duyệt
+    authUserId: null,
+    selectedProfileId: null,
+    vocabList: [],
+    filteredVocabList: [],
+    currentWord: {},
+    currentFlashcardIndex: 0,
+    availableVoices: [],
     
-    // Dữ liệu của người dùng (tiến trình, chuỗi học, và các dữ liệu mới)
     appData: {
         streak: 0,
         lastVisit: null,
-        progress: {}, // { word: { level: 0, nextReview: '...', wrongAttempts: 0 } }
-        dailyActivity: {}, // { 'YYYY-MM-DD': count }
-        achievements: {}, // { 'streak3': true }
-        examHistory: [], // { date: '...', score: 80, time: 120, results: [...] }
+        progress: {},
+        dailyActivity: {},
+        achievements: {},
+        examHistory: [],
+        // THÊM MỚI: Cài đặt và tiến trình mục tiêu
+        settings: {
+            darkMode: undefined,
+            dailyGoal: {
+                type: 'words', // 'words' hoặc 'minutes'
+                value: 20
+            }
+        },
+        dailyProgress: {
+            date: null, // 'YYYY-MM-DD'
+            words: 0,
+            minutes: 0
+        }
     },
     
-    editingWordIndex: -1,       // Index của từ đang được sửa (-1 là thêm mới)
+    editingWordIndex: -1,
 
     examState: {
         isActive: false,
@@ -33,16 +45,18 @@ export const state = {
         timeLeft: 0,
         settings: {
             questionCount: 10,
-            timeLimit: 120 // seconds
+            timeLimit: 120
         }
     },
 
-    // THÊM MỚI: Trạng thái cho chế độ Ôn tập Thông minh
     reviewSession: {
         isActive: false,
         words: [],
         currentIndex: 0
-    }
+    },
+
+    // THÊM MỚI: Timer để theo dõi thời gian học
+    sessionTimer: null,
 };
 
 /**
