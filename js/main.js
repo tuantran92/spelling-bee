@@ -17,15 +17,31 @@ const learningGameModes = [
     'fill-blank-screen', 'exam-screen'
 ];
 
-function startSessionTimer() { /* ... code không đổi ... */ }
-function stopSessionTimer() { /* ... code không đổi ... */ }
+function startSessionTimer() {
+    if (state.sessionTimer) return;
+    const timerId = setInterval(() => {
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (state.appData.dailyProgress.date !== todayStr) {
+             state.appData.dailyProgress = { date: todayStr, words: 0, minutes: 0 };
+        }
+        state.appData.dailyProgress.minutes += 1/60;
+        updateDashboard();
+    }, 1000);
+    setState({ sessionTimer: timerId });
+}
+
+function stopSessionTimer() {
+    if (state.sessionTimer) {
+        clearInterval(state.sessionTimer);
+        setState({ sessionTimer: null });
+        data.saveUserData();
+    }
+}
 
 function attachGlobalFunctions() {
     window.showTab = showTab;
     window.showGameScreen = (screenId) => {
-        if (learningGameModes.includes(screenId)) {
-            startSessionTimer();
-        }
+        if (learningGameModes.includes(screenId)) startSessionTimer();
         showGameScreen(screenId);
     };
     window.closeGameScreen = (screenId) => {
@@ -36,10 +52,9 @@ function attachGlobalFunctions() {
     // UI
     window.toggleDarkMode = ui.toggleDarkMode;
     window.showProgressSubTab = ui.showProgressSubTab;
-    // *** THAY ĐỔI: Gán applyFilters từ ui module ***
     window.applyFilters = applyFilters;
 
-    // Profile
+    // Profile (gán toàn bộ module)
     window.profile = profile;
 
     // Vocab Manager
