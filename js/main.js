@@ -3,20 +3,15 @@
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from './firebase.js';
 import { setState, state } from './state.js';
-import { showScreen, applyFilters, populateScreenHTML, cancelVocabEdit, setupVoiceOptions, toggleControls, toggleDarkMode, handleGoalChange, updateDashboard, renderSuggestions } from './ui.js';
+import { showTab, showGameScreen, closeGameScreen, updateDashboard, addSettingsEventListeners } from './ui.js';
 import * as profile from './profile.js';
 import * as data from './data.js';
 import * as game from './gameModes.js';
 import * as vocabManager from './vocabManager.js';
 import * as exam from './exam.js';
+import * as ui from './ui.js';
 
-const learningGameModes = ['spelling-screen', 'reading-screen', 'scramble-screen', 'mcq-screen', 'listening-screen', 'pronunciation-screen', 'fill-blank-screen', 'review-screen'];
-
-function startRandomMode() {
-    const randomModes = learningGameModes.filter(mode => mode !== 'review-screen');
-    const randomScreen = randomModes[Math.floor(Math.random() * randomModes.length)];
-    showScreen(randomScreen);
-}
+const learningGameModes = ['spelling-screen', 'reading-screen', 'scramble-screen', 'mcq-screen', 'listening-screen', 'pronunciation-screen', 'fill-blank-screen', 'review-screen', 'exam-screen'];
 
 function startSessionTimer() {
     if (state.sessionTimer) return;
@@ -26,7 +21,7 @@ function startSessionTimer() {
         if (state.appData.dailyProgress.date !== todayStr) {
              state.appData.dailyProgress = { date: todayStr, words: 0, minutes: 0 };
         }
-        
+
         state.appData.dailyProgress.minutes += 1/60;
         updateDashboard();
     }, 1000);
@@ -41,48 +36,53 @@ function stopSessionTimer() {
     }
 }
 
+/**
+ * Gán các hàm cần thiết vào đối tượng window để có thể gọi từ HTML (onclick).
+ */
 function attachGlobalFunctions() {
-    window.startRandomMode = startRandomMode;
-    window.startSmartReview = game.startSmartReview;
-
-    window.createNewProfile = profile.createNewProfile;
-    window.switchProfile = profile.switchProfile;
-    
-    window.showScreen = (screenId) => {
+    window.showTab = showTab;
+    window.showGameScreen = (screenId) => {
         if (learningGameModes.includes(screenId)) {
             startSessionTimer();
-        } else {
-            stopSessionTimer();
         }
-        showScreen(screenId);
+        showGameScreen(screenId);
     };
-    window.toggleDarkMode = toggleDarkMode;
+    window.closeGameScreen = (screenId) => {
+        stopSessionTimer();
+        closeGameScreen(screenId);
+    };
 
+    // Profile
+    window.profile = profile;
+
+    // UI
+    window.toggleDarkMode = ui.toggleDarkMode;
+    window.showProgressSubTab = ui.showProgressSubTab;
+
+    // Vocab Manager
+    window.openVocabForm = vocabManager.openVocabForm;
     window.handleVocabSubmit = vocabManager.handleVocabSubmit;
     window.editVocabWord = vocabManager.editVocabWord;
     window.deleteVocabWord = vocabManager.deleteVocabWord;
-    window.updateWordDifficulty = vocabManager.updateWordDifficulty;
     window.filterVocabManagementList = vocabManager.filterVocabManagementList;
-    window.cancelVocabEdit = cancelVocabEdit;
-    window.importFromGoogleSheet = data.importFromGoogleSheet;
+    window.importFromGoogleSheet = vocabManager.importFromGoogleSheet;
+    window.closeVocabForm = vocabManager.closeVocabForm;
 
-    window.checkSpelling = game.checkSpelling;
-    window.startSpelling = game.startSpelling;
-    window.changeFlashcard = game.changeFlashcard;
+    // Game Modes
     window.speakWord = game.speakWord;
+    window.checkSpelling = game.checkSpelling;
+    window.changeFlashcard = game.changeFlashcard;
     window.checkScramble = game.checkScramble;
-    window.startScramble = game.startScramble;
     window.toggleScrambleHint = game.toggleScrambleHint;
     window.checkMcq = game.checkMcq;
     window.checkListening = game.checkListening;
-    window.startListening = game.startListening;
-
-    window.startExam = exam.startExam;
-    
-    window.startPronunciation = game.startPronunciation;
     window.listenForPronunciation = game.listenForPronunciation;
-    window.startFillBlank = game.startFillBlank;
     window.checkFillBlank = game.checkFillBlank;
+    window.handleReviewAnswer = game.handleReviewAnswer;
+
+    // Exam
+    window.startExam = exam.startExam;
+    window.checkExamAnswer = exam.checkExamAnswer; // Cần global cho onclick
 }
 
 function addEventListeners() {
@@ -92,44 +92,17 @@ function addEventListeners() {
             element.addEventListener(event, handler);
         }
     };
-    
-    safeAddEventListener('category-filter', 'change', applyFilters);
-    safeAddEventListener('difficulty-filter', 'change', applyFilters);
-    
+
     document.body.addEventListener('click', (e) => {
         if (e.target.id === 'create-profile-btn') profile.createNewProfile();
-        if (e.target.id === 'switch-profile-btn') profile.switchProfile();
-        if (e.target.id === 'back-to-menu-btn') window.showScreen('main-menu'); 
-        if (e.target.closest('#toggle-controls-btn')) toggleControls();
-        if (e.target.closest('#cancel-delete-btn')) {
-             const modal = document.getElementById('delete-confirm-modal');
-             if (modal) modal.classList.add('hidden');
-        }
-
-        // THÊM MỚI: Xử lý sự kiện click cho các tab gợi ý
-        if (e.target.classList.contains('suggestion-tab-btn')) {
-            document.querySelectorAll('.suggestion-tab-btn').forEach(btn => btn.classList.remove('active-tab'));
-            e.target.classList.add('active-tab');
-            renderSuggestions(e.target.dataset.type);
-        }
     });
 
-    safeAddEventListener('rate-slider', 'input', (event) => {
-        const rateValue = document.getElementById('rate-value');
-        if (rateValue) {
-            rateValue.textContent = parseFloat(event.target.value).toFixed(1);
-        }
-    });
-    
-    safeAddEventListener('goal-type-select', 'change', handleGoalChange);
-    safeAddEventListener('goal-value-input', 'change', handleGoalChange);
+    addSettingsEventListeners();
 }
 
+
 document.addEventListener('DOMContentLoaded', () => {
-    populateScreenHTML(); 
-    setupVoiceOptions();
     attachGlobalFunctions();
-    addEventListeners();
 
     signInAnonymously(auth).catch(error => {
         console.error("Lỗi đăng nhập ẩn danh:", error);
@@ -141,6 +114,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             setState({ authUserId: user.uid });
             await profile.displayProfileScreen();
+        } else {
+            // Hiển thị màn hình chọn hồ sơ nếu không có user
+            document.getElementById('profile-selection-container').classList.remove('hidden');
+            document.getElementById('main-app-container').classList.add('hidden');
+            document.getElementById('loading-container').classList.add('hidden');
         }
     });
+
+    // Thêm các event listener sau khi DOM đã load
+    addEventListeners();
 });

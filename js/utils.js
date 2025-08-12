@@ -1,10 +1,5 @@
 // js/utils.js
 
-/**
- * Phân tích chuỗi CSV từ Google Sheet thành một mảng các đối tượng từ vựng.
- * @param {string} text - Nội dung file CSV.
- * @returns {Array<object>} - Mảng các đối tượng từ vựng.
- */
 export function parseCSV(text) {
     const rows = text.split(/\r?\n/).slice(1);
     return rows.map(row => {
@@ -18,11 +13,6 @@ export function parseCSV(text) {
     }).filter(item => item !== null);
 }
 
-/**
- * Xáo trộn các chữ cái của một từ.
- * @param {string} word - Từ cần xáo trộn.
- * @returns {string} - Từ đã được xáo trộn.
- */
 export function scrambleWord(word) {
     let scrambled;
     const letters = word.split("");
@@ -36,39 +26,18 @@ export function scrambleWord(word) {
     return scrambled;
 }
 
-/**
- * Mã hóa một chuỗi bằng thuật toán SHA-256.
- * @param {string} text - Chuỗi cần mã hóa.
- * @returns {Promise<string>} - Chuỗi hex đã được mã hóa.
- */
 export async function hashText(text) {
     const encoder = new TextEncoder();
     const data = encoder.encode(text);
-    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/**
- * THÊM MỚI: Tính toán khoảng cách Levenshtein giữa hai chuỗi.
- * @param {string} a - Chuỗi thứ nhất.
- * @param {string} b - Chuỗi thứ hai.
- * @returns {number} - Khoảng cách (số lần sửa đổi).
- */
 export function levenshteinDistance(a, b) {
-    if (a.length === 0) return b.length;
-    if (b.length === 0) return a.length;
-
     const matrix = Array(b.length + 1).fill(null).map(() => Array(a.length + 1).fill(null));
-
-    for (let i = 0; i <= a.length; i++) {
-        matrix[0][i] = i;
-    }
-    for (let j = 0; j <= b.length; j++) {
-        matrix[j][0] = j;
-    }
-
+    for (let i = 0; i <= a.length; i++) { matrix[0][i] = i; }
+    for (let j = 0; j <= b.length; j++) { matrix[j][0] = j; }
     for (let j = 1; j <= b.length; j++) {
         for (let i = 1; i <= a.length; i++) {
             const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
@@ -79,6 +48,5 @@ export function levenshteinDistance(a, b) {
             );
         }
     }
-
     return matrix[b.length][a.length];
 }

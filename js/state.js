@@ -1,8 +1,5 @@
 // js/state.js
 
-// File này chứa đối tượng trạng thái toàn cục của ứng dụng.
-// Tất cả các dữ liệu động sẽ được lưu ở đây.
-
 export const state = {
     authUserId: null,
     selectedProfileId: null,
@@ -13,22 +10,22 @@ export const state = {
     availableVoices: [],
     
     appData: {
+        profileName: '',
         streak: 0,
         lastVisit: null,
         progress: {},
         dailyActivity: {},
         achievements: {},
         examHistory: [],
-        // THÊM MỚI: Cài đặt và tiến trình mục tiêu
         settings: {
             darkMode: undefined,
             dailyGoal: {
-                type: 'words', // 'words' hoặc 'minutes'
+                type: 'words',
                 value: 20
             }
         },
         dailyProgress: {
-            date: null, // 'YYYY-MM-DD'
+            date: null,
             words: 0,
             minutes: 0
         }
@@ -45,7 +42,7 @@ export const state = {
         timeLeft: 0,
         settings: {
             questionCount: 10,
-            timeLimit: 120
+            timeLimit: 60
         }
     },
 
@@ -55,14 +52,9 @@ export const state = {
         currentIndex: 0
     },
 
-    // THÊM MỚI: Timer để theo dõi thời gian học
     sessionTimer: null,
 };
 
-/**
- * Hàm cập nhật trạng thái một cách an toàn.
- * @param {object} newState - Các thuộc tính mới cần cập nhật cho state.
- */
 export function setState(newState) {
     Object.assign(state, newState);
 }
