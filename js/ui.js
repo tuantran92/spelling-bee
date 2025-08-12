@@ -13,39 +13,17 @@ import * as profile from './profile.js';
 // TAB & SCREEN MANAGEMENT
 // ===================================================================
 
-/**
- * Hiển thị một tab chính và ẩn các tab khác.
- * @param {string} tabId - ID của tab cần hiển thị (e.g., 'home-tab').
- */
 export function showTab(tabId) {
-    // Ẩn tất cả nội dung của các tab
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
 
-    // Deactivate tất cả các nút tab
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active');
-    });
+    document.getElementById(tabId)?.classList.add('active');
+    document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`)?.classList.add('active');
 
-    // Hiển thị tab được chọn
-    const selectedTab = document.getElementById(tabId);
-    if (selectedTab) {
-        selectedTab.classList.add('active');
-    }
-
-    // Activate nút tab tương ứng
-    const selectedButton = document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`);
-    if (selectedButton) {
-        selectedButton.classList.add('active');
-    }
-
-    // Cập nhật gợi ý khi người dùng quay lại tab "Học"
     if (tabId === 'home-tab') {
         updateAndCacheSuggestions();
     }
     
-    // Render nội dung cho tab khi nó được hiển thị
     switch (tabId) {
         case 'home-tab':
             renderHomeTab();
@@ -62,16 +40,10 @@ export function showTab(tabId) {
     }
 }
 
-
-/**
- * Hiển thị một màn hình game dưới dạng modal/overlay.
- * @param {string} screenId - ID của màn hình game (e.g., 'spelling-screen').
- */
 export function showGameScreen(screenId) {
     const container = document.getElementById('game-screen-container');
     if (!container) return;
 
-    // Tạo một div mới cho màn hình game
     const gameScreenEl = document.createElement('div');
     gameScreenEl.id = screenId;
     gameScreenEl.className = 'game-screen active';
@@ -103,25 +75,14 @@ export function showGameScreen(screenId) {
     }
 }
 
-/**
- * Đóng màn hình game hiện tại.
- * @param {string} screenId - ID của màn hình game cần đóng.
- */
 export function closeGameScreen(screenId) {
-    const gameScreenEl = document.getElementById(screenId);
-    if (gameScreenEl) {
-        gameScreenEl.remove();
-    }
+    document.getElementById(screenId)?.remove();
 }
-
 
 // ===================================================================
 // TAB CONTENT RENDERERS
 // ===================================================================
 
-/**
- * Render nội dung cho Tab "Học".
- */
 export function renderHomeTab() {
     const container = document.getElementById('home-tab');
     if (!container) return;
@@ -167,7 +128,7 @@ export function renderHomeTab() {
         <div>
             <h3 class="text-lg font-semibold mb-4">Luyện tập</h3>
             <div class="space-y-3">
-                ${renderPracticeModeItem('Học theo gợi ý', 'Tập trung vào từ khó và từ mới', 'suggestion-screen', 'bg-purple-100 dark:bg-purple-800')}
+                ${renderPracticeModeItem('Học theo gợi ý', 'Tập trung vào từ khó và từ mới', 'suggestion-screen')}
                 ${renderPracticeModeItem('Đánh Vần', 'Luyện kỹ năng viết đúng chính tả', 'spelling-screen')}
                 ${renderPracticeModeItem('Flashcard', 'Học từ với thẻ ghi nhớ', 'reading-screen')}
                 ${renderPracticeModeItem('Trắc Nghiệm', 'Chọn nghĩa đúng của từ', 'mcq-screen')}
@@ -180,9 +141,6 @@ export function renderHomeTab() {
     `;
 }
 
-/**
- * Render nội dung cho Tab "Từ vựng".
- */
 export function renderVocabTab() {
     const container = document.getElementById('vocab-tab');
     if (!container) return;
@@ -198,9 +156,6 @@ export function renderVocabTab() {
     vocabManager.renderVocabManagementList('vocab-management-content');
 }
 
-/**
- * Render nội dung cho Tab "Tiến độ".
- */
 export function renderProgressTab() {
     const container = document.getElementById('progress-tab');
     if (!container) return;
@@ -220,9 +175,6 @@ export function renderProgressTab() {
     showProgressSubTab('stats');
 }
 
-/**
- * Render nội dung cho Tab "Hồ sơ".
- */
 export function renderProfileTab() {
     const container = document.getElementById('profile-tab');
     if (!container) return;
@@ -297,10 +249,8 @@ function populateFilters() {
     const categoryFilterEl = document.getElementById('category-filter');
     const difficultyFilterEl = document.getElementById('difficulty-filter');
     if (!categoryFilterEl || !difficultyFilterEl) return;
-
     const categories = ['all', ...new Set(state.vocabList.map(v => v.category || 'Chung'))];
     categoryFilterEl.innerHTML = categories.map(cat => `<option value="${cat}">${cat === 'all' ? 'Tất cả chủ đề' : cat}</option>`).join('');
-
     categoryFilterEl.value = state.activeFilters.category;
     difficultyFilterEl.value = state.activeFilters.difficulty;
 }
@@ -310,16 +260,13 @@ export function applyFilters() {
     const difficulty = document.getElementById('difficulty-filter')?.value || 'all';
     setState({ activeFilters: { category, difficulty } });
     let filtered = state.vocabList;
-
     if (category !== 'all') {
         filtered = filtered.filter(v => (v.category || 'Chung') === category);
     }
     if (difficulty !== 'all') {
         filtered = filtered.filter(v => (v.difficulty || 'medium') === difficulty);
     }
-
     setState({ filteredVocabList: filtered });
-
     const infoEl = document.getElementById('filter-result-info');
     if (infoEl) {
         if (filtered.length < state.vocabList.length) {
@@ -337,9 +284,37 @@ export function showProgressSubTab(subTabName) {
     document.getElementById(`progress-sub-tab-${subTabName}`).classList.add('active-sub-tab');
 }
 
-function renderPracticeModeItem(title, description, screenId, iconBgClass = 'bg-indigo-100 dark:bg-indigo-800') {
-    return `<div onclick="showGameScreen('${screenId}')" class="flex items-center gap-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><div class="w-10 h-10 ${iconBgClass} rounded-lg flex items-center justify-center"></div><div class="flex-grow"><p class="font-semibold">${title}</p><p class="text-sm text-gray-500 dark:text-gray-400">${description}</p></div><svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></div>`;
+/**
+ * *** THAY ĐỔI: Thêm màu sắc và biểu tượng riêng cho từng chế độ ***
+ */
+function renderPracticeModeItem(title, description, screenId) {
+    const styles = {
+        'suggestion-screen':  { color: 'purple', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>'},
+        'spelling-screen':    { color: 'blue', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>'},
+        'reading-screen':     { color: 'teal', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>'},
+        'mcq-screen':         { color: 'sky', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>'},
+        'listening-screen':   { color: 'rose', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>'},
+        'scramble-screen':    { color: 'orange', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>'},
+        'pronunciation-screen': { color: 'red', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>'},
+        'fill-blank-screen':  { color: 'green', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg>'}
+    };
+    
+    const style = styles[screenId] || { color: 'gray', icon: '' };
+    const bgColor = `bg-${style.color}-100 dark:bg-${style.color}-900/50`;
+    const iconColor = `text-${style.color}-500 dark:text-${style.color}-400`;
+
+    return `<div onclick="showGameScreen('${screenId}')" class="flex items-center gap-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <div class="w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center">
+                    ${style.icon.replace('SVG_COLOR_CLASS', iconColor)}
+                </div>
+                <div class="flex-grow">
+                    <p class="font-semibold">${title}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${description}</p>
+                </div>
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </div>`;
 }
+
 
 function renderSettingsItem(id, text, onclickAction, textColor = '') {
     return `<div id="${id}" onclick="${onclickAction}" class="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600/50 first:rounded-t-lg last:rounded-b-lg"><span class="font-medium ${textColor}">${text}</span><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></div>`;
