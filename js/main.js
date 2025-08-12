@@ -1,11 +1,9 @@
 // js/main.js
-// File chính - Điểm khởi đầu của ứng dụng.
-// Chịu trách nhiệm điều phối, khởi tạo và gán các sự kiện.
 
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from './firebase.js';
 import { setState, state } from './state.js';
-import { showScreen, applyFilters, populateScreenHTML, cancelVocabEdit, setupVoiceOptions, toggleControls, toggleDarkMode, handleGoalChange, updateDashboard } from './ui.js';
+import { showScreen, applyFilters, populateScreenHTML, cancelVocabEdit, setupVoiceOptions, toggleControls, toggleDarkMode, handleGoalChange, updateDashboard, renderSuggestions } from './ui.js';
 import * as profile from './profile.js';
 import * as data from './data.js';
 import * as game from './gameModes.js';
@@ -43,18 +41,13 @@ function stopSessionTimer() {
     }
 }
 
-
-/**
- * Gán các hàm vào đối tượng window để HTML có thể gọi qua onclick.
- */
 function attachGlobalFunctions() {
     window.startRandomMode = startRandomMode;
+    window.startSmartReview = game.startSmartReview;
 
-    // Profile
     window.createNewProfile = profile.createNewProfile;
     window.switchProfile = profile.switchProfile;
     
-    // UI
     window.showScreen = (screenId) => {
         if (learningGameModes.includes(screenId)) {
             startSessionTimer();
@@ -65,7 +58,6 @@ function attachGlobalFunctions() {
     };
     window.toggleDarkMode = toggleDarkMode;
 
-    // Vocab Management
     window.handleVocabSubmit = vocabManager.handleVocabSubmit;
     window.editVocabWord = vocabManager.editVocabWord;
     window.deleteVocabWord = vocabManager.deleteVocabWord;
@@ -74,33 +66,25 @@ function attachGlobalFunctions() {
     window.cancelVocabEdit = cancelVocabEdit;
     window.importFromGoogleSheet = data.importFromGoogleSheet;
 
-    // Game modes
     window.checkSpelling = game.checkSpelling;
     window.startSpelling = game.startSpelling;
     window.changeFlashcard = game.changeFlashcard;
     window.speakWord = game.speakWord;
     window.checkScramble = game.checkScramble;
     window.startScramble = game.startScramble;
-    window.toggleScrambleHint = game.toggleScrambleHint; // THÊM DÒNG NÀY
+    window.toggleScrambleHint = game.toggleScrambleHint;
     window.checkMcq = game.checkMcq;
     window.checkListening = game.checkListening;
     window.startListening = game.startListening;
-    
-    window.startSmartReview = game.startSmartReview;
 
-    // Exam mode
     window.startExam = exam.startExam;
     
-    // Các hàm cho chế độ mới
     window.startPronunciation = game.startPronunciation;
     window.listenForPronunciation = game.listenForPronunciation;
     window.startFillBlank = game.startFillBlank;
     window.checkFillBlank = game.checkFillBlank;
 }
 
-/**
- * Gán các sự kiện cho các element không có onclick.
- */
 function addEventListeners() {
     const safeAddEventListener = (id, event, handler) => {
         const element = document.getElementById(id);
@@ -114,12 +98,19 @@ function addEventListeners() {
     
     document.body.addEventListener('click', (e) => {
         if (e.target.id === 'create-profile-btn') profile.createNewProfile();
-        if (e.target.id === 'switch-profile-btn') profile.switchProfile;
+        if (e.target.id === 'switch-profile-btn') profile.switchProfile();
         if (e.target.id === 'back-to-menu-btn') window.showScreen('main-menu'); 
         if (e.target.closest('#toggle-controls-btn')) toggleControls();
         if (e.target.closest('#cancel-delete-btn')) {
              const modal = document.getElementById('delete-confirm-modal');
              if (modal) modal.classList.add('hidden');
+        }
+
+        // THÊM MỚI: Xử lý sự kiện click cho các tab gợi ý
+        if (e.target.classList.contains('suggestion-tab-btn')) {
+            document.querySelectorAll('.suggestion-tab-btn').forEach(btn => btn.classList.remove('active-tab'));
+            e.target.classList.add('active-tab');
+            renderSuggestions(e.target.dataset.type);
         }
     });
 
@@ -134,9 +125,6 @@ function addEventListeners() {
     safeAddEventListener('goal-value-input', 'change', handleGoalChange);
 }
 
-/**
- * Khởi tạo ứng dụng khi DOM đã sẵn sàng.
- */
 document.addEventListener('DOMContentLoaded', () => {
     populateScreenHTML(); 
     setupVoiceOptions();

@@ -11,14 +11,70 @@ import { checkAchievements } from './achievements.js';
 
 const MASTER_VOCAB_ID = "sharedList";
 
+// --- SỬA LỖI: Logic gợi ý từ vựng thông minh ---
+export function generateSuggestions() {
+    // Sửa lại cách truy cập dữ liệu từ state.appData.progress
+    const { appData, vocabList } = state;
+    if (!appData.progress || vocabList.length === 0) {
+        return { difficult: [], new: [] };
+    }
+
+    // 1. Gợi ý từ khó (sai nhiều, level thấp)
+    const difficultWords = Object.entries(appData.progress)
+        .map(([word, data]) => ({
+            word,
+            wrongAttempts: data.wrongAttempts || 0,
+            level: data.level || 0
+        }))
+        .filter(item => item.wrongAttempts > 1 || (item.level > 0 && item.level < 3))
+        .sort((a, b) => b.wrongAttempts - a.wrongAttempts || a.level - b.level)
+        .slice(0, 5)
+        .map(item => vocabList.find(v => v.word === item.word))
+        .filter(Boolean);
+
+    // 2. Gợi ý từ mới để học
+    const learnedWordsSet = new Set(Object.keys(appData.progress).filter(word => appData.progress[word].level > 0));
+    
+    const categoryCounts = {};
+    learnedWordsSet.forEach(word => {
+        const vocabItem = vocabList.find(v => v.word === word);
+        if (vocabItem && vocabItem.category) {
+            categoryCounts[vocabItem.category] = (categoryCounts[vocabItem.category] || 0) + 1;
+        }
+    });
+
+    const favoriteCategory = Object.keys(categoryCounts).length > 0
+        ? Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0][0]
+        : null;
+
+    let newWords = [];
+    if (favoriteCategory) {
+        newWords = vocabList.filter(v =>
+            (v.category === favoriteCategory) && !learnedWordsSet.has(v.word)
+        );
+    }
+    
+    if (newWords.length < 5) {
+        const otherNewWords = vocabList.filter(v => !learnedWordsSet.has(v.word));
+        newWords.push(...otherNewWords);
+    }
+    
+    const suggestedNewWords = [...new Set(newWords)]
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 5);
+
+    return { difficult: difficultWords, new: suggestedNewWords };
+}
+
+
 export function getReviewableWords() {
     const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0); 
 
     const reviewable = state.vocabList.filter(wordObj => {
         const progress = state.appData.progress[wordObj.word];
         if (!progress || progress.level === 0) {
-            return false; // Bỏ qua từ chưa học
+            return false;
         }
         const nextReviewDate = new Date(progress.nextReview);
         nextReviewDate.setHours(0, 0, 0, 0);
@@ -58,7 +114,6 @@ export async function loadUserData() {
     const userDocSnap = await getDoc(userDocRef);
     const userData = userDocSnap.exists() ? userDocSnap.data() : {};
 
-    // SỬA ĐỔI: Thêm các giá trị mặc định cho mục tiêu hàng ngày
     const defaultAppData = {
         streak: 0, lastVisit: null, progress: {},
         dailyActivity: {}, achievements: {}, examHistory: [],
@@ -69,7 +124,6 @@ export async function loadUserData() {
         dailyProgress: { date: null, words: 0, minutes: 0 }
     };
     
-    // Hợp nhất dữ liệu, đảm bảo các thuộc tính mới được thêm vào
     let appData = {
         ...defaultAppData,
         ...(userData.appData || {}),
@@ -113,12 +167,10 @@ export async function loadUserData() {
         dataChanged = true;
     }
 
-    // THÊM MỚI: Kiểm tra và reset mục tiêu hàng ngày
     if (appData.dailyProgress.date !== todayStr) {
         appData.dailyProgress = { date: todayStr, words: 0, minutes: 0 };
         dataChanged = true;
     }
-
 
     setState({ appData, vocabList: masterList });
     updateDashboard();
@@ -156,7 +208,6 @@ export function updateWordLevel(wordObj, isCorrect) {
     nextReviewDate.setDate(nextReviewDate.getDate() + intervalDays);
     wordProgress.nextReview = nextReviewDate.toISOString();
     
-    // SỬA ĐỔI: Chỉ tăng số từ đã học nếu isCorrect
     if (isCorrect) {
         recordDailyActivity(1);
     }
@@ -172,10 +223,9 @@ export function recordDailyActivity(count) {
     }
     state.appData.dailyActivity[today] = currentActivityCount + count;
 
-    // THÊM MỚI: Cập nhật tiến trình mục tiêu số từ
     if (state.appData.dailyProgress.date === today) {
         state.appData.dailyProgress.words += count;
-    } else { // Nếu ngày đã thay đổi, reset
+    } else {
         state.appData.dailyProgress = { date: today, words: count, minutes: 0 };
     }
     updateDashboard();

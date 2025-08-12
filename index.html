@@ -98,8 +98,7 @@
                                 <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Chuỗi học</div>
                                 <div id="streak-display" class="text-2xl font-bold text-orange-500">🔥 0</div>
                             </div>
-                             <div id="daily-goal-display" class="text-center">
-                                </div>
+                            <div id="daily-goal-display" class="text-center"></div>
                         </div>
                         <div class="w-full">
                             <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 text-left">Tiến trình học tổng thể</div>
@@ -117,7 +116,6 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </div>
-
                     <div id="collapsible-content" class="mt-4 transition-all duration-300 hidden">
                          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                             <div class="space-y-4">
@@ -163,6 +161,17 @@
                     </div>
                 </div>
 
+                <div id="smart-suggestion-container" class="mb-6 hidden">
+                    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Gợi ý cho bạn</h2>
+                    <div id="suggestion-tabs" class="flex border-b border-gray-200 dark:border-gray-700">
+                        <button class="suggestion-tab-btn active-tab px-4 py-2 text-sm font-medium" data-type="difficult">Từ khó</button>
+                        <button class="suggestion-tab-btn px-4 py-2 text-sm font-medium" data-type="new">Từ mới để học</button>
+                    </div>
+                    <div id="suggestion-content" class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-b-lg">
+                        </div>
+                </div>
+
+
                 <div id="main-menu" class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 </div>
 
@@ -188,11 +197,8 @@
         </div>
     </div>
     
-    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        </div>
-
-    <div id="achievement-unlocked-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50">
-        </div>
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"></div>
+    <div id="achievement-unlocked-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50"></div>
 
     <script type="module" src="./js/main.js"></script>
 </body>

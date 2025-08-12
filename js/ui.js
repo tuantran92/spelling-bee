@@ -6,7 +6,50 @@ import * as vocabManager from './vocabManager.js';
 import * as stats from './statistics.js';
 import * as exam from './exam.js';
 import * as achievements from './achievements.js';
-import { getReviewableWords, saveUserData } from './data.js';
+import { getReviewableWords, saveUserData, generateSuggestions } from './data.js';
+
+// --- Logic hiển thị gợi ý ---
+export function renderSuggestions(type = 'difficult') {
+    const container = document.getElementById('suggestion-content');
+    const suggestions = generateSuggestions();
+    const wordsToShow = suggestions[type] || [];
+
+    if (!container) return;
+
+    if (wordsToShow.length === 0) {
+        container.innerHTML = `<p class="text-gray-500 dark:text-gray-400 text-center">Không có gợi ý nào vào lúc này.</p>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <ul class="space-y-2">
+            ${wordsToShow.map(word => `
+                <li class="p-2 bg-white dark:bg-gray-800 rounded-md flex justify-between items-center">
+                    <div>
+                        <span class="font-semibold text-gray-800 dark:text-gray-200">${word.word}</span>
+                        <span class="text-gray-600 dark:text-gray-400"> - ${word.meaning}</span>
+                    </div>
+                    <button onclick="speakWord('${word.word}', event)" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600" title="Nghe">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                    </button>
+                </li>
+            `).join('')}
+        </ul>
+    `;
+}
+
+function updateSuggestionVisibility() {
+    const container = document.getElementById('smart-suggestion-container');
+    if(container) {
+        const learnedCount = Object.keys(state.appData.progress).filter(word => state.appData.progress[word].level > 0).length;
+        if (learnedCount >= 5) {
+            container.classList.remove('hidden');
+            renderSuggestions();
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+}
 
 export function toggleControls() {
     const content = document.getElementById('collapsible-content');
@@ -112,11 +155,10 @@ export function populateScreenHTML() {
         document.getElementById('app-screens').insertAdjacentHTML('beforeend', `<div id="review-screen" class="app-screen hidden text-center"></div>`);
     }
 
-    // KHÔI PHỤC LẠI: Đảm bảo các div cho màn hình luôn tồn tại và điền nội dung vào chúng
     document.getElementById('spelling-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Điền từ đúng cho nghĩa sau:</h2><div class="flex justify-center items-center gap-4 mb-4"><p id="spelling-meaning" class="text-xl bg-gray-100 dark:bg-gray-700 p-4 rounded-lg text-gray-900 dark:text-gray-100"></p><button id="spelling-speak-btn" class="p-3 bg-indigo-500 hover:bg-indigo-600 rounded-full text-white shadow-md" title="Nghe lại"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button></div><div id="spelling-example" class="text-gray-600 dark:text-gray-400 italic mb-4"></div><input type="text" id="spelling-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập từ tiếng Anh..."><div class="mt-4"><button onclick="checkSpelling()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button><button onclick="startSpelling()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Từ khác</button></div><p id="spelling-result" class="mt-4 h-6 text-lg font-medium"></p>`;
     document.getElementById('reading-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Flashcard</h2><div class="perspective-1000"><div id="flashcard" class="flashcard relative w-full h-56 md:h-64 cursor-pointer" onclick="this.classList.toggle('is-flipped')"><div class="flashcard-inner relative w-full h-full"><div id="flashcard-front" class="flashcard-front absolute w-full h-full bg-teal-500 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg"></div><div id="flashcard-back" class="flashcard-back absolute w-full h-full bg-teal-700 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg"></div></div></div></div><div class="mt-6 flex justify-center items-center gap-4"><button onclick="changeFlashcard(-1)" class="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 p-3 rounded-full shadow-md"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button><span id="card-counter" class="text-gray-700 dark:text-gray-300 font-medium"></span><button onclick="changeFlashcard(1)" class="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 p-3 rounded-full shadow-md"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button></div>`;
     document.getElementById('shuffle-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4 text-center">Danh sách từ vựng</h2><div class="mb-4"><label for="shuffle-category-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Lọc theo chủ đề:</label><select id="shuffle-category-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></select></div><div class="text-sm text-gray-600 dark:text-gray-400 mb-4">Màu sắc thể hiện mức độ thành thạo: <span class="text-green-500">Tốt</span>, <span class="text-yellow-500">Đang học</span>, <span class="text-red-500">Cần ôn</span>.</div><ul id="vocab-list-display" class="space-y-2 max-h-80 overflow-y-auto"></ul>`;
-    document.getElementById('scramble-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Sắp xếp các chữ cái sau:</h2><p class="text-gray-600 dark:text-gray-400 mb-4">Gợi ý: Từ này có nghĩa là "<span id="scramble-meaning" class="font-semibold"></span>"</p><div id="scrambled-word-display" class="flex justify-center items-center gap-2 my-6 flex-wrap"></div><input type="text" id="scramble-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập đáp án của bạn..."><div class="mt-4"><button onclick="checkScramble()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button><button onclick="startScramble()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Từ khác</button></div><p id="scramble-result" class="mt-4 h-6 text-lg font-medium"></p>`;
+    document.getElementById('scramble-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Sắp xếp các chữ cái sau:</h2><div class="text-gray-600 dark:text-gray-400 mb-4 h-8 flex items-center justify-center"><button id="scramble-hint-btn" onclick="toggleScrambleHint()" class="bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-500">Hiện Gợi ý</button><span id="scramble-hint-text" class="hidden ml-2 italic">Từ này có nghĩa là "<span id="scramble-meaning" class="font-semibold"></span>"</span></div><div id="scrambled-word-display" class="flex justify-center items-center gap-2 my-6 flex-wrap"></div><input type="text" id="scramble-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập đáp án của bạn..."><div class="mt-4"><button onclick="checkScramble()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button><button onclick="startScramble()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Từ khác</button></div><p id="scramble-result" class="mt-4 h-6 text-lg font-medium"></p>`;
     document.getElementById('mcq-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Chọn nghĩa đúng cho từ sau:</h2><div class="flex justify-center items-center gap-4 mb-6"><p id="mcq-word" class="text-3xl font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg text-gray-900 dark:text-gray-100"></p><button id="mcq-speak-btn" class="p-3 bg-sky-500 hover:bg-sky-600 rounded-full text-white shadow-md" title="Nghe lại"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button></div><div id="mcq-options" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div><p id="mcq-result" class="mt-6 h-6 text-lg font-medium"></p>`;
     document.getElementById('listening-screen').innerHTML = `<h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Nghe và gõ lại từ bạn nghe được</h2><div class="my-6"><button id="listening-speak-btn" class="bg-rose-500 hover:bg-rose-600 text-white p-4 rounded-full shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button></div><input type="text" id="listening-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập từ bạn nghe được..."><div class="mt-4"><button onclick="checkListening()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-6 rounded-lg mr-2">Kiểm tra</button><button onclick="startListening()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Từ khác</button></div><p id="listening-result" class="mt-4 h-6 text-lg font-medium"></p>`;
     document.getElementById('settings-screen').innerHTML = `
@@ -280,6 +322,7 @@ export function updateDashboard() {
     updateProgressBar();
     updateReviewButton();
     updateDailyGoalDisplay();
+    updateSuggestionVisibility();
     
     const goalTypeSelect = document.getElementById('goal-type-select');
     const goalValueInput = document.getElementById('goal-value-input');
