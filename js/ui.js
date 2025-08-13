@@ -69,11 +69,17 @@ export function closeGameScreen(screenId) {
 // TAB CONTENT RENDERERS
 // ===================================================================
 
+// js/ui.js
+
 export function renderHomeTab() {
     const container = document.getElementById('home-tab');
     if (!container) return;
     const profileName = state.appData.profileName || "Bạn";
     const streak = state.appData.streak || 0;
+    
+    // Lấy URL avatar, nếu không có sẽ dùng avatar mặc định theo tên
+    const avatarSrc = state.appData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileName)}&background=random&color=fff`;
+    
     const reviewCount = getReviewableWords().length;
     const { type, value } = state.appData.settings?.dailyGoal || { type: 'words', value: 20 };
     const { words, minutes } = state.appData.dailyProgress || { words: 0, minutes: 0 };
@@ -86,9 +92,12 @@ export function renderHomeTab() {
                 <h1 class="text-2xl lg:text-3xl font-bold">Chào, ${profileName}!</h1>
                 <p class="text-gray-500 dark:text-gray-400">Sẵn sàng để học chưa?</p>
             </div>
-            <div class="text-center">
-                <div class="text-3xl lg:text-4xl">🔥</div>
-                <div class="font-bold text-orange-500">${streak}</div>
+            <div class="flex items-center gap-3">
+                <div class="text-center">
+                    <div class="text-3xl lg:text-4xl">🔥</div>
+                    <div class="font-bold text-orange-500">${streak}</div>
+                </div>
+                <img src="${avatarSrc}" alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-200 dark:border-indigo-800">
             </div>
         </header>
 
