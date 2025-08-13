@@ -160,6 +160,7 @@ export function renderProfileTab() {
     const container = document.getElementById('profile-tab');
     if (!container) return;
     const goal = state.appData.settings?.dailyGoal || { type: 'words', value: 20 };
+    const fontSize = state.appData.settings?.fontSize || 1.0;
     const isDarkMode = document.documentElement.classList.contains('dark');
     container.innerHTML = `
         <header class="text-center mb-8">
@@ -201,6 +202,7 @@ export function renderProfileTab() {
                     <hr class="border-gray-200 dark:border-gray-600 my-2">
                     <div><label for="voice-select" class="block text-sm font-medium mb-1">Giọng đọc</label><select id="voice-select" class="w-full p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></select></div>
                     <div class="mt-2"><label for="rate-slider" class="block text-sm font-medium">Tốc độ: <span id="rate-value">1.0</span>x</label><input id="rate-slider" type="range" min="0.5" max="2" step="0.1" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-500 mt-1"></div>
+                    <div class="mt-2"><label for="font-size-slider" class="block text-sm font-medium">Cỡ chữ từ vựng: <span id="font-size-value">${fontSize.toFixed(1)}</span>x</label><input id="font-size-slider" type="range" min="0.8" max="1.5" step="0.1" value="${fontSize}" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-500 mt-1"></div>
                 </div>
                  <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
                     <label class="block text-sm font-medium mb-2">Mục tiêu hàng ngày</label>
@@ -221,6 +223,7 @@ export function renderProfileTab() {
     applyFilters();
     setupVoiceOptions();
     addSettingsEventListeners();
+    applyAppearanceSettings();
 }
 
 // ===================================================================
@@ -312,6 +315,26 @@ export function handleGoalChange() {
     renderHomeTab();
 }
 
+export function handleFontSizeChange() {
+    const slider = document.getElementById('font-size-slider');
+    const display = document.getElementById('font-size-value');
+    if (!slider || !display) return;
+
+    const newSize = parseFloat(slider.value);
+    display.textContent = newSize.toFixed(1);
+    state.appData.settings.fontSize = newSize;
+    applyAppearanceSettings();
+    saveUserData();
+}
+
+function applyAppearanceSettings() {
+    const isDark = state.appData.settings?.darkMode ?? localStorage.getItem('darkMode') === 'true';
+    document.documentElement.classList.toggle('dark', isDark);
+
+    const fontSize = state.appData.settings?.fontSize || 1.0;
+    document.documentElement.style.setProperty('--vocab-font-scale', fontSize);
+}
+
 export function updateDashboard() {
     if (document.getElementById('home-tab')?.classList.contains('active')) {
         renderHomeTab();
@@ -377,4 +400,5 @@ export function addSettingsEventListeners() {
     });
     safeAddEventListener('goal-type-select', 'change', handleGoalChange);
     safeAddEventListener('goal-value-input', 'change', handleGoalChange);
+    safeAddEventListener('font-size-slider', 'input', handleFontSizeChange); // <-- THÊM MỚI
 }

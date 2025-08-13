@@ -2,7 +2,7 @@
 
 import { state, setState } from './state.js';
 import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords } from './data.js';
-import { scrambleWord, levenshteinDistance } from './utils.js';
+import { scrambleWord, levenshteinDistance, playSound } from './utils.js';
 import { closeGameScreen } from './ui.js';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -34,10 +34,6 @@ export function speakWord(word, event) {
     synth.speak(utterance);
 }
 
-/**
- * CHỨC NĂNG MỚI: Bắt đầu chế độ học theo gợi ý
- * @param {string} containerId 
- */
 export function startSuggestionMode(containerId) {
     const container = document.getElementById(containerId);
     const suggestions = state.suggestions;
@@ -57,7 +53,7 @@ export function startSuggestionMode(containerId) {
                     ${suggestions.difficult.length > 0 ? `
                         <ul class="space-y-2">
                             ${suggestions.difficult.map(w => `
-                                <li class="font-medium text-gray-700 dark:text-gray-300 flex justify-between items-center">
+                                <li class="font-medium text-gray-700 dark:text-gray-300 flex justify-between items-center vocab-font-size">
                                     <span>${w.word}</span>
                                     <button onclick="speakWord('${w.word}', event)" class="p-1"><svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
                                 </li>`).join('')}
@@ -70,7 +66,7 @@ export function startSuggestionMode(containerId) {
                      ${suggestions.new.length > 0 ? `
                         <ul class="space-y-2">
                              ${suggestions.new.map(w => `
-                                <li class="font-medium text-gray-700 dark:text-gray-300 flex justify-between items-center">
+                                <li class="font-medium text-gray-700 dark:text-gray-300 flex justify-between items-center vocab-font-size">
                                     <span>${w.word}</span>
                                     <button onclick="speakWord('${w.word}', event)" class="p-1"><svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
                                 </li>`).join('')}
@@ -81,9 +77,6 @@ export function startSuggestionMode(containerId) {
     `;
 }
 
-/**
- * *** THAY ĐỔI: Hiển thị cả Tiếng Anh và Tiếng Việt cùng lúc ***
- */
 export function renderReviewCard(containerId) {
     const screenEl = document.getElementById(containerId);
     if (!screenEl) return;
@@ -106,8 +99,8 @@ export function renderReviewCard(containerId) {
         <div class="relative w-full h-56 md:h-64">
             <div id="review-card" class="absolute w-full h-full bg-cyan-600 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg">
                 <div class="text-center">
-                    <p class="text-2xl md:text-3xl font-bold text-white">${word.word}</p>
-                    <p class="text-xl md:text-2xl text-cyan-200 mt-2">- ${word.meaning} -</p>
+                    <p class="font-bold text-white vocab-font-size-review">${word.word}</p>
+                    <p class="text-xl md:text-2xl text-cyan-200 mt-2 vocab-font-size">- ${word.meaning} -</p>
                 </div>
                 <button onclick="speakWord('${word.word}', event)" class="mt-4 bg-white/20 hover:bg-white/30 p-3 rounded-full">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
@@ -126,11 +119,11 @@ export function renderReviewCard(containerId) {
     speakWord(word.word);
 }
 
-// *** SỬA LỖI: Chuyển thành hàm được export ***
 export function handleReviewAnswer(isCorrect) {
     const { words, currentIndex } = state.reviewSession;
     const word = words[currentIndex];
 
+    playSound(isCorrect ? 'correct' : 'wrong');
     updateWordLevel(word, isCorrect);
 
     if (currentIndex + 1 < words.length) {
@@ -160,11 +153,11 @@ export function startSpelling(containerId) {
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Điền từ đúng</h2>
         <div class="relative">
-            <p id="spelling-meaning" class="text-xl bg-gray-100 dark:bg-gray-700 p-4 rounded-lg"></p>
+            <p id="spelling-meaning" class="text-xl bg-gray-100 dark:bg-gray-700 p-4 rounded-lg vocab-font-size"></p>
             <button id="spelling-speak-btn" class="p-2 bg-indigo-500 hover:bg-indigo-600 rounded-full text-white shadow-md absolute top-1/2 right-3 -translate-y-1/2" title="Nghe lại"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
         </div>
         <div id="spelling-example" class="text-gray-500 dark:text-gray-400 italic my-4 h-5"></div>
-        <input type="text" id="spelling-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white" placeholder="Nhập từ tiếng Anh...">
+        <input type="text" id="spelling-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white vocab-font-size" placeholder="Nhập từ tiếng Anh...">
         <div class="mt-4">
             <button onclick="checkSpelling()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button>
         </div>
@@ -189,6 +182,7 @@ export function checkSpelling() {
     const correctAnswer = state.currentWord.word.toLowerCase();
     const isCorrect = userAnswer === correctAnswer;
 
+    playSound(isCorrect ? 'correct' : 'wrong');
     updateWordLevel(state.currentWord, isCorrect);
 
     if (isCorrect) {
@@ -240,8 +234,8 @@ function updateFlashcard(containerId) {
         </div>
     `;
 
-    document.getElementById("flashcard-front").innerHTML = `<p class="text-3xl font-bold text-white">${word.word}</p><button onclick="speakWord('${word.word}', event)" class="mt-4 bg-white/20 p-3 rounded-full"><svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>`;
-    document.getElementById("flashcard-back").innerHTML = `<p class="text-2xl font-semibold text-white">${word.meaning}</p><p class="text-sm italic mt-2 px-2">${word.example || ""}</p>`;
+    document.getElementById("flashcard-front").innerHTML = `<p class="font-bold text-white vocab-font-size-flashcard">${word.word}</p><button onclick="speakWord('${word.word}', event)" class="mt-4 bg-white/20 p-3 rounded-full"><svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>`;
+    document.getElementById("flashcard-back").innerHTML = `<p class="text-2xl font-semibold text-white vocab-font-size">${word.meaning}</p><p class="text-sm italic mt-2 px-2">${word.example || ""}</p>`;
     document.getElementById("card-counter").textContent = `${state.currentFlashcardIndex + 1} / ${gameList.length}`;
     speakWord(word.word);
 }
@@ -275,9 +269,9 @@ export function startScramble(containerId) {
             <span id="scramble-hint-text" class="hidden ml-2 italic">Nghĩa: "<span id="scramble-meaning" class="font-semibold"></span>"</span>
         </div>
         <div id="scrambled-word-display" class="flex justify-center items-center gap-2 my-6 flex-wrap">
-            ${scrambled.split("").map(letter => `<span class="bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-100 text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg shadow-md">${letter}</span>`).join('')}
+            ${scrambled.split("").map(letter => `<span class="bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-100 text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg shadow-md vocab-font-size">${letter}</span>`).join('')}
         </div>
-        <input type="text" id="scramble-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700" placeholder="Nhập đáp án...">
+        <input type="text" id="scramble-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 vocab-font-size" placeholder="Nhập đáp án...">
         <div class="mt-4">
             <button onclick="checkScramble()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button>
         </div>
@@ -299,7 +293,10 @@ export function checkScramble() {
     const resultEl = document.getElementById("scramble-result");
     if (!userAnswer) return;
     const isCorrect = userAnswer === state.currentWord.word.toLowerCase();
+    
+    playSound(isCorrect ? 'correct' : 'wrong');
     updateWordLevel(state.currentWord, isCorrect);
+
     if (isCorrect) {
         resultEl.textContent = "✅ Chính xác!";
         resultEl.className = "mt-4 h-6 text-lg font-medium text-green-500";
@@ -312,15 +309,29 @@ export function checkScramble() {
 
 
 // --- Trắc nghiệm (MCQ) ---
-export function startMcq(containerId) {
-    const container = document.getElementById(containerId);
-    const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
-    if (gameList.length < 4) {
-        container.innerHTML = '<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-red-500">Cần ít nhất 4 từ để chơi chế độ này.</p>';
+function renderNextMcqQuestion() {
+    const wordEl = document.getElementById("mcq-word");
+    const speakBtn = document.getElementById('mcq-speak-btn');
+    const optionsEl = document.getElementById("mcq-options");
+    const resultEl = document.getElementById("mcq-result");
+
+    if (!wordEl || !speakBtn || !optionsEl || !resultEl) {
+        console.error("MCQ UI elements not found. Cannot render next question.");
         return;
     }
+
+    const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
+    if (gameList.length < 4) {
+        const container = document.getElementById('mcq-screen-content');
+        if (container) {
+            container.innerHTML = '<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-red-500">Không đủ từ vựng để tiếp tục.</p>';
+        }
+        return;
+    }
+    
     const correctWord = getNextWord();
     setState({ currentWord: correctWord });
+
     const options = [correctWord];
     while (options.length < 4) {
         const randomWord = state.vocabList[Math.floor(Math.random() * state.vocabList.length)];
@@ -329,51 +340,71 @@ export function startMcq(containerId) {
         }
     }
     options.sort(() => .5 - Math.random());
+
+    wordEl.textContent = state.currentWord.word;
+    speakBtn.onclick = () => speakWord(state.currentWord.word);
+    resultEl.textContent = ''; 
+    optionsEl.innerHTML = ''; 
+
+    options.forEach(opt => {
+        const button = document.createElement("button");
+        button.className = "bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors vocab-font-size";
+        button.textContent = opt.meaning;
+        button.onclick = (event) => checkMcq(event.currentTarget, opt.word === state.currentWord.word);
+        optionsEl.appendChild(button);
+    });
+
+    speakWord(state.currentWord.word);
+}
+
+export function startMcq(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
+    if (gameList.length < 4) {
+        container.innerHTML = '<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-red-500">Cần ít nhất 4 từ để chơi chế độ này.</p>';
+        return;
+    }
     
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Chọn nghĩa đúng:</h2>
         <div class="flex justify-center items-center gap-4 mb-6">
-            <p id="mcq-word" class="text-3xl font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg"></p>
+            <p id="mcq-word" class="font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg vocab-font-size-mcq"></p>
             <button id="mcq-speak-btn" class="p-3 bg-sky-500 hover:bg-sky-600 rounded-full text-white shadow-md"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
         </div>
         <div id="mcq-options" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         <p id="mcq-result" class="mt-6 h-6 text-lg font-medium"></p>
     `;
 
-    document.getElementById("mcq-word").textContent = state.currentWord.word;
-    document.getElementById('mcq-speak-btn').onclick = () => speakWord(state.currentWord.word);
-    const optionsEl = document.getElementById("mcq-options");
-    options.forEach(opt => {
-        const button = document.createElement("button");
-        button.className = "bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors";
-        button.textContent = opt.meaning;
-        button.onclick = (event) => checkMcq(event.currentTarget, opt.word === state.currentWord.word);
-        optionsEl.appendChild(button);
-    });
-    speakWord(state.currentWord.word);
+    renderNextMcqQuestion();
 }
 
 export function checkMcq(clickedButton, isCorrect) {
     const resultEl = document.getElementById("mcq-result");
     const isFirstAttempt = !document.querySelector("#mcq-options button:disabled");
+
+    playSound(isCorrect ? 'correct' : 'wrong');
+    
     if (isFirstAttempt) {
         updateWordLevel(state.currentWord, isCorrect);
     }
+    
     if (isCorrect) {
         resultEl.textContent = "✅ Chính xác!";
         resultEl.className = "mt-6 h-6 text-lg font-medium text-green-500";
         document.querySelectorAll("#mcq-options button").forEach(btn => {
             btn.disabled = true;
             if (btn === clickedButton) {
-                btn.className = "bg-green-500 text-white font-semibold py-3 px-4 rounded-lg";
+                btn.className = "bg-green-500 text-white font-semibold py-3 px-4 rounded-lg vocab-font-size";
             }
         });
-        setTimeout(() => startMcq('mcq-screen-content'), 1500);
+        setTimeout(renderNextMcqQuestion, 1500);
     } else {
         resultEl.textContent = "❌ Sai rồi, hãy chọn lại!";
         resultEl.className = "mt-6 h-6 text-lg font-medium text-red-500";
         clickedButton.disabled = true;
-        clickedButton.className = "bg-red-500 text-white font-semibold py-3 px-4 rounded-lg cursor-not-allowed";
+        clickedButton.className = "bg-red-500 text-white font-semibold py-3 px-4 rounded-lg cursor-not-allowed vocab-font-size";
     }
 }
 
@@ -393,7 +424,7 @@ export function startListening(containerId) {
         <div class="my-6">
             <button id="listening-speak-btn" class="bg-rose-500 hover:bg-rose-600 text-white p-4 rounded-full shadow-lg"><svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
         </div>
-        <input type="text" id="listening-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-rose-500 dark:bg-gray-700" placeholder="Nhập từ bạn nghe được...">
+        <input type="text" id="listening-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-rose-500 dark:bg-gray-700 vocab-font-size" placeholder="Nhập từ bạn nghe được...">
         <div class="mt-4"><button onclick="checkListening()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button></div>
         <p id="listening-result" class="mt-4 h-6 text-lg font-medium"></p>
     `;
@@ -413,6 +444,7 @@ export function checkListening() {
     const correctAnswer = state.currentWord.word.toLowerCase();
     const isCorrect = userAnswer === correctAnswer;
     
+    playSound(isCorrect ? 'correct' : 'wrong');
     updateWordLevel(state.currentWord, isCorrect);
 
     if (isCorrect) {
@@ -442,14 +474,14 @@ export function startPronunciation(containerId) {
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Luyện Phát Âm</h2>
         <p class="mb-6">Đọc to từ sau đây:</p>
-        <p id="pronunciation-word" class="text-4xl font-bold text-pink-500 mb-6">${newWord.word}</p>
+        <p id="pronunciation-word" class="font-bold text-pink-500 mb-6 vocab-font-size-pronunciation">${newWord.word}</p>
         <button id="pronunciation-record-btn" onclick="listenForPronunciation()" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-20 h-20 flex items-center justify-center mx-auto shadow-lg">
             <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
         </button>
         <p id="pronunciation-status" class="mt-4 text-gray-500 h-5">Nhấn nút để ghi âm</p>
         <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg min-h-[60px]">
             <p class="text-sm">Bạn đã nói:</p>
-            <p id="pronunciation-transcript" class="text-lg font-medium"></p>
+            <p id="pronunciation-transcript" class="text-lg font-medium vocab-font-size"></p>
         </div>
         <p id="pronunciation-result" class="mt-4 h-6 text-lg font-medium"></p>
     `;
@@ -472,7 +504,10 @@ export function listenForPronunciation() {
         document.getElementById('pronunciation-transcript').textContent = transcript;
         const correctWord = state.currentWord.word.toLowerCase();
         const isCorrect = transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "") === correctWord;
+        
+        playSound(isCorrect ? 'correct' : 'wrong');
         updateWordLevel(state.currentWord, isCorrect);
+
         const resultEl = document.getElementById('pronunciation-result');
         if (isCorrect) {
             resultEl.textContent = '✅ Phát âm chính xác!';
@@ -537,8 +572,8 @@ function populateFillBlankUI(containerId, sentence, wordObj) {
     
     screenEl.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Điền vào chỗ trống</h2>
-        <div id="fill-blank-sentence" class="p-6 bg-gray-100 dark:bg-gray-700 rounded-lg text-lg mb-6">${sentenceWithBlank}</div>
-        <input type="text" id="fill-blank-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 dark:bg-gray-700" placeholder="Nhập từ còn thiếu...">
+        <div id="fill-blank-sentence" class="p-6 bg-gray-100 dark:bg-gray-700 rounded-lg text-lg mb-6 vocab-font-size">${sentenceWithBlank}</div>
+        <input type="text" id="fill-blank-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 dark:bg-gray-700 vocab-font-size" placeholder="Nhập từ còn thiếu...">
         <div class="mt-4">
             <button onclick="checkFillBlank()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button>
         </div>
@@ -555,6 +590,8 @@ export function checkFillBlank() {
     if (!userAnswer) return;
 
     const isCorrect = userAnswer === state.currentWord.word.toLowerCase();
+
+    playSound(isCorrect ? 'correct' : 'wrong');
     updateWordLevel(state.currentWord, isCorrect);
     
     if (isCorrect) {

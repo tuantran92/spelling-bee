@@ -4,6 +4,7 @@ import { state, setState } from './state.js';
 import { saveUserData } from './data.js';
 import { checkAchievements } from './achievements.js';
 import { closeGameScreen } from './ui.js';
+import { playSound } from './utils.js';
 
 let examTimerInterval = null;
 
@@ -120,10 +121,13 @@ window.checkExamAnswer = (buttonEl, encodedAnswer) => {
     const userAnswer = decodeURIComponent(escape(atob(encodedAnswer)));
     const { questions, currentQuestionIndex } = state.examState;
     const question = questions[currentQuestionIndex];
+    const isCorrect = userAnswer === question.correctMeaning;
     
     question.userAnswer = userAnswer;
 
-    if (userAnswer === question.correctMeaning) {
+    playSound(isCorrect ? 'correct' : 'wrong');
+
+    if (isCorrect) {
         state.examState.correctAnswers++;
     }
 

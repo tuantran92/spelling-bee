@@ -33,7 +33,8 @@ export const state = {
             dailyGoal: {
                 type: 'words',
                 value: 20
-            }
+            },
+            fontSize: 1.0 // <-- THAY ĐỔI Ở ĐÂY
         },
         dailyProgress: {
             date: null,

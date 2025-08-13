@@ -5,7 +5,7 @@ import { db } from './firebase.js';
 import { state, setState } from './state.js';
 import { SRS_INTERVALS } from './config.js';
 import { updateDashboard } from './ui.js';
-import { parseCSV } from './utils.js';
+import { parseCSV, shuffleArray } from './utils.js';
 import { checkAchievements } from './achievements.js';
 
 const MASTER_VOCAB_ID = "sharedList";
@@ -73,6 +73,7 @@ export async function loadUserData(profileName) {
     if (!state.selectedProfileId) return;
 
     const masterList = await loadMasterVocab();
+    const shuffledMasterList = shuffleArray([...masterList]);
     const userDocRef = doc(db, "users", state.selectedProfileId);
     const userDocSnap = await getDoc(userDocRef);
     const userData = userDocSnap.exists() ? userDocSnap.data() : {};
@@ -83,7 +84,8 @@ export async function loadUserData(profileName) {
         dailyActivity: {}, achievements: {}, examHistory: [],
         settings: {
             darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
-            dailyGoal: { type: 'words', value: 20 }
+            dailyGoal: { type: 'words', value: 20 },
+            fontSize: 1.0 // <-- THAY ĐỔI Ở ĐÂY
         },
         dailyProgress: { date: null, words: 0, minutes: 0 }
     };
@@ -100,7 +102,7 @@ export async function loadUserData(profileName) {
     else document.documentElement.classList.remove('dark');
     
     let dataChanged = false;
-    masterList.forEach(word => {
+    shuffledMasterList.forEach(word => {
         if (!appData.progress[word.word]) {
             appData.progress[word.word] = { level: 0, nextReview: new Date().toISOString(), wrongAttempts: 0 };
             dataChanged = true;
@@ -127,9 +129,8 @@ export async function loadUserData(profileName) {
         dataChanged = true;
     }
 
-    setState({ appData, vocabList: masterList, filteredVocabList: masterList });
+    setState({ appData, vocabList: shuffledMasterList, filteredVocabList: shuffledMasterList });
     
-    // *** THAY ĐỔI: Tạo gợi ý lần đầu khi load user data ***
     updateAndCacheSuggestions();
     
     if (dataChanged) {

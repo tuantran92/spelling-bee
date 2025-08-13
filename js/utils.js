@@ -50,3 +50,46 @@ export function levenshteinDistance(a, b) {
     }
     return matrix[b.length][a.length];
 }
+
+/**
+ * PHIÊN BẢN GỠ LỖI: Hàm phát âm thanh với console.log
+ * @param {'correct' | 'wrong'} type 
+ */
+export function playSound(type) {
+    console.log(`[playSound] Được gọi để phát âm thanh: ${type}`); // Gỡ lỗi
+    const audioEl = document.getElementById(type === 'correct' ? 'audio-correct' : 'audio-wrong');
+    
+    if (audioEl) {
+        console.log(`[playSound] Đã tìm thấy element audio: #${audioEl.id}`); // Gỡ lỗi
+        audioEl.currentTime = 0;
+        audioEl.play()
+            .then(() => {
+                console.log(`[playSound] Âm thanh ${type} đã phát thành công.`); // Gỡ lỗi
+            })
+            .catch(error => {
+                console.error(`[playSound] Lỗi khi phát âm thanh ${type}:`, error); // Gỡ lỗi
+            });
+    } else {
+        console.error(`[playSound] KHÔNG tìm thấy element audio cho: ${type}`); // Gỡ lỗi
+    }
+}
+
+
+/**
+ * THÊM MỚI: Hàm xáo trộn mảng (Fisher-Yates shuffle)
+ * @param {Array} array Mảng cần xáo trộn
+ * @returns {Array} Mảng đã được xáo trộn
+ */
+export function shuffleArray(array) {
+    let currentIndex = array.length,  randomIndex;
+    // While there remain elements to shuffle.
+    while (currentIndex > 0) {
+        // Pick a remaining element.
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        // And swap it with the current element.
+        [array[currentIndex], array[randomIndex]] = [
+            array[randomIndex], array[currentIndex]];
+    }
+    return array;
+}
