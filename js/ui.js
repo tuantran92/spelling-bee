@@ -162,9 +162,17 @@ export function renderProfileTab() {
     const goal = state.appData.settings?.dailyGoal || { type: 'words', value: 20 };
     const fontSize = state.appData.settings?.fontSize || 1.0;
     const isDarkMode = document.documentElement.classList.contains('dark');
+    const avatarSrc = state.appData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(state.appData.profileName)}&background=random&color=fff`;
+
     container.innerHTML = `
         <header class="text-center mb-8">
-            <div class="relative inline-block"><div class="w-24 h-24 rounded-full bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center text-4xl font-bold text-indigo-600 dark:text-indigo-300">${(state.appData.profileName || 'A').charAt(0).toUpperCase()}</div></div>
+            <div class="relative inline-block group">
+                <img id="profile-avatar" src="${avatarSrc}" alt="Avatar" class="w-24 h-24 rounded-full object-cover border-4 border-indigo-200 dark:border-indigo-800">
+                <label for="avatar-upload-input" class="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </label>
+                <input type="file" id="avatar-upload-input" class="hidden" accept="image/*">
+            </div>
             <h1 class="text-2xl font-bold mt-4">${state.appData.profileName || ''}</h1>
         </header>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -345,11 +353,11 @@ export function toggleDarkMode() {
     const isCurrentlyDark = document.documentElement.classList.contains('dark');
     const newDarkModeState = !isCurrentlyDark;
     localStorage.setItem('darkMode', newDarkModeState);
-    if (newDarkModeState) {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
+    if (state.appData.settings) {
+        state.appData.settings.darkMode = newDarkModeState;
+        saveUserData();
     }
+    applyAppearanceSettings();
     if(document.getElementById('profile-tab')?.classList.contains('active')) {
         renderProfileTab();
     }
@@ -382,10 +390,6 @@ export function setupVoiceOptions() {
     populateVoiceList();
 }
 
-export function renderSuggestions() {
-    // This function is no longer needed as suggestions are a game mode now.
-}
-
 export function addSettingsEventListeners() {
     const safeAddEventListener = (id, event, handler) => {
         const element = document.getElementById(id);
@@ -400,5 +404,6 @@ export function addSettingsEventListeners() {
     });
     safeAddEventListener('goal-type-select', 'change', handleGoalChange);
     safeAddEventListener('goal-value-input', 'change', handleGoalChange);
-    safeAddEventListener('font-size-slider', 'input', handleFontSizeChange); // <-- THÊM MỚI
+    safeAddEventListener('font-size-slider', 'input', handleFontSizeChange);
+    safeAddEventListener('avatar-upload-input', 'change', profile.handleAvatarUpload);
 }

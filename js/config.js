@@ -5,7 +5,7 @@ export const firebaseConfig = {
     apiKey: "AIzaSyDxSkZM92j_2ZE2ob5IZXwodCM01pumhgo",
     authDomain: "spelling-bee-2c08c.firebaseapp.com",
     projectId: "spelling-bee-2c08c",
-    storageBucket: "spelling-bee-2c08c.appspot.com",
+    storageBucket: "spelling-bee-2c08c.firebasestorage.app",
     messagingSenderId: "455471826012",
     appId: "1:455471826012:web:d2aec008fb86fdee6d5299",
     measurementId: "G-95V4YFCS7E"

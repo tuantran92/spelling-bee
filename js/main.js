@@ -3,7 +3,7 @@
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from './firebase.js';
 import { setState, state } from './state.js';
-import { showTab, showGameScreen, closeGameScreen, updateDashboard, addSettingsEventListeners, applyFilters } from './ui.js';
+import { showTab, showGameScreen, closeGameScreen, updateDashboard, addSettingsEventListeners, applyFilters, handleFontSizeChange } from './ui.js';
 import * as profile from './profile.js';
 import * as data from './data.js';
 import * as game from './gameModes.js';
@@ -53,6 +53,7 @@ function attachGlobalFunctions() {
     window.toggleDarkMode = ui.toggleDarkMode;
     window.showProgressSubTab = ui.showProgressSubTab;
     window.applyFilters = applyFilters;
+    window.handleFontSizeChange = ui.handleFontSizeChange; // <-- Thêm vào đây nếu chưa có
 
     // Profile (gán toàn bộ module)
     window.profile = profile;
@@ -84,8 +85,26 @@ function attachGlobalFunctions() {
 }
 
 function addEventListeners() {
+    // Sửa đổi hàm này để xử lý nút mới
     document.body.addEventListener('click', (e) => {
-        if (e.target.id === 'create-profile-btn') profile.createNewProfile();
+        const target = e.target;
+        if (target.id === 'create-profile-btn') {
+            profile.createNewProfile();
+        }
+
+        // THÊM MỚI: Logic để hiện/ẩn form tạo hồ sơ
+        if (target.closest('#show-create-form-btn')) {
+            const form = document.getElementById('create-profile-form');
+            const button = document.getElementById('show-create-form-btn');
+            if (form) {
+                form.classList.toggle('hidden');
+                // Thay đổi nội dung nút để người dùng biết có thể đóng lại
+                if (button.querySelector('span')) {
+                    const isHidden = form.classList.contains('hidden');
+                    button.querySelector('span').textContent = isHidden ? 'Tạo hồ sơ mới' : 'Đóng';
+                }
+            }
+        }
     });
     addSettingsEventListeners();
 }

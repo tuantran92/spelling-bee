@@ -14,7 +14,6 @@ export const state = {
         new: []
     },
 
-    // *** THÊM MỚI: Lưu trạng thái của bộ lọc ***
     activeFilters: {
         category: 'all',
         difficulty: 'all'
@@ -22,6 +21,7 @@ export const state = {
 
     appData: {
         profileName: '',
+        avatarUrl: '', 
         streak: 0,
         lastVisit: null,
         progress: {},
@@ -34,7 +34,7 @@ export const state = {
                 type: 'words',
                 value: 20
             },
-            fontSize: 1.0 // <-- THAY ĐỔI Ở ĐÂY
+            fontSize: 1.0
         },
         dailyProgress: {
             date: null,

@@ -10,10 +10,6 @@ import { checkAchievements } from './achievements.js';
 
 const MASTER_VOCAB_ID = "sharedList";
 
-/**
- * *** THAY ĐỔI: Tính toán và LƯU LẠI gợi ý vào state ***
- * Hàm này sẽ không còn tính toán ngẫu nhiên liên tục nữa.
- */
 export function updateAndCacheSuggestions() {
     const { appData, vocabList } = state;
     if (!appData.progress || vocabList.length === 0) {
@@ -31,7 +27,7 @@ export function updateAndCacheSuggestions() {
 
     const learnedWordsSet = new Set(Object.keys(appData.progress).filter(word => appData.progress[word].level > 0));
     const newWords = vocabList.filter(v => !learnedWordsSet.has(v.word))
-        .sort(() => 0.5 - Math.random()) // Vẫn giữ random ở đây để mỗi lần refresh tab Học sẽ có gợi ý mới
+        .sort(() => 0.5 - Math.random())
         .slice(0, 5);
 
     setState({ suggestions: { difficult: difficultWords, new: newWords } });
@@ -80,12 +76,13 @@ export async function loadUserData(profileName) {
 
     const defaultAppData = {
         profileName: profileName,
+        avatarUrl: '',
         streak: 0, lastVisit: null, progress: {},
         dailyActivity: {}, achievements: {}, examHistory: [],
         settings: {
             darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
             dailyGoal: { type: 'words', value: 20 },
-            fontSize: 1.0 // <-- THAY ĐỔI Ở ĐÂY
+            fontSize: 1.0
         },
         dailyProgress: { date: null, words: 0, minutes: 0 }
     };

@@ -1,8 +1,9 @@
 // js/profile.js
 
-import { collection, getDocs, addDoc, query, where, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from './firebase.js';
-import { setState } from './state.js';
+import { collection, getDocs, addDoc, query, where, deleteDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { db, storage } from './firebase.js';
+import { state, setState } from './state.js';
 import { showTab } from './ui.js';
 import * as data from './data.js';
 import { hashText } from './utils.js';
@@ -19,12 +20,13 @@ export async function displayProfileScreen() {
         } else {
             profilesSnapshot.forEach(doc => {
                 const profile = doc.data();
+                const avatarSrc = profile.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=random&color=fff`;
                 const profileItem = document.createElement('div');
                 profileItem.className = 'flex items-center justify-between gap-2';
-                // *** SỬA LỖI: Đảm bảo nút bấm gọi đúng hàm promptPasswordForLogin ***
                 profileItem.innerHTML = `
-                    <button class="flex-grow bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg" onclick="profile.promptPasswordForLogin('${doc.id}', '${profile.name}')">
-                        ${profile.name}
+                    <button class="flex-grow flex items-center gap-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg" onclick="profile.promptPasswordForLogin('${doc.id}', '${profile.name}')">
+                        <img src="${avatarSrc}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">
+                        <span class="flex-grow text-left">${profile.name}</span>
                     </button>
                 `;
                 profileListEl.appendChild(profileItem);
@@ -33,6 +35,33 @@ export async function displayProfileScreen() {
     } catch (error) {
         console.error("Lỗi khi tải hồ sơ: ", error);
         document.getElementById('profile-feedback').textContent = "Không thể tải danh sách hồ sơ.";
+    }
+}
+
+export async function handleAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file || !state.selectedProfileId) return;
+
+    const avatarEl = document.getElementById('profile-avatar');
+    const oldSrc = avatarEl.src;
+    avatarEl.src = URL.createObjectURL(file);
+
+    try {
+        const storageRef = ref(storage, `avatars/${state.selectedProfileId}/${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        state.appData.avatarUrl = downloadURL;
+        await data.saveUserData();
+        
+        const profileRef = doc(db, "profiles", state.selectedProfileId);
+        await setDoc(profileRef, { avatarUrl: downloadURL }, { merge: true });
+
+        alert('Cập nhật ảnh đại diện thành công!');
+    } catch (error) {
+        console.error("Lỗi tải ảnh lên:", error);
+        alert('Đã xảy ra lỗi khi tải ảnh lên. Vui lòng thử lại.');
+        avatarEl.src = oldSrc;
     }
 }
 
@@ -62,7 +91,8 @@ export async function createNewProfile() {
         const docRef = await addDoc(collection(db, "profiles"), { 
             name: name, 
             passwordHash: passwordHash,
-            createdAt: new Date() 
+            createdAt: new Date(),
+            avatarUrl: ''
         });
         await selectProfile(docRef.id, name);
     } catch (error) {
