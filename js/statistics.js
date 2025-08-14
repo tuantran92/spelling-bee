@@ -1,6 +1,7 @@
 // js/statistics.js
 
 import { state } from './state.js';
+import { fetchAllUsersForLeaderboard } from './data.js';
 
 let activityChart = null; // Biến để giữ instance của Chart
 
@@ -86,10 +87,6 @@ function calculateStatistics() {
     return { totalWords, learnedWords, masteredWords, difficultWords, chartData };
 }
 
-/**
- * Vẽ biểu đồ hoạt động bằng Chart.js.
- * ĐÃ SỬA LỖI HIỂN THỊ TRỤC Y
- */
 function renderActivityChart(chartData) {
     const ctx = document.getElementById('activity-chart')?.getContext('2d');
     if (!ctx) return;
@@ -117,13 +114,11 @@ function renderActivityChart(chartData) {
             maintainAspectRatio: false,
             scales: {
                 y: {
-                    // CÁC THAY ĐỔI NẰM Ở ĐÂY
-                    beginAtZero: true, // Đảm bảo bắt đầu từ 0
-                    min: 0, // Ép trục Y bắt đầu từ 0
+                    beginAtZero: true,
+                    min: 0,
                     ticks: {
-                        precision: 0 // Chỉ hiển thị số nguyên trên trục Y
+                        precision: 0
                     },
-                    // Gợi ý giá trị max để trục Y trông đẹp hơn khi dữ liệu nhỏ
                     suggestedMax: 10 
                 }
             },
@@ -134,4 +129,36 @@ function renderActivityChart(chartData) {
             }
         }
     });
+}
+
+// --- HÀM MỚI ---
+export async function renderLeaderboardPage(containerId) {
+    const screen = document.getElementById(containerId);
+    if (!screen) return;
+    screen.innerHTML = `<div class="text-center p-8"><div class="loader mx-auto"></div><p class="mt-2 text-sm text-gray-500">Đang tải bảng xếp hạng...</p></div>`;
+
+    const users = await fetchAllUsersForLeaderboard();
+
+    if (users.length === 0) {
+        screen.innerHTML = `<div class="text-center p-8"><p class="text-gray-500">Chưa có dữ liệu để hiển thị bảng xếp hạng.</p></div>`;
+        return;
+    }
+
+    const rankIcons = ['🥇', '🥈', '🥉'];
+
+    screen.innerHTML = `
+        <h3 class="font-semibold mb-4 text-gray-800 dark:text-gray-200 text-center">Bảng Xếp Hạng Toàn Cầu</h3>
+        <ul class="space-y-3">
+            ${users.map((user, index) => `
+                <li class="flex items-center gap-4 p-3 ${index < 3 ? 'bg-yellow-50 dark:bg-yellow-900/40' : 'bg-gray-100 dark:bg-gray-800'} rounded-lg">
+                    <div class="font-bold text-lg w-8 text-center">${rankIcons[index] || index + 1}</div>
+                    <img src="${user.avatarUrl}" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+                    <div class="flex-grow">
+                        <p class="font-semibold text-gray-800 dark:text-gray-200">${user.name}</p>
+                    </div>
+                    <div class="font-bold text-indigo-500">${user.points} điểm</div>
+                </li>
+            `).join('')}
+        </ul>
+    `;
 }

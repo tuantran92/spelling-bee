@@ -75,7 +75,6 @@ export function renderHomeTab() {
     const profileName = state.appData.profileName || "Bạn";
     const streak = state.appData.streak || 0;
     
-    // Lấy URL avatar, nếu không có sẽ dùng avatar mặc định theo tên
     const avatarSrc = state.appData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileName)}&background=random&color=fff`;
     
     const reviewCount = getReviewableWords().length;
@@ -154,12 +153,15 @@ export function renderProgressTab() {
         <header class="mb-6"><h1 class="text-2xl font-bold">Tiến độ của bạn</h1></header>
         <div class="flex border-b border-gray-200 dark:border-gray-700 mb-4">
             <button id="progress-sub-tab-stats" class="sub-tab-btn active-sub-tab px-4 py-2 font-semibold" onclick="showProgressSubTab('stats')">Tổng quan</button>
+            <button id="progress-sub-tab-leaderboard" class="sub-tab-btn px-4 py-2 font-semibold" onclick="showProgressSubTab('leaderboard')">Bảng xếp hạng</button>
             <button id="progress-sub-tab-achievements" class="sub-tab-btn px-4 py-2 font-semibold" onclick="showProgressSubTab('achievements')">Thành tựu</button>
         </div>
         <div id="stats-sub-tab-content" class="sub-tab-content active"></div>
+        <div id="leaderboard-sub-tab-content" class="sub-tab-content"></div>
         <div id="achievements-sub-tab-content" class="sub-tab-content"></div>
     `;
     stats.renderStatisticsPage('stats-sub-tab-content');
+    stats.renderLeaderboardPage('leaderboard-sub-tab-content');
     achievements.renderAchievementsPage('achievements-sub-tab-content');
     showProgressSubTab('stats');
 }

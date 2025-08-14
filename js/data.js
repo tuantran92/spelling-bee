@@ -1,45 +1,19 @@
 // js/data.js
 
-import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './firebase.js';
 import { state, setState } from './state.js';
-import { SRS_INTERVALS, wordsApiKey } from './config.js';
+import { SRS_INTERVALS, wordsApiKey, unsplashAccessKey } from './config.js';
 import { updateDashboard } from './ui.js';
 import { parseCSV, shuffleArray, delay } from './utils.js';
 import { checkAchievements } from './achievements.js';
 
 const MASTER_VOCAB_ID = "sharedList";
 
-// --- THÊM MỚI: Từ điển mini cho các từ thông dụng ---
 const commonWordPhonetics = {
-    'a': 'ə',
-    'an': 'ən',
-    'the': 'ðə', 'thee': 'ði',
-    'of': 'əv',
-    'at': 'ət',
-    'in': 'ɪn',
-    'on': 'ɑn',
-    'for': 'fɔr',
-    'your': 'jʊər',
-    'is': 'ɪz',
-    'are': 'ɑr',
-    'was': 'wəz',
-    'were': 'wɜr',
-    'to': 'tu',
-    'and': 'ənd',
-    'from': 'frʌm',
-    'with': 'wɪð',
-    'my': 'maɪ',
-    'it': 'ɪt',
-    'i': 'aɪ',
-    'you': 'ju',
-    'he': 'hi',
-    'she': 'ʃi',
-    'we': 'wi',
-    'they': 'ðeɪ',
-    'bottom': 'ˈbɑtəm',
-    'top': 'tɑp',
-    'back': 'bæk'
+    'a': 'ə', 'an': 'ən', 'the': 'ðə', 'thee': 'ði', 'of': 'əv', 'at': 'ət', 'in': 'ɪn', 'on': 'ɑn', 'for': 'fɔr', 'your': 'jʊər',
+    'is': 'ɪz', 'are': 'ɑr', 'was': 'wəz', 'were': 'wɜr', 'to': 'tu', 'and': 'ənd', 'from': 'frʌm', 'with': 'wɪð', 'my': 'maɪ',
+    'it': 'ɪt', 'i': 'aɪ', 'you': 'ju', 'he': 'hi', 'she': 'ʃi', 'we': 'wi', 'they': 'ðeɪ', 'bottom': 'ˈbɑtəm', 'top': 'tɑp', 'back': 'bæk'
 };
 
 export function updateAndCacheSuggestions() {
@@ -110,6 +84,7 @@ export async function loadUserData(profileName) {
         profileName: profileName,
         avatarUrl: '',
         streak: 0, lastVisit: null, progress: {},
+        points: 0,
         dailyActivity: {}, achievements: {}, examHistory: [],
         settings: {
             darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
@@ -133,7 +108,13 @@ export async function loadUserData(profileName) {
     let dataChanged = false;
     shuffledMasterList.forEach(word => {
         if (!appData.progress[word.word]) {
-            appData.progress[word.word] = { level: 0, nextReview: new Date().toISOString(), wrongAttempts: 0 };
+            appData.progress[word.word] = {
+                level: 0,
+                nextReview: new Date().toISOString(),
+                wrongAttempts: 0,
+                correctAttempts: 0,
+                history: []
+            };
             dataChanged = true;
         }
     });
@@ -168,7 +149,6 @@ export async function loadUserData(profileName) {
     updateDashboard();
 }
 
-
 export async function saveUserData() {
     if (!state.selectedProfileId) return;
     try {
@@ -182,13 +162,30 @@ export function updateWordLevel(wordObj, isCorrect) {
     if (!wordObj?.word || !state.appData.progress[wordObj.word]) return;
 
     const wordProgress = state.appData.progress[wordObj.word];
+    const oldLevel = wordProgress.level;
+
     if (isCorrect) {
         wordProgress.level = Math.min(wordProgress.level + 1, SRS_INTERVALS.length - 1);
+        wordProgress.correctAttempts = (wordProgress.correctAttempts || 0) + 1;
+        state.appData.points = (state.appData.points || 0) + 10;
         recordDailyActivity(1);
     } else {
         wordProgress.level = Math.max(0, wordProgress.level - 2);
         wordProgress.wrongAttempts = (wordProgress.wrongAttempts || 0) + 1;
     }
+
+    if (!wordProgress.history) {
+        wordProgress.history = [];
+    }
+    wordProgress.history.push({
+        date: new Date().toISOString(),
+        action: isCorrect ? 'correct' : 'wrong',
+        levelChange: `${oldLevel} -> ${wordProgress.level}`
+    });
+    if (wordProgress.history.length > 10) {
+        wordProgress.history.shift();
+    }
+
     const intervalDays = SRS_INTERVALS[wordProgress.level];
     const nextReviewDate = new Date();
     nextReviewDate.setDate(nextReviewDate.getDate() + intervalDays);
@@ -243,20 +240,68 @@ export async function importFromGoogleSheet() {
     }
 }
 
+export async function fetchAllUsersForLeaderboard() {
+    try {
+        const usersSnapshot = await getDocs(collection(db, "users"));
+        const usersData = [];
+        usersSnapshot.forEach(doc => {
+            const data = doc.data().appData;
+            if (data.profileName && data.points) {
+                usersData.push({
+                    name: data.profileName,
+                    points: data.points,
+                    avatarUrl: data.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.profileName)}&background=random&color=fff`
+                });
+            }
+        });
+        return usersData.sort((a, b) => b.points - a.points);
+    } catch (error) {
+        console.error("Lỗi khi tải dữ liệu bảng xếp hạng:", error);
+        return [];
+    }
+}
+
+export async function fetchWordImage(word) {
+    if (!unsplashAccessKey || unsplashAccessKey === "ACCESS_KEY_CUA_BAN") {
+        return null;
+    }
+    try {
+        const response = await fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(word)}&client_id=${unsplashAccessKey}`);
+        if (response.ok) {
+            const data = await response.json();
+            
+            if (data.links && data.links.download_location) {
+                fetch(data.links.download_location, {
+                    headers: {
+                      'Authorization': `Client-ID ${unsplashAccessKey}`
+                    }
+                });
+            }
+
+            return {
+                url: data.urls.small,
+                author: data.user.name,
+                authorLink: data.user.links.html
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error("Lỗi khi lấy ảnh từ Unsplash:", error);
+        return null;
+    }
+}
+
 export async function fetchWordData(word) {
     if (!word) return null;
     
     const encodedWord = encodeURIComponent(word);
     let wordData = { phonetic: null, definition: null, example: null, partOfSpeech: null, synonyms: [] };
 
-    // Hàm con để gọi API cho một từ đơn, ưu tiên từ điển mini
     const getPhoneticFromSingleWord = async (singleWord) => {
-        // --- CẢI TIẾN: Kiểm tra từ điển mini trước ---
         if (commonWordPhonetics[singleWord]) {
             return commonWordPhonetics[singleWord];
         }
 
-        // Nếu không có, mới gọi WordsAPI
         if (wordsApiKey && wordsApiKey !== "DÁN_API_KEY_CỦA_BẠN_VÀO_ĐÂY") {
             const url = `https://wordsapiv1.p.rapidapi.com/words/${encodeURIComponent(singleWord)}`;
             const options = {
@@ -279,7 +324,6 @@ export async function fetchWordData(word) {
         return null;
     };
     
-    // 1. Cố gắng lấy dữ liệu từ WordsAPI cho cả cụm từ
     if (wordsApiKey && wordsApiKey !== "DÁN_API_KEY_CỦA_BẠN_VÀO_ĐÂY") {
         try {
             const response = await fetch(`https://wordsapiv1.p.rapidapi.com/words/${encodedWord}`, {
@@ -306,7 +350,6 @@ export async function fetchWordData(word) {
         }
     }
 
-    // 2. Nếu không có phiên âm cho cả cụm, thử lấy cho từng từ riêng lẻ
     const words = word.split(' ').filter(w => w.length > 0);
     if (words.length > 1) {
         let phoneticParts = [];
@@ -315,14 +358,13 @@ export async function fetchWordData(word) {
             if (partPhonetic) {
                 phoneticParts.push(partPhonetic);
             }
-            await delay(200); // Thêm độ trễ 200ms để tránh bị block
+            await delay(200);
         }
         if (phoneticParts.length > 0) {
             wordData.phonetic = `/${phoneticParts.join(' ')}/`;
         }
     }
 
-    // 3. Nếu vẫn chưa có gì, dùng dictionaryapi.dev làm phương án dự phòng
     if (!wordData.phonetic && !wordData.definition) {
         try {
             const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodedWord}`);

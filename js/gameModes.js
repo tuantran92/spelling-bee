@@ -1,7 +1,7 @@
 // js/gameModes.js
 
 import { state, setState } from './state.js';
-import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords, updateAndCacheSuggestions } from './data.js';
+import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords, updateAndCacheSuggestions, fetchWordData } from './data.js';
 import { scrambleWord, levenshteinDistance, playSound } from './utils.js';
 import { closeGameScreen } from './ui.js';
 
@@ -71,11 +71,9 @@ window.nextSuggestionWord = () => {
     // Cập nhật tiến trình cho từ vừa học
     updateWordLevel(word, true);
 
-    // --- LOGIC MỚI: Nếu là từ khó, reset bộ đếm lỗi ---
     if (listType === 'difficult' && state.appData.progress[word.word]) {
         state.appData.progress[word.word].wrongAttempts = 0;
     }
-    // --- KẾT THÚC LOGIC MỚI ---
 
     if (currentIndex + 1 < words.length) {
         setState({ suggestionSession: { ...state.suggestionSession, currentIndex: currentIndex + 1 } });
@@ -102,7 +100,7 @@ window.startSuggestionSession = (listType, startIndex) => {
             isActive: true,
             words: words,
             currentIndex: startIndex,
-            listType: listType // Lưu lại loại danh sách
+            listType: listType
         }
     });
     renderSuggestionCard();
@@ -156,8 +154,6 @@ export function startSuggestionMode(containerId) {
         </div>
     `;
 }
-
-// === KẾT THÚC PHẦN CẬP NHẬT ===
 
 export function renderReviewCard(containerId) {
     const screenEl = document.getElementById(containerId);
@@ -291,13 +287,25 @@ export function startReading(containerId) {
 
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Flashcard</h2>
-        <div id="flashcard-content" class="relative w-full h-auto min-h-[14rem] md:min-h-[16rem] bg-teal-600 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg text-center text-white">
-            <p id="flashcard-word" class="font-bold vocab-font-size-flashcard"></p>
-            <p id="flashcard-phonetic" class="text-lg text-teal-100 font-mono mt-1"></p>
-            <p id="flashcard-meaning" class="text-xl font-semibold mt-2 vocab-font-size"></p>
-            <p id="flashcard-definition" class="text-sm italic text-teal-200 px-2 mt-2"></p>
-            <p id="flashcard-example" class="text-sm italic text-teal-200 px-2 mt-2"></p>
-            <button id="flashcard-speak-btn" class="absolute bottom-4 right-4 bg-white/20 p-2 rounded-full">
+        <div id="flashcard-content" class="relative w-full bg-gray-100 dark:bg-gray-700 rounded-xl flex flex-col p-4 shadow-lg text-center">
+            
+            <div id="flashcard-image-container" class="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                <img id="flashcard-image" src="" class="w-full h-full object-contain" alt="Vocabulary Image">
+            </div>
+            
+            <div id="flashcard-text-content">
+                <p id="flashcard-word" class="font-bold vocab-font-size-flashcard text-gray-900 dark:text-gray-100"></p>
+                <p id="flashcard-phonetic" class="text-lg text-indigo-500 dark:text-indigo-400 font-mono mt-1"></p>
+                <p id="flashcard-meaning" class="text-xl font-semibold mt-2 text-gray-800 dark:text-gray-200"></p>
+                <p id="flashcard-definition" class="text-sm italic text-gray-600 dark:text-gray-400 px-2 mt-2"></p>
+                <p id="flashcard-example" class="text-sm italic text-gray-500 dark:text-gray-400 px-2 mt-2"></p>
+            </div>
+            
+            <div class="flex-grow"></div> 
+
+            <p id="flashcard-attribution" class="w-full text-left text-xs text-gray-400 dark:text-gray-500 mt-3" style="display: none;"></p>
+            
+            <button id="flashcard-speak-btn" class="absolute bottom-4 right-4 bg-teal-500 hover:bg-teal-600 p-2 rounded-full">
                 <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
             </button>
         </div>
@@ -314,13 +322,36 @@ export function startReading(containerId) {
 
 function updateFlashcard() {
     const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
-    const cardContentEl = document.getElementById('flashcard-content');
-    if (gameList.length === 0) {
-        if (cardContentEl) cardContentEl.innerHTML = `<p class="text-orange-300">Không có từ nào để học.</p>`;
+    const contentEl = document.getElementById('flashcard-content');
+    if (gameList.length === 0 || !contentEl) {
+        if (contentEl) contentEl.innerHTML = `<p class="text-orange-500">Không có từ nào để học.</p>`;
         return;
     }
     const word = gameList[state.currentFlashcardIndex];
     setState({ currentWord: word });
+
+    const imageContainer = document.getElementById("flashcard-image-container");
+    const imageEl = document.getElementById("flashcard-image");
+    const textContentEl = document.getElementById("flashcard-text-content");
+    const attributionEl = document.getElementById("flashcard-attribution");
+
+    if (word.imageUrl) {
+        imageEl.src = word.imageUrl;
+        imageContainer.classList.remove('hidden');
+        textContentEl.classList.remove('no-image');
+        
+        if (word.imageAuthor && word.imageAuthorLink) {
+             attributionEl.innerHTML = `Photo by <a href="${word.imageAuthorLink}?utm_source=LuyenTuVungPRO&utm_medium=referral" target="_blank" class="underline">${word.imageAuthor}</a> on <a href="https://unsplash.com/?utm_source=LuyenTuVungPRO&utm_medium=referral" target="_blank" class="underline">Unsplash</a>`;
+            attributionEl.style.display = 'block';
+        } else {
+            attributionEl.style.display = 'none';
+        }
+
+    } else {
+        imageContainer.classList.add('hidden');
+        textContentEl.classList.add('no-image');
+        attributionEl.style.display = 'none';
+    }
 
     document.getElementById("flashcard-word").textContent = word.word;
     document.getElementById("flashcard-phonetic").textContent = word.phonetic || '';

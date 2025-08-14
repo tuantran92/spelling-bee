@@ -1,17 +1,13 @@
 // js/vocabManager.js
 
 import { state, setState } from './state.js';
-import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData } from './data.js';
+import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImage } from './data.js';
+import { SRS_INTERVALS } from './config.js';
 
-// --- PHÂN TRANG ---
 const ITEMS_PER_PAGE = 30;
 let currentLoadedCount = ITEMS_PER_PAGE;
 let fullFilteredList = [];
 
-/**
- * Hàm này chỉ được gọi MỘT LẦN để thiết lập cấu trúc và các event listeners.
- * @param {string} containerId - ID của container để render nội dung vào.
- */
 export function renderVocabManagementList(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -39,11 +35,9 @@ export function renderVocabManagementList(containerId) {
         </div>
     `;
 
-    // Gán Event Listeners một cách đáng tin cậy
     document.getElementById('vocab-search-input').addEventListener('input', handleFilterChange);
     document.getElementById('vocab-list-category-filter').addEventListener('change', handleFilterChange);
     
-    // Sử dụng Event Delegation cho các nút "Tải thêm" và dropdown độ khó
     container.addEventListener('click', (event) => {
         if (event.target && event.target.id === 'load-more-btn') {
             loadMoreVocab();
@@ -58,10 +52,9 @@ export function renderVocabManagementList(containerId) {
         }
     });
 
-    handleFilterChange(); // Render danh sách lần đầu
+    handleFilterChange();
 }
 
-// Các hàm này giờ là hàm nội bộ, không cần export
 function handleFilterChange() {
     currentLoadedCount = ITEMS_PER_PAGE;
     filterAndDisplayVocab();
@@ -114,6 +107,7 @@ function filterAndDisplayVocab() {
                             ${word.definition ? `<p class="text-sm text-gray-500 dark:text-gray-300 mt-1 italic">"${word.definition}"</p>` : ''}
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
+                            <button onclick="showWordStats(${originalIndex})" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Chi tiết"><svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
                             <button onclick="editVocabWord(${originalIndex})" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Sửa"><svg class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg></button>
                             <button onclick="deleteVocabWord(${originalIndex})" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Xóa"><svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                         </div>
@@ -141,31 +135,77 @@ function filterAndDisplayVocab() {
     }
 }
 
-async function updateWordDifficulty(index, newDifficulty) {
+export function updateWordDifficulty(index, newDifficulty) {
     if (state.vocabList[index]) {
         state.vocabList[index].difficulty = newDifficulty;
-        await saveMasterVocab();
-
+        saveMasterVocab();
         const itemEl = document.getElementById(`vocab-item-${index}`);
         if (itemEl) {
             itemEl.classList.remove('border-green-500', 'border-yellow-500', 'border-red-500');
-            if (newDifficulty === 'easy') {
-                itemEl.classList.add('border-green-500');
-            } else if (newDifficulty === 'hard') {
-                itemEl.classList.add('border-red-500');
-            } else {
-                itemEl.classList.add('border-yellow-500');
-            }
-
-            const originalBg = 'bg-gray-100';
-            const originalDarkBg = 'dark:bg-gray-700/60';
-            itemEl.classList.remove(originalBg, originalDarkBg);
-            itemEl.classList.add('bg-green-100', 'dark:bg-green-900/50');
-            setTimeout(() => {
-                itemEl.classList.remove('bg-green-100', 'dark:bg-green-900/50');
-            }, 1000);
+            const difficultyClass = {
+                easy: 'border-green-500',
+                hard: 'border-red-500'
+            }[newDifficulty] || 'border-yellow-500';
+            itemEl.classList.add(difficultyClass);
         }
     }
+}
+
+export function showWordStats(wordIndex) {
+    const word = state.vocabList[wordIndex];
+    const progress = state.appData.progress[word.word] || {};
+    const modalContainer = document.getElementById('vocab-stats-modal');
+    if (!word || !modalContainer) return;
+
+    const nextReviewDate = progress.nextReview ? new Date(progress.nextReview) : null;
+    const nextReviewString = nextReviewDate ? nextReviewDate.toLocaleString('vi-VN') : 'Chưa có';
+    const isMastered = progress.level >= SRS_INTERVALS.length - 1;
+
+    modalContainer.innerHTML = `
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md mx-auto relative">
+            <button onclick="closeWordStats()" class="absolute top-2 right-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-2 z-10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">${word.word}</h3>
+            <p class="text-indigo-500 dark:text-indigo-400 font-mono">${word.phonetic || ''}</p>
+            <div class="mt-4 grid grid-cols-2 gap-4 text-center">
+                <div class="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                    <p class="text-xs text-blue-800 dark:text-blue-200">Cấp độ SRS</p>
+                    <p class="text-2xl font-bold">${isMastered ? 'Thành thạo' : progress.level || 0}</p>
+                </div>
+                <div class="p-3 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                    <p class="text-xs text-gray-600 dark:text-gray-300">Ôn tập tiếp theo</p>
+                    <p class="font-semibold text-sm mt-1">${isMastered ? 'Không cần' : nextReviewString}</p>
+                </div>
+                <div class="p-3 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                    <p class="text-xs text-green-800 dark:text-green-200">Đúng</p>
+                    <p class="text-2xl font-bold">${progress.correctAttempts || 0}</p>
+                </div>
+                <div class="p-3 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                    <p class="text-xs text-red-800 dark:text-red-200">Sai</p>
+                    <p class="text-2xl font-bold">${progress.wrongAttempts || 0}</p>
+                </div>
+            </div>
+            <div class="mt-4">
+                <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">Lịch sử gần đây</h4>
+                <ul class="space-y-1 text-xs">
+                    ${(progress.history && progress.history.length > 0) ? [...progress.history].reverse().map(h => `
+                        <li class="flex justify-between p-1 rounded ${h.action === 'correct' ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/30'}">
+                            <span>${new Date(h.date).toLocaleString('vi-VN')}</span>
+                            <span class="font-mono">${h.levelChange}</span>
+                        </li>
+                    `).join('') : '<li class="text-center text-gray-500">Chưa có lịch sử.</li>'}
+                </ul>
+            </div>
+        </div>
+    `;
+    modalContainer.classList.remove('hidden');
+}
+
+export function closeWordStats() {
+    const modalContainer = document.getElementById('vocab-stats-modal');
+    modalContainer.classList.add('hidden');
+    modalContainer.innerHTML = '';
 }
 
 export function openVocabForm(wordIndex = -1) {
@@ -176,7 +216,7 @@ export function openVocabForm(wordIndex = -1) {
     modalContainer.innerHTML = `
         <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md mx-auto relative">
              <button onclick="closeVocabForm()" class="absolute top-2 right-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-2 z-10">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">${isEditing ? 'Sửa từ' : 'Thêm từ mới'}</h3>
             <div class="space-y-4">
@@ -225,24 +265,38 @@ export async function handleVocabSubmit() {
         return;
     }
 
-    feedbackEl.textContent = "Đang làm giàu dữ liệu từ điển...";
-    const apiData = await fetchWordData(word);
+    feedbackEl.textContent = "Đang làm giàu dữ liệu (phiên âm, ảnh...)...";
+    
+    const [apiData, imageData] = await Promise.all([
+        fetchWordData(word),
+        fetchWordImage(word)
+    ]);
+
     feedbackEl.textContent = "";
 
     const newWord = {
         word: word,
         meaning: meaning,
         phonetic: apiData?.phonetic || '',
-        definition: apiData?.definition || '', // Định nghĩa tiếng Anh
-        example: document.getElementById('vocab-example').value.trim() || apiData?.example || '', // Ưu tiên ví dụ tự nhập
-        partOfSpeech: apiData?.partOfSpeech || '', // Loại từ
-        synonyms: apiData?.synonyms || [], // Từ đồng nghĩa
+        definition: apiData?.definition || '',
+        example: document.getElementById('vocab-example').value.trim() || apiData?.example || '',
+        partOfSpeech: apiData?.partOfSpeech || '',
+        synonyms: apiData?.synonyms || [],
         category: document.getElementById('vocab-category').value.trim() || 'Chung',
-        difficulty: document.getElementById('vocab-difficulty').value
+        difficulty: document.getElementById('vocab-difficulty').value,
+        imageUrl: imageData ? imageData.url : '',
+        imageAuthor: imageData ? imageData.author : '',
+        imageAuthorLink: imageData ? imageData.authorLink : ''
     };
 
     const newVocabList = [...state.vocabList];
     if (isEditing) {
+        if (!newWord.imageUrl) {
+            const oldWord = state.vocabList[state.editingWordIndex];
+            newWord.imageUrl = oldWord.imageUrl || '';
+            newWord.imageAuthor = oldWord.imageAuthor || '';
+            newWord.imageAuthorLink = oldWord.imageAuthorLink || '';
+        }
         newVocabList[state.editingWordIndex] = newWord;
     } else {
         newVocabList.push(newWord);

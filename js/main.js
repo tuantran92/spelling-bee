@@ -66,6 +66,9 @@ function attachGlobalFunctions() {
     window.importFromGoogleSheet = vocabManager.importFromGoogleSheet;
     window.closeVocabForm = vocabManager.closeVocabForm;
     window.updateWordDifficulty = vocabManager.updateWordDifficulty;
+    // --- THÊM MỚI ---
+    window.showWordStats = vocabManager.showWordStats;
+    window.closeWordStats = vocabManager.closeWordStats;
 
     // Game Modes
     window.speakWord = game.speakWord;
@@ -78,8 +81,6 @@ function attachGlobalFunctions() {
     window.listenForPronunciation = game.listenForPronunciation;
     window.checkFillBlank = game.checkFillBlank;
     window.handleReviewAnswer = game.handleReviewAnswer;
-    
-    // === THÊM DÒNG NÀY ĐỂ SỬA LỖI ===
     window.startSuggestionMode = game.startSuggestionMode;
 
     // Exam
