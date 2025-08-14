@@ -117,7 +117,7 @@ function renderExamQuestion() {
     document.getElementById('exam-timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-window.checkExamAnswer = (buttonEl, encodedAnswer) => {
+export function checkExamAnswer(buttonEl, encodedAnswer) {
     const userAnswer = decodeURIComponent(escape(atob(encodedAnswer)));
     const { questions, currentQuestionIndex } = state.examState;
     const question = questions[currentQuestionIndex];
