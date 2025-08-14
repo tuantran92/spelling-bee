@@ -186,9 +186,13 @@ export function renderProfileTab() {
         </header>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
-                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2">TÀI KHOẢN</h3>
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2">TÀI KHOẢN & DỮ LIỆU</h3>
                 <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg">
                     ${renderSettingsItem('switch-profile-btn', 'Đổi hồ sơ', 'profile.switchProfile()')}
+                    
+                    <div id="update-phonetics-wrapper">
+                        ${renderSettingsItem('update-phonetics-btn', 'Cập nhật phiên âm (hàng loạt)', 'profile.updateAllPhonetics()')}
+                    </div>
                     ${renderSettingsItem('delete-profile-btn', 'Xóa hồ sơ này', 'profile.promptDeleteProfile()', 'text-red-500')}
                 </div>
                 <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2 mt-6">KHÁC</h3>

@@ -93,3 +93,9 @@ export function shuffleArray(array) {
     }
     return array;
 }
+
+/**
+ * THÊM MỚI: Hàm tạo độ trễ (delay)
+ * @param {number} ms - Thời gian chờ (mili-giây)
+ */
+export const delay = ms => new Promise(res => setTimeout(res, ms));

@@ -3,12 +3,44 @@
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './firebase.js';
 import { state, setState } from './state.js';
-import { SRS_INTERVALS } from './config.js';
+import { SRS_INTERVALS, wordsApiKey } from './config.js';
 import { updateDashboard } from './ui.js';
-import { parseCSV, shuffleArray } from './utils.js';
+import { parseCSV, shuffleArray, delay } from './utils.js';
 import { checkAchievements } from './achievements.js';
 
 const MASTER_VOCAB_ID = "sharedList";
+
+// --- THÊM MỚI: Từ điển mini cho các từ thông dụng ---
+const commonWordPhonetics = {
+    'a': 'ə',
+    'an': 'ən',
+    'the': 'ðə', 'thee': 'ði',
+    'of': 'əv',
+    'at': 'ət',
+    'in': 'ɪn',
+    'on': 'ɑn',
+    'for': 'fɔr',
+    'your': 'jʊər',
+    'is': 'ɪz',
+    'are': 'ɑr',
+    'was': 'wəz',
+    'were': 'wɜr',
+    'to': 'tu',
+    'and': 'ənd',
+    'from': 'frʌm',
+    'with': 'wɪð',
+    'my': 'maɪ',
+    'it': 'ɪt',
+    'i': 'aɪ',
+    'you': 'ju',
+    'he': 'hi',
+    'she': 'ʃi',
+    'we': 'wi',
+    'they': 'ðeɪ',
+    'bottom': 'ˈbɑtəm',
+    'top': 'tɑp',
+    'back': 'bæk'
+};
 
 export function updateAndCacheSuggestions() {
     const { appData, vocabList } = state;
@@ -209,4 +241,112 @@ export async function importFromGoogleSheet() {
         console.error('Lỗi import:', error);
         return { success: false, message: 'Lỗi: Không thể tải sheet. Kiểm tra lại URL và quyền chia sẻ.' };
     }
+}
+
+export async function fetchWordData(word) {
+    if (!word) return null;
+    
+    const encodedWord = encodeURIComponent(word);
+    let wordData = { phonetic: null, definition: null, example: null, partOfSpeech: null, synonyms: [] };
+
+    // Hàm con để gọi API cho một từ đơn, ưu tiên từ điển mini
+    const getPhoneticFromSingleWord = async (singleWord) => {
+        // --- CẢI TIẾN: Kiểm tra từ điển mini trước ---
+        if (commonWordPhonetics[singleWord]) {
+            return commonWordPhonetics[singleWord];
+        }
+
+        // Nếu không có, mới gọi WordsAPI
+        if (wordsApiKey && wordsApiKey !== "DÁN_API_KEY_CỦA_BẠN_VÀO_ĐÂY") {
+            const url = `https://wordsapiv1.p.rapidapi.com/words/${encodeURIComponent(singleWord)}`;
+            const options = {
+                method: 'GET',
+                headers: {
+                    'X-RapidAPI-Key': wordsApiKey,
+                    'X-RapidAPI-Host': 'wordsapiv1.p.rapidapi.com'
+                }
+            };
+            try {
+                const response = await fetch(url, options);
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.pronunciation?.all || data.pronunciation?.noun || data.pronunciation?.verb || null;
+                }
+            } catch (error) {
+                console.error(`Lỗi WordsAPI cho từ "${singleWord}":`, error);
+            }
+        }
+        return null;
+    };
+    
+    // 1. Cố gắng lấy dữ liệu từ WordsAPI cho cả cụm từ
+    if (wordsApiKey && wordsApiKey !== "DÁN_API_KEY_CỦA_BẠN_VÀO_ĐÂY") {
+        try {
+            const response = await fetch(`https://wordsapiv1.p.rapidapi.com/words/${encodedWord}`, {
+                method: 'GET',
+                headers: { 'X-RapidAPI-Key': wordsApiKey, 'X-RapidAPI-Host': 'wordsapiv1.p.rapidapi.com' }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const pronunciation = data.pronunciation?.all || data.pronunciation?.noun || data.pronunciation?.verb;
+                if (pronunciation) wordData.phonetic = `/${pronunciation}/`;
+
+                if (data.results && data.results.length > 0) {
+                    const firstResult = data.results[0];
+                    wordData.definition = firstResult.definition || null;
+                    wordData.partOfSpeech = firstResult.partOfSpeech || null;
+                    wordData.synonyms = firstResult.synonyms?.slice(0, 3) || [];
+                    wordData.example = data.results.find(r => r.examples)?.examples[0] || null;
+                }
+                
+                if (wordData.phonetic) return wordData;
+            }
+        } catch (error) {
+            console.error("Lỗi khi gọi WordsAPI:", error);
+        }
+    }
+
+    // 2. Nếu không có phiên âm cho cả cụm, thử lấy cho từng từ riêng lẻ
+    const words = word.split(' ').filter(w => w.length > 0);
+    if (words.length > 1) {
+        let phoneticParts = [];
+        for (const part of words) {
+            const partPhonetic = await getPhoneticFromSingleWord(part);
+            if (partPhonetic) {
+                phoneticParts.push(partPhonetic);
+            }
+            await delay(200); // Thêm độ trễ 200ms để tránh bị block
+        }
+        if (phoneticParts.length > 0) {
+            wordData.phonetic = `/${phoneticParts.join(' ')}/`;
+        }
+    }
+
+    // 3. Nếu vẫn chưa có gì, dùng dictionaryapi.dev làm phương án dự phòng
+    if (!wordData.phonetic && !wordData.definition) {
+        try {
+            const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodedWord}`);
+            if (response.ok) {
+                const data = await response.json();
+                const firstEntry = data[0];
+                if (firstEntry) {
+                    wordData.phonetic = firstEntry.phonetics?.find(p => p.text)?.text || null;
+                    const firstMeaning = firstEntry.meanings?.[0];
+                    if (firstMeaning) {
+                        wordData.partOfSpeech = firstMeaning.partOfSpeech || null;
+                        const firstDefinition = firstMeaning.definitions?.[0];
+                        if (firstDefinition) {
+                            wordData.definition = firstDefinition.definition || null;
+                            wordData.example = firstDefinition.example || null;
+                            wordData.synonyms = firstDefinition.synonyms?.slice(0, 3) || [];
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Lỗi khi lấy phiên âm từ dictionaryapi.dev:", error);
+        }
+    }
+
+    return wordData;
 }

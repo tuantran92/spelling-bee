@@ -219,3 +219,58 @@ async function deleteProfileData(profileId) {
         alert("Đã xảy ra lỗi khi xóa hồ sơ.");
     }
 }
+
+// === HÀM ĐÃ ĐƯỢC NÂNG CẤP ===
+export async function updateAllPhonetics() {
+    const btnWrapper = document.getElementById('update-phonetics-wrapper');
+    if (!btnWrapper) return;
+
+    // Lọc những từ chưa có định nghĩa (dấu hiệu cho thấy dữ liệu chưa được làm giàu)
+    const wordsToUpdate = state.vocabList.filter(word => !word.definition);
+
+    if (wordsToUpdate.length === 0) {
+        alert("Tuyệt vời! Tất cả các từ vựng đã được cập nhật đầy đủ.");
+        return;
+    }
+
+    if (!confirm(`Tìm thấy ${wordsToUpdate.length} từ chưa được làm giàu dữ liệu. Bạn có muốn bắt đầu cập nhật không? Quá trình này có thể mất vài phút.`)) {
+        return;
+    }
+
+    btnWrapper.innerHTML = `<div class="p-4 text-center text-sm font-medium">Đang cập nhật... <span id="phonetic-progress">0</span>/${wordsToUpdate.length}</div>`;
+    const progressEl = document.getElementById('phonetic-progress');
+    
+    let updatedCount = 0;
+    const newVocabList = [...state.vocabList];
+
+    for (const wordObj of wordsToUpdate) {
+        const apiData = await data.fetchWordData(wordObj.word);
+        
+        // Tìm đúng từ trong danh sách gốc và cập nhật
+        const indexInFullList = newVocabList.findIndex(v => v.word === wordObj.word);
+        if (indexInFullList !== -1 && apiData) {
+            // Chỉ cập nhật các trường còn thiếu để không ghi đè dữ liệu người dùng đã nhập
+            newVocabList[indexInFullList].phonetic = newVocabList[indexInFullList].phonetic || apiData.phonetic;
+            newVocabList[indexInFullList].definition = newVocabList[indexInFullList].definition || apiData.definition;
+            newVocabList[indexInFullList].example = newVocabList[indexInFullList].example || apiData.example;
+            newVocabList[indexInFullList].partOfSpeech = newVocabList[indexInFullList].partOfSpeech || apiData.partOfSpeech;
+            newVocabList[indexInFullList].synonyms = newVocabList[indexInFullList].synonyms?.length > 0 ? newVocabList[indexInFullList].synonyms : (apiData.synonyms || []);
+        }
+
+        updatedCount++;
+        progressEl.textContent = updatedCount;
+    }
+
+    setState({ vocabList: newVocabList });
+    await data.saveMasterVocab();
+
+    btnWrapper.innerHTML = `<div class="p-4 text-center text-sm font-medium text-green-500">Hoàn tất! Đã xử lý ${wordsToUpdate.length} từ.</div>`;
+    
+    setTimeout(() => {
+         // Phục hồi lại nút sau khi hoàn tất
+         const profileTab = document.getElementById('profile-tab');
+         if(profileTab && profileTab.classList.contains('active')) {
+            showTab('profile-tab');
+         }
+    }, 3000);
+}

@@ -53,7 +53,7 @@ function attachGlobalFunctions() {
     window.toggleDarkMode = ui.toggleDarkMode;
     window.showProgressSubTab = ui.showProgressSubTab;
     window.applyFilters = applyFilters;
-    window.handleFontSizeChange = ui.handleFontSizeChange; // <-- Thêm vào đây nếu chưa có
+    window.handleFontSizeChange = ui.handleFontSizeChange;
 
     // Profile (gán toàn bộ module)
     window.profile = profile;
@@ -78,6 +78,9 @@ function attachGlobalFunctions() {
     window.listenForPronunciation = game.listenForPronunciation;
     window.checkFillBlank = game.checkFillBlank;
     window.handleReviewAnswer = game.handleReviewAnswer;
+    
+    // === THÊM DÒNG NÀY ĐỂ SỬA LỖI ===
+    window.startSuggestionMode = game.startSuggestionMode;
 
     // Exam
     window.startExam = exam.startExam;
@@ -85,20 +88,17 @@ function attachGlobalFunctions() {
 }
 
 function addEventListeners() {
-    // Sửa đổi hàm này để xử lý nút mới
     document.body.addEventListener('click', (e) => {
         const target = e.target;
         if (target.id === 'create-profile-btn') {
             profile.createNewProfile();
         }
 
-        // THÊM MỚI: Logic để hiện/ẩn form tạo hồ sơ
         if (target.closest('#show-create-form-btn')) {
             const form = document.getElementById('create-profile-form');
             const button = document.getElementById('show-create-form-btn');
             if (form) {
                 form.classList.toggle('hidden');
-                // Thay đổi nội dung nút để người dùng biết có thể đóng lại
                 if (button.querySelector('span')) {
                     const isHidden = form.classList.contains('hidden');
                     button.querySelector('span').textContent = isHidden ? 'Tạo hồ sơ mới' : 'Đóng';

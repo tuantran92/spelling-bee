@@ -11,6 +11,9 @@ export const firebaseConfig = {
     measurementId: "G-95V4YFCS7E"
 };
 
+// --- THÊM MỚI: Dán API Key của bạn vào đây ---
+export const wordsApiKey = "bb1a18fa22mshed8b0f96c10f9ebp1419c0jsn855542b11d99";
+
 // SỬA ĐỔI: Biến này không còn cần thiết vì dùng danh sách chung
 // export const defaultVocabList = [...];
 

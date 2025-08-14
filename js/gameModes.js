@@ -1,7 +1,7 @@
 // js/gameModes.js
 
 import { state, setState } from './state.js';
-import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords } from './data.js';
+import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords, updateAndCacheSuggestions } from './data.js';
 import { scrambleWord, levenshteinDistance, playSound } from './utils.js';
 import { closeGameScreen } from './ui.js';
 
@@ -34,10 +34,86 @@ export function speakWord(word, event) {
     synth.speak(utterance);
 }
 
+// === CÁC HÀM CHO "HỌC THEO GỢI Ý" ===
+
+function renderSuggestionCard() {
+    const container = document.getElementById('suggestion-screen-content');
+    const { words, currentIndex } = state.suggestionSession;
+    if (!container || !words[currentIndex]) return;
+
+    const word = words[currentIndex];
+    
+    container.innerHTML = `
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Học theo gợi ý</h2>
+            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">${currentIndex + 1} / ${words.length}</span>
+        </div>
+        <div class="w-full h-auto bg-gray-100 dark:bg-gray-700 rounded-xl p-4 text-center">
+            <p class="font-bold text-3xl vocab-font-size">${word.word}</p>
+            ${word.phonetic ? `<p class="text-lg text-indigo-500 dark:text-indigo-400 font-mono mt-1">${word.phonetic}</p>` : ''}
+            <p class="text-xl font-semibold text-gray-800 dark:text-gray-200 mt-2">${word.meaning}</p>
+            ${word.definition ? `<p class="text-sm text-gray-600 dark:text-gray-400 mt-3 italic">"${word.definition}"</p>` : ''}
+            ${word.example ? `<p class="text-sm text-gray-500 mt-2"><b>Ví dụ:</b> ${word.example}</p>` : ''}
+        </div>
+        <div class="mt-6">
+            <button onclick="nextSuggestionWord()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg">
+                Từ tiếp theo
+            </button>
+        </div>
+    `;
+    speakWord(word.word);
+}
+
+window.nextSuggestionWord = () => {
+    const { words, currentIndex, listType } = state.suggestionSession;
+    const word = words[currentIndex];
+
+    // Cập nhật tiến trình cho từ vừa học
+    updateWordLevel(word, true);
+
+    // --- LOGIC MỚI: Nếu là từ khó, reset bộ đếm lỗi ---
+    if (listType === 'difficult' && state.appData.progress[word.word]) {
+        state.appData.progress[word.word].wrongAttempts = 0;
+    }
+    // --- KẾT THÚC LOGIC MỚI ---
+
+    if (currentIndex + 1 < words.length) {
+        setState({ suggestionSession: { ...state.suggestionSession, currentIndex: currentIndex + 1 } });
+        renderSuggestionCard();
+    } else {
+        updateAndCacheSuggestions(); 
+        
+        const container = document.getElementById('suggestion-screen-content');
+        container.innerHTML = `
+            <h2 class="text-2xl font-semibold mb-4">Hoàn thành!</h2>
+            <p>Bạn đã học xong các từ được gợi ý. Rất tốt!</p>
+            <button onclick="startSuggestionMode('suggestion-screen-content')" class="mt-6 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg">
+                Quay lại danh sách
+            </button>
+        `;
+        setState({ suggestionSession: { isActive: false, words: [], currentIndex: 0, listType: null } });
+    }
+}
+
+window.startSuggestionSession = (listType, startIndex) => {
+    const words = listType === 'difficult' ? state.suggestions.difficult : state.suggestions.new;
+    setState({
+        suggestionSession: {
+            isActive: true,
+            words: words,
+            currentIndex: startIndex,
+            listType: listType // Lưu lại loại danh sách
+        }
+    });
+    renderSuggestionCard();
+}
+
 export function startSuggestionMode(containerId) {
     const container = document.getElementById(containerId);
     const suggestions = state.suggestions;
     if (!container) return;
+
+    setState({ suggestionSession: { isActive: false, words: [], currentIndex: 0, listType: null } });
 
     if (!suggestions.difficult.length && !suggestions.new.length) {
         container.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Gợi ý</h2><p>Không có gợi ý nào vào lúc này. Hãy học thêm để hệ thống có dữ liệu nhé!</p>`;
@@ -51,11 +127,13 @@ export function startSuggestionMode(containerId) {
                 <div class="p-4 bg-red-50 dark:bg-red-900/40 rounded-lg h-full">
                     <h4 class="font-bold text-red-800 dark:text-red-300 mb-2">Từ khó cần ôn lại</h4>
                     ${suggestions.difficult.length > 0 ? `
-                        <ul class="space-y-2">
-                            ${suggestions.difficult.map(w => `
-                                <li class="font-medium text-gray-700 dark:text-gray-300 flex justify-between items-center vocab-font-size">
-                                    <span>${w.word}</span>
-                                    <button onclick="speakWord('${w.word}', event)" class="p-1"><svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
+                        <ul class="space-y-1">
+                            ${suggestions.difficult.map((w, index) => `
+                                <li>
+                                    <button onclick="startSuggestionSession('difficult', ${index})" class="w-full text-left p-2 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md">
+                                        <p class="font-medium vocab-font-size">${w.word}</p>
+                                        ${w.phonetic ? `<p class="text-sm text-indigo-500 dark:text-indigo-400 font-mono">${w.phonetic}</p>` : ''}
+                                    </button>
                                 </li>`).join('')}
                         </ul>` : '<p class="text-sm text-gray-500">Không có từ khó nào.</p>'}
                 </div>
@@ -64,11 +142,13 @@ export function startSuggestionMode(containerId) {
                 <div class="p-4 bg-green-50 dark:bg-green-900/40 rounded-lg h-full">
                     <h4 class="font-bold text-green-800 dark:text-green-300 mb-2">Từ mới nên học</h4>
                      ${suggestions.new.length > 0 ? `
-                        <ul class="space-y-2">
-                             ${suggestions.new.map(w => `
-                                <li class="font-medium text-gray-700 dark:text-gray-300 flex justify-between items-center vocab-font-size">
-                                    <span>${w.word}</span>
-                                    <button onclick="speakWord('${w.word}', event)" class="p-1"><svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
+                        <ul class="space-y-1">
+                             ${suggestions.new.map((w, index) => `
+                                <li>
+                                     <button onclick="startSuggestionSession('new', ${index})" class="w-full text-left p-2 hover:bg-green-100 dark:hover:bg-green-900/50 rounded-md">
+                                        <p class="font-medium vocab-font-size">${w.word}</p>
+                                        ${w.phonetic ? `<p class="text-sm text-indigo-500 dark:text-indigo-400 font-mono">${w.phonetic}</p>` : ''}
+                                    </button>
                                 </li>`).join('')}
                         </ul>` : '<p class="text-sm text-gray-500">Không có từ mới nào.</p>'}
                 </div>
@@ -76,6 +156,8 @@ export function startSuggestionMode(containerId) {
         </div>
     `;
 }
+
+// === KẾT THÚC PHẦN CẬP NHẬT ===
 
 export function renderReviewCard(containerId) {
     const screenEl = document.getElementById(containerId);
@@ -100,6 +182,7 @@ export function renderReviewCard(containerId) {
             <div id="review-card" class="absolute w-full h-full bg-cyan-600 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg">
                 <div class="text-center">
                     <p class="font-bold text-white vocab-font-size-review">${word.word}</p>
+                    ${word.phonetic ? `<p class="text-lg text-cyan-100 font-mono mt-1">${word.phonetic}</p>` : ''}
                     <p class="text-xl md:text-2xl text-cyan-200 mt-2 vocab-font-size">- ${word.meaning} -</p>
                 </div>
                 <button onclick="speakWord('${word.word}', event)" class="mt-4 bg-white/20 hover:bg-white/30 p-3 rounded-full">
@@ -203,29 +286,20 @@ export function checkSpelling() {
 
 // --- Chế độ Flashcard (Reading) ---
 export function startReading(containerId) {
-    setState({ currentFlashcardIndex: 0 });
-    updateFlashcard(containerId);
-}
-
-function updateFlashcard(containerId) {
     const container = document.getElementById(containerId);
-    const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
-    if (gameList.length === 0) {
-        container.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-orange-500">Không có từ nào để học.</p>`;
-        return;
-    }
-    const word = gameList[state.currentFlashcardIndex];
-    setState({ currentWord: word });
+    if (!container) return;
 
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Flashcard</h2>
-        <div class="perspective-1000">
-            <div id="flashcard" class="flashcard relative w-full h-56 md:h-64 cursor-pointer" onclick="this.classList.toggle('is-flipped')">
-                <div class="flashcard-inner relative w-full h-full">
-                    <div id="flashcard-front" class="flashcard-front absolute w-full h-full bg-teal-500 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg"></div>
-                    <div id="flashcard-back" class="flashcard-back absolute w-full h-full bg-teal-700 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg"></div>
-                </div>
-            </div>
+        <div id="flashcard-content" class="relative w-full h-auto min-h-[14rem] md:min-h-[16rem] bg-teal-600 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg text-center text-white">
+            <p id="flashcard-word" class="font-bold vocab-font-size-flashcard"></p>
+            <p id="flashcard-phonetic" class="text-lg text-teal-100 font-mono mt-1"></p>
+            <p id="flashcard-meaning" class="text-xl font-semibold mt-2 vocab-font-size"></p>
+            <p id="flashcard-definition" class="text-sm italic text-teal-200 px-2 mt-2"></p>
+            <p id="flashcard-example" class="text-sm italic text-teal-200 px-2 mt-2"></p>
+            <button id="flashcard-speak-btn" class="absolute bottom-4 right-4 bg-white/20 p-2 rounded-full">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+            </button>
         </div>
         <div class="mt-6 flex justify-center items-center gap-4">
             <button onclick="changeFlashcard(-1)" class="p-3 rounded-full shadow-md bg-gray-200 dark:bg-gray-600"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
@@ -233,10 +307,44 @@ function updateFlashcard(containerId) {
             <button onclick="changeFlashcard(1)" class="p-3 rounded-full shadow-md bg-gray-200 dark:bg-gray-600"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
         </div>
     `;
+    
+    setState({ currentFlashcardIndex: 0 });
+    updateFlashcard();
+}
 
-    document.getElementById("flashcard-front").innerHTML = `<p class="font-bold text-white vocab-font-size-flashcard">${word.word}</p><button onclick="speakWord('${word.word}', event)" class="mt-4 bg-white/20 p-3 rounded-full"><svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>`;
-    document.getElementById("flashcard-back").innerHTML = `<p class="text-2xl font-semibold text-white vocab-font-size">${word.meaning}</p><p class="text-sm italic mt-2 px-2">${word.example || ""}</p>`;
+function updateFlashcard() {
+    const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
+    const cardContentEl = document.getElementById('flashcard-content');
+    if (gameList.length === 0) {
+        if (cardContentEl) cardContentEl.innerHTML = `<p class="text-orange-300">Không có từ nào để học.</p>`;
+        return;
+    }
+    const word = gameList[state.currentFlashcardIndex];
+    setState({ currentWord: word });
+
+    document.getElementById("flashcard-word").textContent = word.word;
+    document.getElementById("flashcard-phonetic").textContent = word.phonetic || '';
+    document.getElementById("flashcard-meaning").textContent = word.meaning;
+    
+    const definitionEl = document.getElementById("flashcard-definition");
+    if (word.definition) {
+        definitionEl.textContent = `(${word.definition})`;
+        definitionEl.style.display = 'block';
+    } else {
+        definitionEl.style.display = 'none';
+    }
+
+    const exampleEl = document.getElementById("flashcard-example");
+    if (word.example) {
+        exampleEl.textContent = `Vd: ${word.example}`;
+        exampleEl.style.display = 'block';
+    } else {
+        exampleEl.style.display = 'none';
+    }
+
+    document.getElementById("flashcard-speak-btn").onclick = (event) => speakWord(word.word, event);
     document.getElementById("card-counter").textContent = `${state.currentFlashcardIndex + 1} / ${gameList.length}`;
+
     speakWord(word.word);
 }
 
@@ -245,7 +353,7 @@ export function changeFlashcard(direction) {
     if (gameList.length === 0) return;
     const newIndex = (state.currentFlashcardIndex + direction + gameList.length) % gameList.length;
     setState({ currentFlashcardIndex: newIndex });
-    updateFlashcard('reading-screen-content');
+    updateFlashcard();
     recordDailyActivity(1);
     saveUserData();
 }
@@ -311,6 +419,7 @@ export function checkScramble() {
 // --- Trắc nghiệm (MCQ) ---
 function renderNextMcqQuestion() {
     const wordEl = document.getElementById("mcq-word");
+    const phoneticEl = document.getElementById("mcq-phonetic");
     const speakBtn = document.getElementById('mcq-speak-btn');
     const optionsEl = document.getElementById("mcq-options");
     const resultEl = document.getElementById("mcq-result");
@@ -342,6 +451,9 @@ function renderNextMcqQuestion() {
     options.sort(() => .5 - Math.random());
 
     wordEl.textContent = state.currentWord.word;
+    if (phoneticEl) {
+        phoneticEl.textContent = state.currentWord.phonetic || '';
+    }
     speakBtn.onclick = () => speakWord(state.currentWord.word);
     resultEl.textContent = ''; 
     optionsEl.innerHTML = ''; 
@@ -370,7 +482,10 @@ export function startMcq(containerId) {
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Chọn nghĩa đúng:</h2>
         <div class="flex justify-center items-center gap-4 mb-6">
-            <p id="mcq-word" class="font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg vocab-font-size-mcq"></p>
+            <div id="mcq-word-container" class="text-center font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg">
+                <p id="mcq-word" class="vocab-font-size-mcq"></p>
+                <p id="mcq-phonetic" class="text-lg text-gray-500 dark:text-gray-400 font-mono mt-1"></p>
+            </div>
             <button id="mcq-speak-btn" class="p-3 bg-sky-500 hover:bg-sky-600 rounded-full text-white shadow-md"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
         </div>
         <div id="mcq-options" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -474,7 +589,10 @@ export function startPronunciation(containerId) {
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Luyện Phát Âm</h2>
         <p class="mb-6">Đọc to từ sau đây:</p>
-        <p id="pronunciation-word" class="font-bold text-pink-500 mb-6 vocab-font-size-pronunciation">${newWord.word}</p>
+        <div class="text-center mb-6">
+            <p id="pronunciation-word" class="font-bold text-pink-500 vocab-font-size-pronunciation">${newWord.word}</p>
+            ${newWord.phonetic ? `<p class="text-lg text-gray-500 dark:text-gray-400 font-mono mt-1">${newWord.phonetic}</p>` : ''}
+        </div>
         <button id="pronunciation-record-btn" onclick="listenForPronunciation()" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-20 h-20 flex items-center justify-center mx-auto shadow-lg">
             <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
         </button>
@@ -490,42 +608,71 @@ export function startPronunciation(containerId) {
 export function listenForPronunciation() {
     const recordBtn = document.getElementById('pronunciation-record-btn');
     const statusEl = document.getElementById('pronunciation-status');
+    const transcriptEl = document.getElementById('pronunciation-transcript');
+    const resultEl = document.getElementById('pronunciation-result');
+
+    if (recognition && recognition.abort) {
+        recognition.abort();
+    }
+
     recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
-    recognition.interimResults = false;
-    
+    recognition.interimResults = true; 
+    recognition.continuous = false;
+
     recognition.onstart = () => {
         statusEl.textContent = 'Đang nghe...';
+        transcriptEl.textContent = '';
+        resultEl.textContent = '';
         recordBtn.disabled = true;
-        recordBtn.classList.add('animate-pulse');
+        recordBtn.classList.add('animate-pulse', 'bg-red-700');
     };
-    recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript.trim().toLowerCase();
-        document.getElementById('pronunciation-transcript').textContent = transcript;
-        const correctWord = state.currentWord.word.toLowerCase();
-        const isCorrect = transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "") === correctWord;
-        
-        playSound(isCorrect ? 'correct' : 'wrong');
-        updateWordLevel(state.currentWord, isCorrect);
 
-        const resultEl = document.getElementById('pronunciation-result');
-        if (isCorrect) {
-            resultEl.textContent = '✅ Phát âm chính xác!';
-            resultEl.className = 'mt-4 h-6 text-lg font-medium text-green-500';
-            setTimeout(() => startPronunciation('pronunciation-screen-content'), 2000);
-        } else {
-            resultEl.textContent = '❌ Chưa đúng lắm, thử lại nhé!';
-            resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
+    recognition.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interimTranscript += event.results[i][0].transcript;
+            }
+        }
+        
+        transcriptEl.textContent = interimTranscript || finalTranscript;
+        
+        if (finalTranscript) {
+            const finalAnswer = finalTranscript.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+            const correctWord = state.currentWord.word.toLowerCase();
+            const isCorrect = finalAnswer === correctWord;
+            
+            playSound(isCorrect ? 'correct' : 'wrong');
+            updateWordLevel(state.currentWord, isCorrect);
+
+            if (isCorrect) {
+                resultEl.textContent = '✅ Phát âm chính xác!';
+                resultEl.className = 'mt-4 h-6 text-lg font-medium text-green-500';
+                setTimeout(() => startPronunciation('pronunciation-screen-content'), 2000);
+            } else {
+                resultEl.textContent = '❌ Chưa đúng lắm, thử lại nhé!';
+                resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
+            }
         }
     };
+
     recognition.onerror = (event) => {
-        statusEl.textContent = `Lỗi: ${event.error}. Thử lại nhé.`;
+        if (event.error !== 'aborted') {
+             statusEl.textContent = `Lỗi: ${event.error}. Thử lại nhé.`;
+        }
     };
+
     recognition.onend = () => {
         statusEl.textContent = 'Nhấn nút để ghi âm';
         recordBtn.disabled = false;
-        recordBtn.classList.remove('animate-pulse');
+        recordBtn.classList.remove('animate-pulse', 'bg-red-700');
     };
+
     recognition.start();
 }
 

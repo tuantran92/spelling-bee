@@ -1,7 +1,7 @@
 // js/vocabManager.js
 
 import { state, setState } from './state.js';
-import { saveMasterVocab, importFromGoogleSheet as dataImport } from './data.js';
+import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData } from './data.js';
 
 // --- PHÂN TRANG ---
 const ITEMS_PER_PAGE = 30;
@@ -105,8 +105,13 @@ function filterAndDisplayVocab() {
                 <div id="vocab-item-${originalIndex}" class="p-3 bg-gray-100 dark:bg-gray-700/60 rounded-lg transition-colors duration-300 ${difficultyClass}">
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="font-bold text-gray-900 dark:text-gray-100">${word.word}</p>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">${word.meaning}</p>
+                            <div class="flex items-center gap-2">
+                                <p class="font-bold text-gray-900 dark:text-gray-100">${word.word}</p>
+                                ${word.partOfSpeech ? `<span class="text-xs italic text-gray-500 dark:text-gray-400">(${word.partOfSpeech})</span>` : ''}
+                            </div>
+                            ${word.phonetic ? `<p class="text-sm text-indigo-500 dark:text-indigo-400 font-mono">${word.phonetic}</p>` : ''}
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${word.meaning}</p>
+                            ${word.definition ? `<p class="text-sm text-gray-500 dark:text-gray-300 mt-1 italic">"${word.definition}"</p>` : ''}
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
                             <button onclick="editVocabWord(${originalIndex})" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Sửa"><svg class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg></button>
@@ -207,29 +212,42 @@ export async function handleVocabSubmit() {
     const word = document.getElementById('vocab-word').value.trim().toLowerCase();
     const meaning = document.getElementById('vocab-meaning').value.trim();
     const feedbackEl = document.getElementById('vocab-form-feedback');
+
     if (!word || !meaning) {
         feedbackEl.textContent = "Từ vựng và nghĩa không được để trống.";
         return;
     }
+
     const isEditing = state.editingWordIndex > -1;
     const wordExists = state.vocabList.some((v, i) => v.word === word && i !== state.editingWordIndex);
     if (wordExists) {
         feedbackEl.textContent = "Từ này đã tồn tại.";
         return;
     }
+
+    feedbackEl.textContent = "Đang làm giàu dữ liệu từ điển...";
+    const apiData = await fetchWordData(word);
+    feedbackEl.textContent = "";
+
     const newWord = {
         word: word,
         meaning: meaning,
-        example: document.getElementById('vocab-example').value.trim(),
+        phonetic: apiData?.phonetic || '',
+        definition: apiData?.definition || '', // Định nghĩa tiếng Anh
+        example: document.getElementById('vocab-example').value.trim() || apiData?.example || '', // Ưu tiên ví dụ tự nhập
+        partOfSpeech: apiData?.partOfSpeech || '', // Loại từ
+        synonyms: apiData?.synonyms || [], // Từ đồng nghĩa
         category: document.getElementById('vocab-category').value.trim() || 'Chung',
         difficulty: document.getElementById('vocab-difficulty').value
     };
+
     const newVocabList = [...state.vocabList];
     if (isEditing) {
         newVocabList[state.editingWordIndex] = newWord;
     } else {
         newVocabList.push(newWord);
     }
+    
     setState({ vocabList: newVocabList });
     await saveMasterVocab();
     handleFilterChange();
