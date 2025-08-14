@@ -1,4 +1,4 @@
-# 📚 Luyện Từ Vựng PRO 🚀
+# 📚 Luyện Từ Vựng 🚀
 
 Một ứng dụng web học từ vựng thông minh, hiện đại được xây dựng bằng JavaScript thuần và tích hợp sâu với Firebase. Ứng dụng được thiết kế theo triết lý "Mobile-First", responsive và cung cấp nhiều chế độ học đa dạng để giúp việc ghi nhớ từ vựng trở nên hiệu quả và thú vị.
 
