@@ -63,7 +63,12 @@ export function showGameScreen(screenId) {
 
 export function closeGameScreen(screenId) {
     document.getElementById(screenId)?.remove();
+    if (screenId === 'fill-blank-screen') {
+        setState({ fillBlankSession: { isActive: false, words: [], currentIndex: 0 } });
+    }
 }
+
+// ... (phần còn lại của file giữ nguyên)
 
 // ===================================================================
 // TAB CONTENT RENDERERS

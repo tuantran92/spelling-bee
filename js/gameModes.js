@@ -2,7 +2,7 @@
 
 import { state, setState } from './state.js';
 import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords, updateAndCacheSuggestions, fetchWordData } from './data.js';
-import { scrambleWord, levenshteinDistance, playSound, maskWord } from './utils.js';
+import { scrambleWord, levenshteinDistance, playSound, maskWord, shuffleArray } from './utils.js';
 import { closeGameScreen } from './ui.js';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -784,27 +784,54 @@ export function listenForPronunciation() {
 // --- Điền vào chỗ trống (Fill Blank) ---
 export async function startFillBlank(containerId) {
     const screenEl = document.getElementById(containerId);
-    screenEl.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Điền vào chỗ trống</h2><p class="text-gray-500">Đang tìm câu ví dụ...</p><div class="loader mx-auto mt-4"></div>`;
-    
-    const wordsToTry = [...(state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList)].sort(() => 0.5 - Math.random());
-    if (wordsToTry.length === 0) {
-        screenEl.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-orange-500">Không có từ nào để học.</p>`;
+
+    if (!state.fillBlankSession.isActive) {
+        screenEl.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Điền vào chỗ trống</h2><p class="text-gray-500">Đang chuẩn bị câu hỏi...</p><div class="loader mx-auto mt-4"></div>`;
+        
+        const allWords = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
+        if (allWords.length === 0) {
+            screenEl.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-orange-500">Không có từ nào để học.</p>`;
+            return;
+        }
+
+        const wordsWithGoodExamples = allWords.filter(wordObj => {
+            const example = wordObj.example;
+            if (!example) return false;
+            const regex = new RegExp(`\\b${wordObj.word}\\b`, 'i');
+            return example.split(' ').length > 3 && /[.?!]$/.test(example.trim()) && regex.test(example);
+        });
+
+        if (wordsWithGoodExamples.length > 0) {
+            setState({ 
+                fillBlankSession: { 
+                    isActive: true, 
+                    words: shuffleArray(wordsWithGoodExamples), 
+                    currentIndex: 0 
+                } 
+            });
+            displayNextFillBlankQuestion(containerId);
+        } else {
+             screenEl.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-orange-500">Không tìm thấy câu ví dụ phù hợp. Hãy thử thêm ví dụ cho các từ của bạn.</p>`;
+        }
+    } else {
+        displayNextFillBlankQuestion(containerId);
+    }
+}
+
+function displayNextFillBlankQuestion(containerId) {
+    const { words, currentIndex } = state.fillBlankSession;
+
+    if (currentIndex >= words.length) {
+        setState({ fillBlankSession: { isActive: false, words: [], currentIndex: 0 } });
+        startFillBlank(containerId); // Tạo lại phiên mới để chơi tiếp
         return;
     }
     
-    for (const wordObj of wordsToTry) {
-        let exampleSentence = wordObj.example || await findExampleSentence(wordObj.word);
-        
-        const regex = new RegExp(`\\b${wordObj.word}\\b`, 'i');
-        if (exampleSentence && regex.test(exampleSentence)) {
-            setState({ currentWord: wordObj });
-            populateFillBlankUI(containerId, exampleSentence, wordObj);
-            return;
-        }
-    }
-    
-    screenEl.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-orange-500">Không tìm thấy câu ví dụ phù hợp. Hãy thử thêm ví dụ cho các từ của bạn.</p>`;
+    const wordObj = words[currentIndex];
+    setState({ currentWord: wordObj });
+    populateFillBlankUI(containerId, wordObj.example, wordObj);
 }
+
 
 async function findExampleSentence(word) {
     try {
@@ -874,19 +901,22 @@ export function toggleFillBlankHint(type) {
         translation: translationEl
     };
 
+    const isCurrentlyVisible = elements[type] && !elements[type].classList.contains('hidden');
+
     // Ẩn tất cả gợi ý trước
     Object.values(elements).forEach(el => el.classList.add('hidden'));
 
-    // Hiển thị gợi ý được yêu cầu nếu nó chưa được hiển thị
-    if (elements[type] && elements[type].classList.contains('hidden')) {
+    // Hiển thị gợi ý được yêu cầu nếu nó chưa được hiển thị trước đó
+    if (elements[type] && !isCurrentlyVisible) {
         elements[type].classList.remove('hidden');
     }
 }
 
 export async function translateFillBlankSentence() {
-    const sentenceEl = document.getElementById('fill-blank-sentence');
     const translationContentEl = document.getElementById('fill-blank-translation-content');
-    if (!sentenceEl || !state.currentWord.example) {
+    const originalSentence = state.currentWord.example;
+
+    if (!originalSentence) {
         translationContentEl.textContent = "Không có câu để dịch.";
         toggleFillBlankHint('translation');
         return;
@@ -896,14 +926,13 @@ export async function translateFillBlankSentence() {
     toggleFillBlankHint('translation');
 
     try {
-        const textToTranslate = state.currentWord.example;
-        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(textToTranslate)}`;
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(originalSentence)}`;
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error('Lỗi mạng khi dịch.');
         }
         const data = await response.json();
-        const translatedText = data[0][0][0];
+        const translatedText = data[0].map(arr => arr[0]).join('');
         translationContentEl.textContent = translatedText;
     } catch (error) {
         console.error("Lỗi dịch:", error);
@@ -932,7 +961,10 @@ export function checkFillBlank() {
                 maskedSpan.innerHTML = `<strong class="text-green-400">${state.currentWord.word}</strong>`;
             }
         }
-        setTimeout(() => startFillBlank('fill-blank-screen-content'), 2500);
+        setTimeout(() => {
+            state.fillBlankSession.currentIndex++;
+            startFillBlank('fill-blank-screen-content');
+        }, 2500);
     } else {
         resultEl.textContent = `❌ Sai rồi! Đáp án: "${state.currentWord.word}"`;
         resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
@@ -941,5 +973,6 @@ export function checkFillBlank() {
 
 export function skipFillBlankQuestion() {
     playSound('wrong'); // Chơi âm thanh sai khi bỏ qua để có phản hồi
+    state.fillBlankSession.currentIndex++;
     startFillBlank('fill-blank-screen-content');
 }

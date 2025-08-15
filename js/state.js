@@ -14,14 +14,12 @@ export const state = {
         new: []
     },
 
-    // --- CẬP NHẬT ---
     suggestionSession: {
         isActive: false,
         words: [],
         currentIndex: 0,
-        listType: null // Thêm thuộc tính này để biết đang học danh sách nào
+        listType: null
     },
-    // --- KẾT THÚC ---
 
     activeFilters: {
         category: 'all',
@@ -68,6 +66,12 @@ export const state = {
     },
 
     reviewSession: {
+        isActive: false,
+        words: [],
+        currentIndex: 0
+    },
+
+    fillBlankSession: {
         isActive: false,
         words: [],
         currentIndex: 0

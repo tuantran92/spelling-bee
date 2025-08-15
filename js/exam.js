@@ -44,15 +44,17 @@ export function startExam() {
     const questionCount = parseInt(document.getElementById('exam-question-count').value);
     const timeLimit = parseInt(document.getElementById('exam-time-limit').value) * 60;
 
-    const allVocab = state.vocabList;
-    if (allVocab.length < questionCount) {
-        alert(`Không đủ từ vựng. Cần ít nhất ${questionCount} từ.`);
+    // SỬA LỖI: Sử dụng danh sách từ đã được lọc
+    const vocabForExam = state.filteredVocabList;
+    if (vocabForExam.length < questionCount) {
+        alert(`Không đủ từ vựng theo bộ lọc hiện tại. Cần ít nhất ${questionCount} từ, nhưng chỉ có ${vocabForExam.length} từ phù hợp.`);
         return;
     }
 
-    const shuffled = [...allVocab].sort(() => 0.5 - Math.random());
+    const shuffled = [...vocabForExam].sort(() => 0.5 - Math.random());
     const questions = shuffled.slice(0, questionCount).map(wordObj => {
-        const wrongAnswers = [...allVocab]
+        // Lấy câu trả lời sai từ toàn bộ danh sách để đa dạng hơn
+        const wrongAnswers = [...state.vocabList]
             .filter(w => w.word !== wordObj.word)
             .sort(() => 0.5 - Math.random())
             .slice(0, 3)
