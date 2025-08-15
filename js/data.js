@@ -3,7 +3,7 @@
 import { doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './firebase.js';
 import { state, setState } from './state.js';
-import { SRS_INTERVALS, wordsApiKey, unsplashAccessKey } from './config.js';
+import { SRS_INTERVALS, wordsApiKey, pixabayApiKey } from './config.js';
 import { updateDashboard } from './ui.js';
 import { parseCSV, shuffleArray, delay } from './utils.js';
 import { checkAchievements } from './achievements.js';
@@ -261,33 +261,28 @@ export async function fetchAllUsersForLeaderboard() {
     }
 }
 
-export async function fetchWordImage(word) {
-    if (!unsplashAccessKey || unsplashAccessKey === "ACCESS_KEY_CUA_BAN") {
-        return null;
+export async function fetchWordImages(word) {
+    if (!pixabayApiKey || pixabayApiKey === "KEY_PIXABAY_CUA_BAN") {
+        return [];
     }
     try {
-        const response = await fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(word)}&client_id=${unsplashAccessKey}`);
+        // *** THAY ĐỔI TỪ 9 LÊN 12 ***
+        const response = await fetch(`https://pixabay.com/api/?key=${pixabayApiKey}&q=${encodeURIComponent(word)}&image_type=photo&safesearch=true&per_page=12`);
+        
         if (response.ok) {
             const data = await response.json();
-            
-            if (data.links && data.links.download_location) {
-                fetch(data.links.download_location, {
-                    headers: {
-                      'Authorization': `Client-ID ${unsplashAccessKey}`
-                    }
-                });
+            if (data.hits && data.hits.length > 0) {
+                return data.hits.map(hit => ({
+                    url: hit.webformatURL,
+                    author: hit.user,
+                    authorLink: hit.pageURL
+                }));
             }
-
-            return {
-                url: data.urls.small,
-                author: data.user.name,
-                authorLink: data.user.links.html
-            };
         }
-        return null;
+        return [];
     } catch (error) {
-        console.error("Lỗi khi lấy ảnh từ Unsplash:", error);
-        return null;
+        console.error("Lỗi khi lấy ảnh từ Pixabay:", error);
+        return [];
     }
 }
 

@@ -16,6 +16,7 @@ export const wordsApiKey = "bb1a18fa22mshed8b0f96c10f9ebp1419c0jsn855542b11d99";
 
 // --- THÊM MỚI: Dán Access Key của Unsplash vào đây ---
 export const unsplashAccessKey = "-6nO_GUs0CavDMUpe-hofdYGFRrZnkRoJYvvsLSPR3g";
+export const pixabayApiKey = "39783734-28c20324f9ad7c493f813f322";
 
 // Các mốc thời gian cho thuật toán lặp lại ngắt quãng (tính bằng ngày)
 export const SRS_INTERVALS = [1, 2, 5, 10, 21, 45, 90];

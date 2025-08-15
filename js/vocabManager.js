@@ -1,8 +1,10 @@
 // js/vocabManager.js
 
 import { state, setState } from './state.js';
-import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImage } from './data.js';
+import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImages } from './data.js';
 import { SRS_INTERVALS } from './config.js';
+
+let tempWordData = null; // Biến tạm để giữ dữ liệu từ mới
 
 const ITEMS_PER_PAGE = 30;
 let currentLoadedCount = ITEMS_PER_PAGE;
@@ -260,21 +262,18 @@ export async function handleVocabSubmit() {
 
     const isEditing = state.editingWordIndex > -1;
     const wordExists = state.vocabList.some((v, i) => v.word === word && i !== state.editingWordIndex);
-    if (wordExists) {
+    if (wordExists && !isEditing) {
         feedbackEl.textContent = "Từ này đã tồn tại.";
         return;
     }
 
-    feedbackEl.textContent = "Đang làm giàu dữ liệu (phiên âm, ảnh...)...";
-    
-    const [apiData, imageData] = await Promise.all([
+    feedbackEl.textContent = "Đang làm giàu dữ liệu...";
+    const [apiData, images] = await Promise.all([
         fetchWordData(word),
-        fetchWordImage(word)
+        fetchWordImages(word)
     ]);
-
-    feedbackEl.textContent = "";
-
-    const newWord = {
+    
+    tempWordData = {
         word: word,
         meaning: meaning,
         phonetic: apiData?.phonetic || '',
@@ -284,29 +283,82 @@ export async function handleVocabSubmit() {
         synonyms: apiData?.synonyms || [],
         category: document.getElementById('vocab-category').value.trim() || 'Chung',
         difficulty: document.getElementById('vocab-difficulty').value,
-        imageUrl: imageData ? imageData.url : '',
-        imageAuthor: imageData ? imageData.author : '',
-        imageAuthorLink: imageData ? imageData.authorLink : ''
     };
 
-    const newVocabList = [...state.vocabList];
-    if (isEditing) {
-        if (!newWord.imageUrl) {
-            const oldWord = state.vocabList[state.editingWordIndex];
-            newWord.imageUrl = oldWord.imageUrl || '';
-            newWord.imageAuthor = oldWord.imageAuthor || '';
-            newWord.imageAuthorLink = oldWord.imageAuthorLink || '';
-        }
-        newVocabList[state.editingWordIndex] = newWord;
+    feedbackEl.textContent = "";
+    closeVocabForm();
+
+    if (images.length > 0) {
+        openImagePickerModal(images);
     } else {
-        newVocabList.push(newWord);
+        // Nếu không có ảnh, lưu từ luôn
+        saveNewWord();
+    }
+}
+
+function openImagePickerModal(images) {
+    const modalContainer = document.getElementById('image-picker-modal');
+    modalContainer.innerHTML = `
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-2xl mx-auto relative">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Chọn một hình ảnh cho "${tempWordData.word}"</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
+                ${images.map((img, index) => `
+                    <div class="cursor-pointer group" onclick="selectWordImage(${index})">
+                        <img src="${img.url}" class="w-full h-32 object-cover rounded-lg group-hover:ring-4 ring-indigo-500 transition-all">
+                    </div>
+                `).join('')}
+            </div>
+            <div class="mt-4 text-center">
+                <button onclick="skipImageSelection()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Bỏ qua</button>
+            </div>
+        </div>
+    `;
+    setState({ tempImages: images });
+    modalContainer.classList.remove('hidden');
+}
+
+export function selectWordImage(imageIndex) {
+    const selectedImage = state.tempImages[imageIndex];
+    if (tempWordData && selectedImage) {
+        tempWordData.imageUrl = selectedImage.url;
+        tempWordData.imageAuthor = selectedImage.author;
+        tempWordData.imageAuthorLink = selectedImage.authorLink;
+    }
+    saveNewWord();
+}
+
+export function skipImageSelection() {
+    saveNewWord();
+}
+
+async function saveNewWord() {
+    const isEditing = state.editingWordIndex > -1;
+    const newVocabList = [...state.vocabList];
+
+    if (isEditing) {
+        const oldWord = newVocabList[state.editingWordIndex];
+        // Chỉ cập nhật ảnh nếu người dùng đã chọn ảnh mới
+        if (!tempWordData.imageUrl) {
+            tempWordData.imageUrl = oldWord.imageUrl || '';
+            tempWordData.imageAuthor = oldWord.imageAuthor || '';
+            tempWordData.imageAuthorLink = oldWord.imageAuthorLink || '';
+        }
+        newVocabList[state.editingWordIndex] = tempWordData;
+    } else {
+        newVocabList.push(tempWordData);
     }
     
     setState({ vocabList: newVocabList });
     await saveMasterVocab();
+    
+    // Dọn dẹp
+    tempWordData = null; 
+    setState({ tempImages: [] });
+    document.getElementById('image-picker-modal').classList.add('hidden');
+    
     handleFilterChange();
-    closeVocabForm();
 }
+
 
 export function editVocabWord(index) {
     openVocabForm(index);

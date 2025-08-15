@@ -66,9 +66,11 @@ function attachGlobalFunctions() {
     window.importFromGoogleSheet = vocabManager.importFromGoogleSheet;
     window.closeVocabForm = vocabManager.closeVocabForm;
     window.updateWordDifficulty = vocabManager.updateWordDifficulty;
-    // --- THÊM MỚI ---
     window.showWordStats = vocabManager.showWordStats;
     window.closeWordStats = vocabManager.closeWordStats;
+    // --- THÊM MỚI ---
+    window.selectWordImage = vocabManager.selectWordImage;
+    window.skipImageSelection = vocabManager.skipImageSelection;
 
     // Game Modes
     window.speakWord = game.speakWord;

@@ -65,14 +65,9 @@
         .vocab-font-size-mcq { font-size: calc(1.875rem * var(--vocab-font-scale, 1)); }
         .vocab-font-size-flashcard { font-size: calc(1.875rem * var(--vocab-font-scale, 1)); }
         .vocab-font-size-pronunciation { font-size: calc(2.25rem * var(--vocab-font-scale, 1)); }
-
-        /* THÊM MỚI PHẦN NÀY */
-        #flashcard-content {
-            min-height: 24rem; /* Tăng chiều cao tối thiểu để có không gian cho ảnh */
-        }
-        #flashcard-text-content.no-image {
-            margin: auto 0; /* Căn giữa nội dung text theo chiều dọc khi không có ảnh */
-        }
+        
+        #flashcard-content { min-height: 24rem; }
+        #flashcard-text-content.no-image { margin: auto 0; }
     </style>
 </head>
 
@@ -145,6 +140,7 @@
     <div id="password-prompt-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"></div>
     <div id="vocab-form-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"></div>
     <div id="vocab-stats-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-[101]"></div>
+    <div id="image-picker-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center p-4 z-[102]"></div>
 
     <audio id="audio-correct" src="./assets/correct.mp3" preload="auto"></audio>
     <audio id="audio-wrong" src="./assets/wrong.mp3" preload="auto"></audio>
