@@ -218,7 +218,15 @@ export function renderProfileTab() {
                 <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
                     <div class="flex justify-between items-center"><label for="dark-mode-toggle-switch">Chế độ tối</label><button id="dark-mode-toggle-switch" onclick="toggleDarkMode()" class="p-2 rounded-lg text-2xl">${isDarkMode ? '🌙' : '☀️'}</button></div>
                     <hr class="border-gray-200 dark:border-gray-600 my-2">
-                    <div><label for="voice-select" class="block text-sm font-medium mb-1">Giọng đọc</label><select id="voice-select" class="w-full p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></select></div>
+                    <div>
+                        <label for="voice-select" class="block text-sm font-medium mb-1">Giọng đọc</label>
+                        <div class="flex items-center gap-2">
+                            <select id="voice-select" class="w-full p-2 text-base border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"></select>
+                            <button id="demo-voice-btn" class="p-2 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500" title="Nghe thử">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
                     <div class="mt-2"><label for="rate-slider" class="block text-sm font-medium">Tốc độ: <span id="rate-value">1.0</span>x</label><input id="rate-slider" type="range" min="0.5" max="2" step="0.1" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-500 mt-1"></div>
                     <div class="mt-2"><label for="font-size-slider" class="block text-sm font-medium">Cỡ chữ từ vựng: <span id="font-size-value">${fontSize.toFixed(1)}</span>x</label><input id="font-size-slider" type="range" min="0.8" max="1.5" step="0.1" value="${fontSize}" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-500 mt-1"></div>
                 </div>
@@ -415,6 +423,20 @@ export function addSettingsEventListeners() {
     });
     safeAddEventListener('goal-type-select', 'change', handleGoalChange);
     safeAddEventListener('goal-value-input', 'change', handleGoalChange);
+
+    safeAddEventListener('demo-voice-btn', 'click', () => {
+        const voiceSelect = document.getElementById('voice-select');
+        const rateSlider = document.getElementById('rate-slider');
+        if (!voiceSelect || !rateSlider) return;
+        
+        const selectedVoiceName = voiceSelect.value;
+        const rate = parseFloat(rateSlider.value);
+
+        if (window.speakWord) {
+            window.speakWord("Hello, this is a test.", null, { voiceName: selectedVoiceName, rate: rate });
+        }
+    });
+
     safeAddEventListener('font-size-slider', 'input', handleFontSizeChange);
     safeAddEventListener('avatar-upload-input', 'change', profile.handleAvatarUpload);
 }

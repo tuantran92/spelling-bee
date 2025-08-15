@@ -19,23 +19,34 @@ function getNextWord() {
     return gameList[Math.floor(Math.random() * gameList.length)];
 }
 
-export function speakWord(word, event) {
+export function speakWord(word, event, options = {}) {
     if (event) event.stopPropagation();
     if (typeof SpeechSynthesisUtterance === "undefined") return;
+
     const synth = window.speechSynthesis;
-    synth.cancel();
+    synth.cancel(); // Dừng bất kỳ âm thanh nào đang phát
+
     const utterance = new SpeechSynthesisUtterance(word);
+
+    // Sử dụng tùy chọn được cung cấp, nếu không thì lấy từ giao diện
     const voiceSelect = document.getElementById('voice-select');
     const rateSlider = document.getElementById('rate-slider');
-    const selectedVoiceName = voiceSelect ? voiceSelect.value : null;
-    const rate = rateSlider ? parseFloat(rateSlider.value) : 1;
+
+    const selectedVoiceName = options.voiceName || (voiceSelect ? voiceSelect.value : null);
+    const rate = options.rate || (rateSlider ? parseFloat(rateSlider.value) : 1);
+
     utterance.rate = rate;
+
     if (selectedVoiceName && state.availableVoices.length > 0) {
         const selectedVoice = state.availableVoices.find(voice => voice.name === selectedVoiceName);
-        if (selectedVoice) utterance.voice = selectedVoice;
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
     } else {
+        // Fallback nếu không tìm thấy giọng đọc cụ thể
         utterance.lang = 'en-US';
     }
+
     synth.speak(utterance);
 }
 
@@ -435,9 +446,15 @@ export function startScramble(containerId) {
     
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-2">Sắp xếp các chữ cái:</h2>
-        <div class="h-8 flex items-center justify-center mb-4">
-            <button id="scramble-hint-btn" onclick="toggleScrambleHint()" class="bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Hiện Gợi ý</button>
-            <span id="scramble-hint-text" class="hidden ml-2 italic">Nghĩa: "<span id="scramble-meaning" class="font-semibold"></span>"</span>
+        <div class="h-auto flex flex-col items-center justify-center mb-4 gap-2">
+            <div>
+                <button id="scramble-hint-definition-btn" onclick="toggleScrambleHint('definition')" class="bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Hint</button>
+                <button id="scramble-hint-meaning-btn" onclick="toggleScrambleHint('meaning')" class="ml-2 bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Gợi ý</button>
+            </div>
+            <div id="scramble-hint-container" class="mt-2 text-center h-auto min-h-[2rem]">
+                <span id="scramble-hint-definition" class="hidden italic text-sm text-gray-500 dark:text-gray-400">"<span id="scramble-definition-content" class="font-semibold"></span>"</span>
+                <span id="scramble-hint-meaning" class="hidden italic text-sm text-gray-500 dark:text-gray-400">Nghĩa: "<span id="scramble-meaning-content" class="font-semibold"></span>"</span>
+            </div>
         </div>
         <div id="scrambled-word-display" class="flex justify-center items-center gap-2 my-6 flex-wrap">
             ${scrambled.split("").map(letter => `<span class="bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-100 text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg shadow-md vocab-font-size">${letter}</span>`).join('')}
@@ -449,14 +466,38 @@ export function startScramble(containerId) {
         <p id="scramble-result" class="mt-4 h-6 text-lg font-medium"></p>
     `;
     
-    document.getElementById("scramble-meaning").textContent = state.currentWord.meaning;
+    document.getElementById("scramble-meaning-content").textContent = state.currentWord.meaning;
+    const definitionContentEl = document.getElementById("scramble-definition-content");
+    const hintButton = document.getElementById("scramble-hint-definition-btn");
+
+    if (state.currentWord.definition) {
+        definitionContentEl.textContent = state.currentWord.definition;
+    } else {
+        hintButton.disabled = true;
+        hintButton.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+
     const inputEl = document.getElementById("scramble-input");
     inputEl.focus();
     inputEl.onkeydown = e => { if (e.key === 'Enter') checkScramble(); };
 }
 
-export function toggleScrambleHint() {
-    document.getElementById('scramble-hint-text').classList.toggle('hidden');
+export function toggleScrambleHint(type) {
+    const definitionEl = document.getElementById('scramble-hint-definition');
+    const meaningEl = document.getElementById('scramble-hint-meaning');
+    
+    const isDefCurrentlyVisible = !definitionEl.classList.contains('hidden');
+    const isMeanCurrentlyVisible = !meaningEl.classList.contains('hidden');
+
+    // Luôn ẩn cả hai trước khi quyết định hiển thị cái nào
+    definitionEl.classList.add('hidden');
+    meaningEl.classList.add('hidden');
+
+    if (type === 'definition' && !isDefCurrentlyVisible) {
+        definitionEl.classList.remove('hidden');
+    } else if (type === 'meaning' && !isMeanCurrentlyVisible) {
+        meaningEl.classList.remove('hidden');
+    }
 }
 
 export function checkScramble() {
