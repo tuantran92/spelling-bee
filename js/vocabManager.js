@@ -81,6 +81,9 @@ function filterAndDisplayVocab() {
         return categoryMatch && searchMatch;
     });
 
+    // *** THÊM DÒNG NÀY ĐỂ SẮP XẾP ***
+    fullFilteredList.sort((a, b) => a.word.localeCompare(b.word));
+
     const itemsToDisplay = fullFilteredList.slice(0, currentLoadedCount);
 
     if (itemsToDisplay.length === 0) {
@@ -98,8 +101,17 @@ function filterAndDisplayVocab() {
 
             return `
                 <div id="vocab-item-${originalIndex}" class="p-3 bg-gray-100 dark:bg-gray-700/60 rounded-lg transition-colors duration-300 ${difficultyClass}">
-                    <div class="flex justify-between items-start">
-                        <div>
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="flex-shrink-0 w-16 h-16">
+                            ${word.imageUrl ? 
+                                `<img src="${word.imageUrl}" alt="${word.word}" class="w-full h-full object-cover rounded-md">` :
+                                `<div class="w-full h-full bg-gray-200 dark:bg-gray-600 rounded-md flex items-center justify-center text-gray-400">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"></path></svg>
+                                </div>`
+                            }
+                        </div>
+                        
+                        <div class="flex-grow">
                             <div class="flex items-center gap-2">
                                 <p class="font-bold text-gray-900 dark:text-gray-100">${word.word}</p>
                                 ${word.partOfSpeech ? `<span class="text-xs italic text-gray-500 dark:text-gray-400">(${word.partOfSpeech})</span>` : ''}
@@ -108,7 +120,7 @@ function filterAndDisplayVocab() {
                             <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${word.meaning}</p>
                             ${word.definition ? `<p class="text-sm text-gray-500 dark:text-gray-300 mt-1 italic">"${word.definition}"</p>` : ''}
                         </div>
-                        <div class="flex items-center gap-2 flex-shrink-0">
+                        <div class="flex flex-col items-center gap-2 flex-shrink-0">
                             <button onclick="showWordStats(${originalIndex})" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Chi tiết"><svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
                             <button onclick="editVocabWord(${originalIndex})" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Sửa"><svg class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg></button>
                             <button onclick="deleteVocabWord(${originalIndex})" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Xóa"><svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
@@ -247,7 +259,6 @@ export function closeVocabForm() {
     modalContainer.classList.add('hidden');
     modalContainer.classList.remove('flex');
     modalContainer.innerHTML = '';
-    setState({ editingWordIndex: -1 });
 }
 
 export async function handleVocabSubmit() {
@@ -260,11 +271,15 @@ export async function handleVocabSubmit() {
         return;
     }
 
-    const isEditing = state.editingWordIndex > -1;
-    const wordExists = state.vocabList.some((v, i) => v.word === word && i !== state.editingWordIndex);
-    if (wordExists && !isEditing) {
-        feedbackEl.textContent = "Từ này đã tồn tại.";
-        return;
+    const originalEditingIndex = state.editingWordIndex;
+    const isEditing = originalEditingIndex > -1;
+    let existingWordIndex = state.vocabList.findIndex((v, i) => v.word === word && i !== originalEditingIndex);
+
+    if (existingWordIndex > -1) {
+        if (!confirm(`Từ "${word}" đã tồn tại. Bạn có muốn cập nhật nó với thông tin mới không?`)) {
+            return; 
+        }
+        setState({ editingWordIndex: existingWordIndex });
     }
 
     feedbackEl.textContent = "Đang làm giàu dữ liệu...";
@@ -291,7 +306,6 @@ export async function handleVocabSubmit() {
     if (images.length > 0) {
         openImagePickerModal(images);
     } else {
-        // Nếu không có ảnh, lưu từ luôn
         saveNewWord();
     }
 }
@@ -309,7 +323,7 @@ function openImagePickerModal(images) {
                 `).join('')}
             </div>
             <div class="mt-4 text-center">
-                <button onclick="skipImageSelection()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Bỏ qua</button>
+                <button onclick="skipImageSelection()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Bỏ qua / Giữ ảnh cũ</button>
             </div>
         </div>
     `;
@@ -337,12 +351,9 @@ async function saveNewWord() {
 
     if (isEditing) {
         const oldWord = newVocabList[state.editingWordIndex];
-        // Chỉ cập nhật ảnh nếu người dùng đã chọn ảnh mới
-        if (!tempWordData.imageUrl) {
-            tempWordData.imageUrl = oldWord.imageUrl || '';
-            tempWordData.imageAuthor = oldWord.imageAuthor || '';
-            tempWordData.imageAuthorLink = oldWord.imageAuthorLink || '';
-        }
+        tempWordData.imageUrl = tempWordData.imageUrl || (oldWord ? oldWord.imageUrl : '') || '';
+        tempWordData.imageAuthor = tempWordData.imageAuthor || (oldWord ? oldWord.imageAuthor : '') || '';
+        tempWordData.imageAuthorLink = tempWordData.imageAuthorLink || (oldWord ? oldWord.imageAuthorLink : '') || '';
         newVocabList[state.editingWordIndex] = tempWordData;
     } else {
         newVocabList.push(tempWordData);
@@ -351,14 +362,14 @@ async function saveNewWord() {
     setState({ vocabList: newVocabList });
     await saveMasterVocab();
     
-    // Dọn dẹp
     tempWordData = null; 
     setState({ tempImages: [] });
     document.getElementById('image-picker-modal').classList.add('hidden');
     
+    setState({ editingWordIndex: -1 });
+
     handleFilterChange();
 }
-
 
 export function editVocabWord(index) {
     openVocabForm(index);

@@ -8,6 +8,11 @@ import { closeGameScreen } from './ui.js';
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
 
+// --- THÊM MỚI: Biến để xử lý cử chỉ vuốt ---
+let touchStartX = 0;
+let touchEndX = 0;
+let swipeThreshold = 50; // Cần vuốt ít nhất 50px để được tính là qua thẻ
+
 function getNextWord() {
     const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
     if (gameList.length === 0) return null;
@@ -280,39 +285,44 @@ export function checkSpelling() {
 }
 
 
-// --- Chế độ Flashcard (Reading) ---
 export function startReading(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
+    // *** CẬP NHẬT GIAO DIỆN VỚI NÚT BẤM MỚI ***
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Flashcard</h2>
-        <div id="flashcard-content" class="relative w-full bg-gray-100 dark:bg-gray-700 rounded-xl flex flex-col p-4 shadow-lg text-center">
-            
-            <div id="flashcard-image-container" class="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-                <img id="flashcard-image" src="" class="w-full h-full object-contain" alt="Vocabulary Image">
+        <div class="relative group">
+            <div id="flashcard-content" class="w-full bg-gray-100 dark:bg-gray-700 rounded-xl flex flex-col p-4 shadow-lg text-center">
+                
+                <div id="flashcard-image-container" class="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                    <img id="flashcard-image" src="" class="w-full h-full object-contain" alt="Vocabulary Image">
+                </div>
+                
+                <div id="flashcard-text-content">
+                    <p id="flashcard-word" class="font-bold vocab-font-size-flashcard text-gray-900 dark:text-gray-100"></p>
+                    <p id="flashcard-phonetic" class="text-lg text-indigo-500 dark:text-indigo-400 font-mono mt-1"></p>
+                    <p id="flashcard-meaning" class="text-xl font-semibold mt-2 text-gray-800 dark:text-gray-200"></p>
+                    <p id="flashcard-definition" class="text-sm italic text-gray-600 dark:text-gray-400 px-2 mt-2"></p>
+                    <p id="flashcard-example" class="text-sm italic text-gray-500 dark:text-gray-400 px-2 mt-2"></p>
+                </div>
+                
+                <div class="flex-grow"></div> 
+                <p id="flashcard-attribution" class="w-full text-left text-xs text-gray-400 dark:text-gray-500 mt-3" style="display: none;"></p>
+                <button id="flashcard-speak-btn" class="absolute bottom-4 right-4 bg-teal-500 hover:bg-teal-600 p-2 rounded-full">
+                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                </button>
             </div>
-            
-            <div id="flashcard-text-content">
-                <p id="flashcard-word" class="font-bold vocab-font-size-flashcard text-gray-900 dark:text-gray-100"></p>
-                <p id="flashcard-phonetic" class="text-lg text-indigo-500 dark:text-indigo-400 font-mono mt-1"></p>
-                <p id="flashcard-meaning" class="text-xl font-semibold mt-2 text-gray-800 dark:text-gray-200"></p>
-                <p id="flashcard-definition" class="text-sm italic text-gray-600 dark:text-gray-400 px-2 mt-2"></p>
-                <p id="flashcard-example" class="text-sm italic text-gray-500 dark:text-gray-400 px-2 mt-2"></p>
-            </div>
-            
-            <div class="flex-grow"></div> 
 
-            <p id="flashcard-attribution" class="w-full text-left text-xs text-gray-400 dark:text-gray-500 mt-3" style="display: none;"></p>
-            
-            <button id="flashcard-speak-btn" class="absolute bottom-4 right-4 bg-teal-500 hover:bg-teal-600 p-2 rounded-full">
-                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+            <button onclick="changeFlashcard(-1)" class="absolute top-1/2 left-2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full w-12 h-12 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 md:opacity-100">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <button onclick="changeFlashcard(1)" class="absolute top-1/2 right-2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full w-12 h-12 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 md:opacity-100">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </button>
         </div>
-        <div class="mt-6 flex justify-center items-center gap-4">
-            <button onclick="changeFlashcard(-1)" class="p-3 rounded-full shadow-md bg-gray-200 dark:bg-gray-600"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
-            <span id="card-counter" class="font-medium"></span>
-            <button onclick="changeFlashcard(1)" class="p-3 rounded-full shadow-md bg-gray-200 dark:bg-gray-600"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
+        <div id="card-counter-container" class="text-center mt-4 text-gray-500 dark:text-gray-400 font-semibold">
+            <span id="card-counter"></span>
         </div>
     `;
     
@@ -341,7 +351,8 @@ function updateFlashcard() {
         textContentEl.classList.remove('no-image');
         
         if (word.imageAuthor && word.imageAuthorLink) {
-             attributionEl.innerHTML = `Photo by <a href="${word.imageAuthorLink}?utm_source=LuyenTuVungPRO&utm_medium=referral" target="_blank" class="underline">${word.imageAuthor}</a> on <a href="https://unsplash.com/?utm_source=LuyenTuVungPRO&utm_medium=referral" target="_blank" class="underline">Unsplash</a>`;
+             // *** THAY ĐỔI DÒNG CHỮ GHI CÔNG ***
+             attributionEl.innerHTML = `Photo by <a href="${word.imageAuthorLink}" target="_blank" class="underline">${word.imageAuthor}</a> on <a href="https://pixabay.com/" target="_blank" class="underline">Pixabay</a>`;
             attributionEl.style.display = 'block';
         } else {
             attributionEl.style.display = 'none';
@@ -389,6 +400,27 @@ export function changeFlashcard(direction) {
     saveUserData();
 }
 
+// --- THÊM MỚI: CÁC HÀM XỬ LÝ VUỐT ---
+function handleTouchStart(evt) {
+    touchStartX = evt.touches[0].clientX;
+    touchEndX = touchStartX; // Reset
+}
+
+function handleTouchMove(evt) {
+    touchEndX = evt.touches[0].clientX;
+}
+
+function handleTouchEnd() {
+    const movedBy = touchStartX - touchEndX;
+    // Vuốt sang trái (qua thẻ tiếp theo)
+    if (movedBy > swipeThreshold) {
+        changeFlashcard(1);
+    }
+    // Vuốt sang phải (về thẻ trước đó)
+    if (movedBy < -swipeThreshold) {
+        changeFlashcard(-1);
+    }
+}
 
 // --- Sắp xếp chữ (Scramble) ---
 export function startScramble(containerId) {
