@@ -2,7 +2,7 @@
 
 import { state, setState } from './state.js';
 import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords, updateAndCacheSuggestions, fetchWordData } from './data.js';
-import { scrambleWord, levenshteinDistance, playSound } from './utils.js';
+import { scrambleWord, levenshteinDistance, playSound, maskWord } from './utils.js';
 import { closeGameScreen } from './ui.js';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -794,7 +794,9 @@ export async function startFillBlank(containerId) {
     
     for (const wordObj of wordsToTry) {
         let exampleSentence = wordObj.example || await findExampleSentence(wordObj.word);
-        if (exampleSentence && exampleSentence.toLowerCase().includes(wordObj.word.toLowerCase())) {
+        
+        const regex = new RegExp(`\\b${wordObj.word}\\b`, 'i');
+        if (exampleSentence && regex.test(exampleSentence)) {
             setState({ currentWord: wordObj });
             populateFillBlankUI(containerId, exampleSentence, wordObj);
             return;
@@ -806,34 +808,109 @@ export async function startFillBlank(containerId) {
 
 async function findExampleSentence(word) {
     try {
-        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-        if (!response.ok) return null;
-        const data = await response.json();
-        return data[0]?.meanings[0]?.definitions[0]?.example || null;
+        const wordData = await fetchWordData(word);
+        return wordData?.example || null;
     } catch (error) {
-        console.error("Lỗi API ví dụ:", error);
+        console.error("Lỗi khi tìm câu ví dụ:", error);
         return null;
     }
 }
 
 function populateFillBlankUI(containerId, sentence, wordObj) {
     const screenEl = document.getElementById(containerId);
+    const masked = maskWord(wordObj.word);
     const regex = new RegExp(`\\b${wordObj.word}\\b`, 'ig');
-    const sentenceWithBlank = sentence.replace(regex, '_______');
+    const sentenceWithBlank = sentence.replace(regex, `<span class="font-mono text-cyan-400 tracking-widest">${masked}</span>`);
     
     screenEl.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Điền vào chỗ trống</h2>
-        <div id="fill-blank-sentence" class="p-6 bg-gray-100 dark:bg-gray-700 rounded-lg text-lg mb-6 vocab-font-size">${sentenceWithBlank}</div>
+        <div id="fill-blank-sentence" class="p-6 bg-gray-100 dark:bg-gray-700 rounded-lg text-lg mb-4 vocab-font-size">${sentenceWithBlank}</div>
+        
+        <div class="h-auto flex flex-col items-center justify-center mb-4 gap-2">
+            <div>
+                <button id="fill-blank-hint-definition-btn" onclick="toggleFillBlankHint('definition')" class="bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Hint</button>
+                <button id="fill-blank-hint-meaning-btn" onclick="toggleFillBlankHint('meaning')" class="ml-2 bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Gợi ý</button>
+                <button onclick="translateFillBlankSentence()" class="ml-2 bg-blue-200 dark:bg-blue-800 px-3 py-1 rounded-md text-sm font-semibold">Dịch</button>
+            </div>
+            <div id="fill-blank-hint-container" class="mt-2 text-center h-auto min-h-[2rem]">
+                <span id="fill-blank-hint-definition" class="hidden italic text-sm text-gray-500 dark:text-gray-400">"<span id="fill-blank-definition-content" class="font-semibold"></span>"</span>
+                <span id="fill-blank-hint-meaning" class="hidden italic text-sm text-gray-500 dark:text-gray-400">Nghĩa: "<span id="fill-blank-meaning-content" class="font-semibold"></span>"</span>
+                <span id="fill-blank-translation" class="hidden italic text-sm text-blue-500 dark:text-blue-400">Dịch: "<span id="fill-blank-translation-content" class="font-semibold"></span>"</span>
+            </div>
+        </div>
+
         <input type="text" id="fill-blank-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 dark:bg-gray-700 vocab-font-size" placeholder="Nhập từ còn thiếu...">
-        <div class="mt-4">
-            <button onclick="checkFillBlank()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button>
+        <div class="mt-4 flex gap-2">
+            <button onclick="skipFillBlankQuestion()" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">Bỏ qua</button>
+            <button onclick="checkFillBlank()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button>
         </div>
         <p id="fill-blank-result" class="mt-4 h-6 text-lg font-medium"></p>
     `;
+
+    document.getElementById("fill-blank-meaning-content").textContent = wordObj.meaning;
+    const definitionContentEl = document.getElementById("fill-blank-definition-content");
+    const hintButton = document.getElementById("fill-blank-hint-definition-btn");
+
+    if (wordObj.definition) {
+        definitionContentEl.textContent = wordObj.definition;
+    } else {
+        hintButton.disabled = true;
+        hintButton.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+
     const inputEl = document.getElementById('fill-blank-input');
     inputEl.focus();
     inputEl.onkeydown = (event) => { if (event.key === 'Enter') checkFillBlank(); };
 }
+
+export function toggleFillBlankHint(type) {
+    const definitionEl = document.getElementById('fill-blank-hint-definition');
+    const meaningEl = document.getElementById('fill-blank-hint-meaning');
+    const translationEl = document.getElementById('fill-blank-translation');
+
+    const elements = {
+        definition: definitionEl,
+        meaning: meaningEl,
+        translation: translationEl
+    };
+
+    // Ẩn tất cả gợi ý trước
+    Object.values(elements).forEach(el => el.classList.add('hidden'));
+
+    // Hiển thị gợi ý được yêu cầu nếu nó chưa được hiển thị
+    if (elements[type] && elements[type].classList.contains('hidden')) {
+        elements[type].classList.remove('hidden');
+    }
+}
+
+export async function translateFillBlankSentence() {
+    const sentenceEl = document.getElementById('fill-blank-sentence');
+    const translationContentEl = document.getElementById('fill-blank-translation-content');
+    if (!sentenceEl || !state.currentWord.example) {
+        translationContentEl.textContent = "Không có câu để dịch.";
+        toggleFillBlankHint('translation');
+        return;
+    }
+    
+    translationContentEl.textContent = "Đang dịch...";
+    toggleFillBlankHint('translation');
+
+    try {
+        const textToTranslate = state.currentWord.example;
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(textToTranslate)}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Lỗi mạng khi dịch.');
+        }
+        const data = await response.json();
+        const translatedText = data[0][0][0];
+        translationContentEl.textContent = translatedText;
+    } catch (error) {
+        console.error("Lỗi dịch:", error);
+        translationContentEl.textContent = "Dịch lỗi.";
+    }
+}
+
 
 export function checkFillBlank() {
     const userAnswer = document.getElementById('fill-blank-input').value.trim().toLowerCase();
@@ -850,11 +927,19 @@ export function checkFillBlank() {
         resultEl.className = 'mt-4 h-6 text-lg font-medium text-green-500';
         const sentenceEl = document.getElementById('fill-blank-sentence');
         if (sentenceEl) {
-            sentenceEl.innerHTML = sentenceEl.innerHTML.replace('_______', `<strong class="text-cyan-400">${state.currentWord.word}</strong>`);
+            const maskedSpan = sentenceEl.querySelector('span');
+            if (maskedSpan) {
+                maskedSpan.innerHTML = `<strong class="text-green-400">${state.currentWord.word}</strong>`;
+            }
         }
         setTimeout(() => startFillBlank('fill-blank-screen-content'), 2500);
     } else {
         resultEl.textContent = `❌ Sai rồi! Đáp án: "${state.currentWord.word}"`;
         resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
     }
+}
+
+export function skipFillBlankQuestion() {
+    playSound('wrong'); // Chơi âm thanh sai khi bỏ qua để có phản hồi
+    startFillBlank('fill-blank-screen-content');
 }

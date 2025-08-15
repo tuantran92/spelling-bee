@@ -51,17 +51,17 @@ export function startExam() {
     }
 
     const shuffled = [...allVocab].sort(() => 0.5 - Math.random());
-    const questions = shuffled.slice(0, questionCount).map(word => {
+    const questions = shuffled.slice(0, questionCount).map(wordObj => {
         const wrongAnswers = [...allVocab]
-            .filter(w => w.word !== word.word)
+            .filter(w => w.word !== wordObj.word)
             .sort(() => 0.5 - Math.random())
             .slice(0, 3)
             .map(w => w.meaning);
         
-        const options = [word.meaning, ...wrongAnswers].sort(() => 0.5 - Math.random());
+        const options = [wordObj.meaning, ...wrongAnswers].sort(() => 0.5 - Math.random());
         return {
-            word: word.word,
-            correctMeaning: word.meaning,
+            wordData: wordObj,
+            correctMeaning: wordObj.meaning,
             options: options,
             userAnswer: null
         };
@@ -97,13 +97,22 @@ function renderExamQuestion() {
     const examArea = document.getElementById('exam-inprogress');
     const { questions, currentQuestionIndex, timeLeft } = state.examState;
     const question = questions[currentQuestionIndex];
+    const word = question.wordData;
 
     examArea.innerHTML = `
         <div class="flex justify-between items-center mb-4">
             <div class="text-sm font-medium">Câu ${currentQuestionIndex + 1}/${questions.length}</div>
             <div id="exam-timer" class="text-lg font-bold text-red-500"></div>
         </div>
-        <h3 class="text-3xl font-bold mb-6">${question.word}</h3>
+        <div class="flex justify-center items-center gap-4 mb-6">
+            <div class="text-center font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg">
+                <h3 class="text-3xl font-bold">${word.word}</h3>
+                <p class="text-lg text-gray-500 dark:text-gray-400 font-mono mt-1">${word.phonetic || ''}</p>
+            </div>
+            <button onclick="speakWord('${word.word}')" class="p-3 bg-sky-500 hover:bg-sky-600 rounded-full text-white shadow-md">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+            </button>
+        </div>
         <div id="exam-options" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             ${question.options.map(opt => `
                 <button onclick="checkExamAnswer(this, '${btoa(unescape(encodeURIComponent(opt)))}')" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-4 rounded-lg">
@@ -115,6 +124,7 @@ function renderExamQuestion() {
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
     document.getElementById('exam-timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    speakWord(word.word);
 }
 
 export function checkExamAnswer(buttonEl, encodedAnswer) {

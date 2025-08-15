@@ -82,6 +82,9 @@ function attachGlobalFunctions() {
     window.checkListening = game.checkListening;
     window.listenForPronunciation = game.listenForPronunciation;
     window.checkFillBlank = game.checkFillBlank;
+    window.toggleFillBlankHint = game.toggleFillBlankHint;
+    window.skipFillBlankQuestion = game.skipFillBlankQuestion;
+    window.translateFillBlankSentence = game.translateFillBlankSentence; // <-- DÒNG MỚI ĐÃ THÊM
     window.handleReviewAnswer = game.handleReviewAnswer;
     window.startSuggestionMode = game.startSuggestionMode;
 

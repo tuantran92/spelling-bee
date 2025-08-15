@@ -95,6 +95,47 @@ export function shuffleArray(array) {
 }
 
 /**
+ * THÊM MỚI: Hàm che một phần từ vựng để làm gợi ý
+ * @param {string} word - Từ cần che
+ * @returns {string} Từ đã được che
+ */
+export function maskWord(word) {
+    const len = word.length;
+    if (len <= 2) {
+        return '-'.repeat(len);
+    }
+    if (len === 3) {
+        return `${word[0]}-${word[2]}`; // cat -> c-t
+    }
+
+    const chars = word.split('');
+    let maskedChars = new Array(len).fill('-');
+    
+    // Luôn hiển thị ký tự đầu và cuối
+    maskedChars[0] = chars[0];
+    maskedChars[len - 1] = chars[len - 1];
+
+    if (len >= 7 && len <= 9) {
+        // Hiển thị thêm 1 ký tự ngẫu nhiên ở giữa
+        const randomIndex = Math.floor(Math.random() * (len - 2)) + 1;
+        maskedChars[randomIndex] = chars[randomIndex];
+    } else if (len > 9) {
+        // Hiển thị thêm 2 ký tự ngẫu nhiên ở giữa
+        let index1 = Math.floor(Math.random() * (len - 2)) + 1;
+        let index2;
+        do {
+            index2 = Math.floor(Math.random() * (len - 2)) + 1;
+        } while (index1 === index2);
+        
+        maskedChars[index1] = chars[index1];
+        maskedChars[index2] = chars[index2];
+    }
+    
+    return maskedChars.join('');
+}
+
+
+/**
  * THÊM MỚI: Hàm tạo độ trễ (delay)
  * @param {number} ms - Thời gian chờ (mili-giây)
  */
