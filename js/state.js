@@ -70,12 +70,17 @@ export const state = {
         words: [],
         currentIndex: 0
     },
-
+    
     fillBlankSession: {
         isActive: false,
         words: [],
         currentIndex: 0
     },
+    
+    // Trạng thái cho việc tìm kiếm ảnh
+    tempImages: [],
+    imageSearchPage: 1,
+    imageSearchTerm: '',
 
     sessionTimer: null,
 };

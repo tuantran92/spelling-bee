@@ -81,7 +81,6 @@ function filterAndDisplayVocab() {
         return categoryMatch && searchMatch;
     });
 
-    // *** THÊM DÒNG NÀY ĐỂ SẮP XẾP ***
     fullFilteredList.sort((a, b) => a.word.localeCompare(b.word));
 
     const itemsToDisplay = fullFilteredList.slice(0, currentLoadedCount);
@@ -283,9 +282,11 @@ export async function handleVocabSubmit() {
     }
 
     feedbackEl.textContent = "Đang làm giàu dữ liệu...";
+    setState({ imageSearchPage: 1, imageSearchTerm: word, tempImages: [] });
+
     const [apiData, images] = await Promise.all([
         fetchWordData(word),
-        fetchWordImages(word)
+        fetchWordImages(word, 1)
     ]);
     
     tempWordData = {
@@ -315,21 +316,56 @@ function openImagePickerModal(images) {
     modalContainer.innerHTML = `
         <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-2xl mx-auto relative">
             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Chọn một hình ảnh cho "${tempWordData.word}"</h3>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
+            <div id="image-picker-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
                 ${images.map((img, index) => `
                     <div class="cursor-pointer group" onclick="selectWordImage(${index})">
                         <img src="${img.url}" class="w-full h-32 object-cover rounded-lg group-hover:ring-4 ring-indigo-500 transition-all">
                     </div>
                 `).join('')}
             </div>
-            <div class="mt-4 text-center">
-                <button onclick="skipImageSelection()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Bỏ qua / Giữ ảnh cũ</button>
+            <div class="mt-4 text-center" id="image-picker-footer">
+                 <button id="load-more-images-btn" onclick="loadMoreImages()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Tải thêm</button>
+                 <button onclick="skipImageSelection()" class="ml-2 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Bỏ qua / Giữ ảnh cũ</button>
             </div>
         </div>
     `;
     setState({ tempImages: images });
     modalContainer.classList.remove('hidden');
 }
+
+export async function loadMoreImages() {
+    const loadMoreBtn = document.getElementById('load-more-images-btn');
+    loadMoreBtn.disabled = true;
+    loadMoreBtn.textContent = 'Đang tải...';
+
+    const nextPage = state.imageSearchPage + 1;
+    const newImages = await fetchWordImages(state.imageSearchTerm, nextPage);
+
+    if (newImages.length > 0) {
+        const grid = document.getElementById('image-picker-grid');
+        const currentImageCount = state.tempImages.length;
+        
+        newImages.forEach((img, index) => {
+            const newIndex = currentImageCount + index;
+            const imgDiv = document.createElement('div');
+            imgDiv.className = 'cursor-pointer group';
+            imgDiv.setAttribute('onclick', `selectWordImage(${newIndex})`);
+            imgDiv.innerHTML = `<img src="${img.url}" class="w-full h-32 object-cover rounded-lg group-hover:ring-4 ring-indigo-500 transition-all">`;
+            grid.appendChild(imgDiv);
+        });
+
+        setState({ 
+            tempImages: [...state.tempImages, ...newImages],
+            imageSearchPage: nextPage 
+        });
+
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.textContent = 'Tải thêm';
+    } else {
+        loadMoreBtn.textContent = 'Không còn ảnh';
+    }
+}
+
 
 export function selectWordImage(imageIndex) {
     const selectedImage = state.tempImages[imageIndex];

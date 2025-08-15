@@ -261,13 +261,12 @@ export async function fetchAllUsersForLeaderboard() {
     }
 }
 
-export async function fetchWordImages(word) {
+export async function fetchWordImages(word, page = 1) {
     if (!pixabayApiKey || pixabayApiKey === "KEY_PIXABAY_CUA_BAN") {
         return [];
     }
     try {
-        // *** THAY ĐỔI TỪ 9 LÊN 12 ***
-        const response = await fetch(`https://pixabay.com/api/?key=${pixabayApiKey}&q=${encodeURIComponent(word)}&image_type=photo&safesearch=true&per_page=12`);
+        const response = await fetch(`https://pixabay.com/api/?key=${pixabayApiKey}&q=${encodeURIComponent(word)}&image_type=photo&safesearch=true&per_page=12&page=${page}`);
         
         if (response.ok) {
             const data = await response.json();

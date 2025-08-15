@@ -68,9 +68,9 @@ function attachGlobalFunctions() {
     window.updateWordDifficulty = vocabManager.updateWordDifficulty;
     window.showWordStats = vocabManager.showWordStats;
     window.closeWordStats = vocabManager.closeWordStats;
-    // --- THÊM MỚI ---
     window.selectWordImage = vocabManager.selectWordImage;
     window.skipImageSelection = vocabManager.skipImageSelection;
+    window.loadMoreImages = vocabManager.loadMoreImages; // <-- DÒNG MỚI ĐÃ THÊM
 
     // Game Modes
     window.speakWord = game.speakWord;
@@ -84,7 +84,7 @@ function attachGlobalFunctions() {
     window.checkFillBlank = game.checkFillBlank;
     window.toggleFillBlankHint = game.toggleFillBlankHint;
     window.skipFillBlankQuestion = game.skipFillBlankQuestion;
-    window.translateFillBlankSentence = game.translateFillBlankSentence; // <-- DÒNG MỚI ĐÃ THÊM
+    window.translateFillBlankSentence = game.translateFillBlankSentence;
     window.handleReviewAnswer = game.handleReviewAnswer;
     window.startSuggestionMode = game.startSuggestionMode;
 
