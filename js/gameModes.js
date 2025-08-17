@@ -295,6 +295,7 @@ export function checkSpelling() {
     }
 }
 
+
 // --- Flashcard (Reading) ---
 export function startReading(containerId) {
     const container = document.getElementById(containerId);
@@ -428,8 +429,6 @@ function handleTouchEnd() {
     }
 }
 
-
-// *** ĐÂY LÀ PHẦN ĐƯỢC THAY ĐỔI ***
 // --- Sắp xếp chữ (Scramble) ---
 export function startScramble(containerId) {
     const container = document.getElementById(containerId);
@@ -498,7 +497,6 @@ export function toggleScrambleHint(type) {
     }
 }
 
-// HÀM MỚI
 export function showScrambleAnswer() {
     const resultEl = document.getElementById("scramble-result");
     const inputEl = document.getElementById("scramble-input");
@@ -536,7 +534,7 @@ export function checkScramble() {
         resultEl.className = "mt-4 h-6 text-lg font-medium text-red-500";
     }
 }
-// *** KẾT THÚC PHẦN THAY ĐỔI ***
+
 
 // --- Trắc nghiệm (MCQ) ---
 function renderNextMcqQuestion() {
@@ -694,11 +692,12 @@ export function checkListening() {
     }
 }
 
+// *** ĐÂY LÀ PHẦN ĐƯỢC THAY ĐỔI ***
 // --- Luyện Phát Âm (Pronunciation) ---
 export function startPronunciation(containerId) {
     const container = document.getElementById(containerId);
     if (!SpeechRecognition) {
-        container.innerHTML = `<h2 class="text-xl font-semibold text-red-500">Lỗi Tương Thích</h2><p class="mt-2">Trình duyệt của bạn không hỗ trợ nhận dạng giọng nói.</p>`;
+        container.innerHTML = `<h2 class="text-xl font-semibold text-red-500">Lỗi Tương Thích</h2><p class="mt-2">Trình duyệt của bạn không hỗ trợ nhận dạng giọng nói. Vui lòng dùng Chrome hoặc Edge mới nhất.</p>`;
         return;
     }
     const newWord = getNextWord();
@@ -718,7 +717,7 @@ export function startPronunciation(containerId) {
         <button id="pronunciation-record-btn" onclick="listenForPronunciation()" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-20 h-20 flex items-center justify-center mx-auto shadow-lg">
             <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
         </button>
-        <p id="pronunciation-status" class="mt-4 text-gray-500 h-5">Nhấn nút để ghi âm</p>
+        <p id="pronunciation-status" class="mt-4 text-gray-500 h-5">Nhấn nút để bắt đầu ghi âm</p>
         <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg min-h-[60px]">
             <p class="text-sm">Bạn đã nói:</p>
             <p id="pronunciation-transcript" class="text-lg font-medium vocab-font-size"></p>
@@ -743,7 +742,7 @@ export function listenForPronunciation() {
     recognition.continuous = false;
 
     recognition.onstart = () => {
-        statusEl.textContent = 'Đang nghe...';
+        statusEl.textContent = '🎤 Đang nghe...';
         transcriptEl.textContent = '';
         resultEl.textContent = '';
         recordBtn.disabled = true;
@@ -762,7 +761,7 @@ export function listenForPronunciation() {
             }
         }
         
-        transcriptEl.textContent = interimTranscript || finalTranscript;
+        transcriptEl.textContent = finalTranscript || interimTranscript;
         
         if (finalTranscript) {
             const finalAnswer = finalTranscript.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
@@ -784,20 +783,28 @@ export function listenForPronunciation() {
     };
 
     recognition.onerror = (event) => {
-        if (event.error !== 'aborted') {
-             statusEl.textContent = `Lỗi: ${event.error}. Thử lại nhé.`;
+        let errorMessage = 'Nhấn nút để ghi âm lại';
+        if (event.error === 'not-allowed') {
+            errorMessage = 'Lỗi: Bạn chưa cấp quyền sử dụng micro.';
+        } else if (event.error === 'no-speech') {
+            errorMessage = 'Không nghe thấy giọng nói. Thử lại nhé.';
+        } else {
+            errorMessage = `Lỗi: ${event.error}. Thử lại nhé.`;
         }
+        statusEl.textContent = errorMessage;
     };
 
     recognition.onend = () => {
-        statusEl.textContent = 'Nhấn nút để ghi âm';
+        if (statusEl.textContent.includes('Đang nghe')) {
+            statusEl.textContent = 'Nhấn nút để ghi âm';
+        }
         recordBtn.disabled = false;
         recordBtn.classList.remove('animate-pulse', 'bg-red-700');
     };
 
     recognition.start();
 }
-
+// *** KẾT THÚC PHẦN THAY ĐỔI ***
 
 // --- Điền vào chỗ trống (Fill Blank) ---
 export async function startFillBlank(containerId) {
