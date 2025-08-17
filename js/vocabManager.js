@@ -1,7 +1,7 @@
 // js/vocabManager.js
 
 import { state, setState } from './state.js';
-import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImages, uploadImageViaCloudFunction  } from './data.js';
+import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImages, uploadImageViaCloudFunction } from './data.js';
 import { SRS_INTERVALS } from './config.js';
 
 let tempWordData = null; // Biến tạm để giữ dữ liệu từ mới
@@ -366,30 +366,25 @@ export async function loadMoreImages() {
     }
 }
 
-
-// THAY THẾ HÀM NÀY
 export async function selectWordImage(imageIndex) {
+    const isEditing = state.editingWordIndex > -1; // SỬA Ở ĐÂY
     const selectedImage = state.tempImages[imageIndex];
     if (tempWordData && selectedImage) {
         const modalContainer = document.getElementById('image-picker-modal');
-        if(modalContainer) {
+        if (modalContainer) {
             modalContainer.innerHTML = `
                 <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-2xl mx-auto relative text-center">
                     <div class="loader mx-auto"></div>
                     <p class="mt-4 text-gray-600 dark:text-gray-300">Đang tải và lưu hình ảnh...</p>
                 </div>`;
         }
-        
-        // Gọi hàm mới để tải ảnh qua Cloud Function
         const firebaseImageUrl = await uploadImageViaCloudFunction(selectedImage.url, tempWordData.word);
-
         if (firebaseImageUrl) {
             tempWordData.imageUrl = firebaseImageUrl;
-            tempWordData.imageAuthor = ''; // Không cần lưu thông tin tác giả nữa
+            tempWordData.imageAuthor = '';
             tempWordData.imageAuthorLink = '';
         } else {
             alert("Không thể tải hình ảnh lên. Vui lòng thử lại hoặc chọn ảnh khác.");
-            // Giữ lại ảnh cũ nếu đang sửa, hoặc để trống nếu thêm mới
             const oldWord = isEditing ? state.vocabList[state.editingWordIndex] : null;
             tempWordData.imageUrl = oldWord ? oldWord.imageUrl : '';
         }

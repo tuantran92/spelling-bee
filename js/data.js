@@ -2,7 +2,8 @@
 
 import { doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { db, storage } from './firebase.js';
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js"; // THÊM DÒNG NÀY
+import { db, storage, functions } from './firebase.js'; // Thêm functions vào
 import { state, setState } from './state.js';
 import { SRS_INTERVALS, wordsApiKey, pixabayApiKey } from './config.js';
 import { updateDashboard } from './ui.js';
@@ -11,12 +12,7 @@ import { checkAchievements } from './achievements.js';
 
 const MASTER_VOCAB_ID = "sharedList";
 
-const commonWordPhonetics = {
-    'a': 'ə', 'an': 'ən', 'the': 'ðə', 'thee': 'ði', 'of': 'əv', 'at': 'ət', 'in': 'ɪn', 'on': 'ɑn', 'for': 'fɔr', 'your': 'jʊər',
-    'is': 'ɪz', 'are': 'ɑr', 'was': 'wəz', 'were': 'wɜr', 'to': 'tu', 'and': 'ənd', 'from': 'frʌm', 'with': 'wɪð', 'my': 'maɪ',
-    'it': 'ɪt', 'i': 'aɪ', 'you': 'ju', 'he': 'hi', 'she': 'ʃi', 'we': 'wi', 'they': 'ðeɪ', 'bottom': 'ˈbɑtəm', 'top': 'tɑp', 'back': 'bæk'
-};
-
+// ... (Toàn bộ các hàm khác từ updateAndCacheSuggestions đến fetchAllUsersForLeaderboard giữ nguyên không đổi) ...
 export function updateAndCacheSuggestions() {
     const { appData, vocabList } = state;
     if (!appData.progress || vocabList.length === 0) {
@@ -261,17 +257,16 @@ export async function fetchAllUsersForLeaderboard() {
         return [];
     }
 }
+
 export async function uploadImageViaCloudFunction(imageUrl, word) {
     if (!imageUrl || !word) return null;
-
     try {
         const uploadImage = httpsCallable(functions, 'uploadImageFromUrl');
-        const result = await uploadImage({ 
-            imageUrl: imageUrl, 
+        const result = await uploadImage({
+            imageUrl: imageUrl,
             word: word,
-            profileId: state.selectedProfileId // Gửi cả profileId để tạo đường dẫn lưu trữ
+            profileId: state.selectedProfileId
         });
-        
         if (result.data && result.data.success) {
             return result.data.url;
         } else {
