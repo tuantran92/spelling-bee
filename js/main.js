@@ -70,7 +70,7 @@ function attachGlobalFunctions() {
     window.closeWordStats = vocabManager.closeWordStats;
     window.selectWordImage = vocabManager.selectWordImage;
     window.skipImageSelection = vocabManager.skipImageSelection;
-    window.loadMoreImages = vocabManager.loadMoreImages; // <-- DÒNG MỚI ĐÃ THÊM
+    window.loadMoreImages = vocabManager.loadMoreImages;
 
     // Game Modes
     window.speakWord = game.speakWord;
@@ -78,6 +78,7 @@ function attachGlobalFunctions() {
     window.changeFlashcard = game.changeFlashcard;
     window.checkScramble = game.checkScramble;
     window.toggleScrambleHint = game.toggleScrambleHint;
+    window.showScrambleAnswer = game.showScrambleAnswer; // Dòng đã được thêm
     window.checkMcq = game.checkMcq;
     window.checkListening = game.checkListening;
     window.listenForPronunciation = game.listenForPronunciation;
