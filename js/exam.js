@@ -21,7 +21,13 @@ export function setupExamScreen(containerId) {
                     <select id="exam-question-count" class="mt-1 block w-full p-2 border-gray-300 rounded-md dark:bg-gray-700">
                         <option value="10">10 câu</option>
                         <option value="20">20 câu</option>
+                        <option value="30">30 câu</option>
+                        <option value="40">40 câu</option>
                         <option value="50">50 câu</option>
+                        <option value="60">60 câu</option>                        
+                        <option value="70">70 câu</option>
+                        <option value="80">80 câu</option>
+                        <option value="90">90 câu</option>
                     </select>
                 </div>
                 <div class="mb-6">
@@ -29,7 +35,13 @@ export function setupExamScreen(containerId) {
                     <select id="exam-time-limit" class="mt-1 block w-full p-2 border-gray-300 rounded-md dark:bg-gray-700">
                         <option value="1">1 phút</option>
                         <option value="2">2 phút</option>
+                        <option value="3">3 phút</option>
+                        <option value="4">4 phút</option>
                         <option value="5">5 phút</option>
+                        <option value="6">6 phút</option>
+                        <option value="7">7 phút</option>
+                        <option value="8">8 phút</option>
+                        <option value="9">9 phút</option>
                     </select>
                 </div>
                 <button onclick="startExam()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg">Bắt đầu thi</button>
