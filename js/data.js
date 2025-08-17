@@ -261,31 +261,25 @@ export async function fetchAllUsersForLeaderboard() {
         return [];
     }
 }
-export async function uploadImageToFirebase(imageUrl, word) {
+export async function uploadImageViaCloudFunction(imageUrl, word) {
     if (!imageUrl || !word) return null;
 
     try {
-        // Use a CORS proxy to fetch the image if direct fetching fails
-        const response = await fetch(`https://cors-anywhere.herokuapp.com/${imageUrl}`);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch image: ${response.statusText}`);
+        const uploadImage = httpsCallable(functions, 'uploadImageFromUrl');
+        const result = await uploadImage({ 
+            imageUrl: imageUrl, 
+            word: word,
+            profileId: state.selectedProfileId // Gửi cả profileId để tạo đường dẫn lưu trữ
+        });
+        
+        if (result.data && result.data.success) {
+            return result.data.url;
+        } else {
+            throw new Error(result.data.error || "Cloud function returned an error.");
         }
-        const blob = await response.blob();
-
-        // Create a unique file name
-        const fileName = `${new Date().getTime()}_${word}.jpg`;
-        const storageRef = ref(storage, `word_images/${state.selectedProfileId}/${fileName}`);
-
-        // Upload the blob to Firebase Storage
-        const snapshot = await uploadBytes(storageRef, blob);
-
-        // Get the download URL
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        return downloadURL;
     } catch (error) {
-        console.error("Error uploading image to Firebase:", error);
-        // Fallback or secondary attempt without proxy can be added here if needed
-        return null; // Return null on failure
+        console.error("Error calling uploadImageFromUrl cloud function:", error);
+        return null;
     }
 }
 

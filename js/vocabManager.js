@@ -378,22 +378,22 @@ export async function selectWordImage(imageIndex) {
                     <p class="mt-4 text-gray-600 dark:text-gray-300">Đang tải và lưu hình ảnh...</p>
                 </div>`;
         }
-
-        const firebaseImageUrl = await uploadImageToFirebase(selectedImage.url, tempWordData.word);
+        
+        // Gọi hàm mới để tải ảnh qua Cloud Function
+        const firebaseImageUrl = await uploadImageViaCloudFunction(selectedImage.url, tempWordData.word);
 
         if (firebaseImageUrl) {
             tempWordData.imageUrl = firebaseImageUrl;
-            // We no longer need to store author info since we are hosting the image
-            tempWordData.imageAuthor = '';
+            tempWordData.imageAuthor = ''; // Không cần lưu thông tin tác giả nữa
             tempWordData.imageAuthorLink = '';
         } else {
-            // Handle upload failure, maybe just skip adding the image
             alert("Không thể tải hình ảnh lên. Vui lòng thử lại hoặc chọn ảnh khác.");
-            tempWordData.imageUrl = ''; // Or keep the old one if editing
+            // Giữ lại ảnh cũ nếu đang sửa, hoặc để trống nếu thêm mới
+            const oldWord = isEditing ? state.vocabList[state.editingWordIndex] : null;
+            tempWordData.imageUrl = oldWord ? oldWord.imageUrl : '';
         }
     }
-    // saveNewWord will be called after the async operation completes
-    saveNewWord();
+    await saveNewWord();
 }
 
 export function skipImageSelection() {
