@@ -295,12 +295,17 @@ export function checkSpelling() {
     }
 }
 
-
+// *** ĐÂY LÀ PHẦN ĐƯỢC THAY ĐỔI ***
+// --- Flashcard (Reading) ---
 export function startReading(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // *** CẬP NHẬT GIAO DIỆN VỚI NÚT BẤM MỚI ***
+    // Lấy danh sách từ vựng hiện tại (đã lọc hoặc toàn bộ) và xáo trộn nó
+    const currentList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
+    const shuffledList = shuffleArray([...currentList]); // Tạo bản sao và xáo trộn
+    setState({ flashcardList: shuffledList, currentFlashcardIndex: 0 }); // Lưu danh sách đã xáo trộn vào state
+
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Flashcard</h2>
         <div class="relative group">
@@ -337,12 +342,11 @@ export function startReading(containerId) {
         </div>
     `;
     
-    setState({ currentFlashcardIndex: 0 });
     updateFlashcard();
 }
 
 function updateFlashcard() {
-    const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
+    const gameList = state.flashcardList || []; // Sử dụng danh sách đã xáo trộn
     const contentEl = document.getElementById('flashcard-content');
     if (gameList.length === 0 || !contentEl) {
         if (contentEl) contentEl.innerHTML = `<p class="text-orange-500">Không có từ nào để học.</p>`;
@@ -360,10 +364,7 @@ function updateFlashcard() {
         imageEl.src = word.imageUrl;
         imageContainer.classList.remove('hidden');
         textContentEl.classList.remove('no-image');
-        
-        // The attribution is no longer needed as the image is hosted on firebase
         attributionEl.style.display = 'none';
-
     } else {
         imageContainer.classList.add('hidden');
         textContentEl.classList.add('no-image');
@@ -397,7 +398,7 @@ function updateFlashcard() {
 }
 
 export function changeFlashcard(direction) {
-    const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
+    const gameList = state.flashcardList || []; // Sử dụng danh sách đã xáo trộn
     if (gameList.length === 0) return;
     const newIndex = (state.currentFlashcardIndex + direction + gameList.length) % gameList.length;
     setState({ currentFlashcardIndex: newIndex });
@@ -405,6 +406,7 @@ export function changeFlashcard(direction) {
     recordDailyActivity(1);
     saveUserData();
 }
+// *** KẾT THÚC PHẦN THAY ĐỔI ***
 
 // --- THÊM MỚI: CÁC HÀM XỬ LÝ VUỐT ---
 function handleTouchStart(evt) {
