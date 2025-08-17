@@ -295,7 +295,6 @@ export function checkSpelling() {
     }
 }
 
-// *** ĐÂY LÀ PHẦN ĐƯỢC THAY ĐỔI ***
 // --- Flashcard (Reading) ---
 export function startReading(containerId) {
     const container = document.getElementById(containerId);
@@ -406,7 +405,6 @@ export function changeFlashcard(direction) {
     recordDailyActivity(1);
     saveUserData();
 }
-// *** KẾT THÚC PHẦN THAY ĐỔI ***
 
 // --- THÊM MỚI: CÁC HÀM XỬ LÝ VUỐT ---
 function handleTouchStart(evt) {
@@ -430,6 +428,8 @@ function handleTouchEnd() {
     }
 }
 
+
+// *** ĐÂY LÀ PHẦN ĐƯỢC THAY ĐỔI ***
 // --- Sắp xếp chữ (Scramble) ---
 export function startScramble(containerId) {
     const container = document.getElementById(containerId);
@@ -447,6 +447,7 @@ export function startScramble(containerId) {
             <div>
                 <button id="scramble-hint-definition-btn" onclick="toggleScrambleHint('definition')" class="bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Hint</button>
                 <button id="scramble-hint-meaning-btn" onclick="toggleScrambleHint('meaning')" class="ml-2 bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Gợi ý</button>
+                <button onclick="showScrambleAnswer()" class="ml-2 bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white px-3 py-1 rounded-md text-sm font-semibold">Đáp án</button>
             </div>
             <div id="scramble-hint-container" class="mt-2 text-center h-auto min-h-[2rem]">
                 <span id="scramble-hint-definition" class="hidden italic text-sm text-gray-500 dark:text-gray-400">"<span id="scramble-definition-content" class="font-semibold"></span>"</span>
@@ -458,7 +459,7 @@ export function startScramble(containerId) {
         </div>
         <input type="text" id="scramble-input" class="w-full max-w-xs mx-auto p-3 text-center text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 vocab-font-size" placeholder="Nhập đáp án...">
         <div class="mt-4">
-            <button onclick="checkScramble()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button>
+            <button id="check-scramble-btn" onclick="checkScramble()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button>
         </div>
         <p id="scramble-result" class="mt-4 h-6 text-lg font-medium"></p>
     `;
@@ -497,6 +498,26 @@ export function toggleScrambleHint(type) {
     }
 }
 
+// HÀM MỚI
+export function showScrambleAnswer() {
+    const resultEl = document.getElementById("scramble-result");
+    const inputEl = document.getElementById("scramble-input");
+    const checkBtn = document.getElementById("check-scramble-btn");
+
+    resultEl.textContent = `Đáp án là: "${state.currentWord.word}"`;
+    resultEl.className = "mt-4 h-6 text-lg font-medium text-blue-500";
+    
+    // Vô hiệu hóa input và nút kiểm tra
+    inputEl.disabled = true;
+    checkBtn.disabled = true;
+    checkBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+    // Đánh dấu là đã trả lời sai và chuyển sang từ mới sau 2.5 giây
+    updateWordLevel(state.currentWord, false); 
+    playSound('wrong');
+    setTimeout(() => startScramble('scramble-screen-content'), 2500);
+}
+
 export function checkScramble() {
     const userAnswer = document.getElementById("scramble-input").value.trim().toLowerCase();
     const resultEl = document.getElementById("scramble-result");
@@ -515,7 +536,7 @@ export function checkScramble() {
         resultEl.className = "mt-4 h-6 text-lg font-medium text-red-500";
     }
 }
-
+// *** KẾT THÚC PHẦN THAY ĐỔI ***
 
 // --- Trắc nghiệm (MCQ) ---
 function renderNextMcqQuestion() {
