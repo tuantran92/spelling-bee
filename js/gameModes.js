@@ -749,6 +749,11 @@ export function listenForPronunciation() {
         recordBtn.classList.add('animate-pulse', 'bg-red-700');
     };
 
+    recognition.onspeechend = () => {
+        console.log("User stopped speaking, finalizing result..."); // Có thể thêm dòng này để debug
+        recognition.stop();
+    };
+
     recognition.onresult = (event) => {
         let interimTranscript = '';
         let finalTranscript = '';
