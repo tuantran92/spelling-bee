@@ -1,7 +1,7 @@
 // js/vocabManager.js
 
 import { state, setState } from './state.js';
-import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImages } from './data.js';
+import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImages, uploadImageToFirebase } from './data.js';
 import { SRS_INTERVALS } from './config.js';
 
 let tempWordData = null; // Biến tạm để giữ dữ liệu từ mới
@@ -367,13 +367,32 @@ export async function loadMoreImages() {
 }
 
 
-export function selectWordImage(imageIndex) {
+export async function selectWordImage(imageIndex) {
     const selectedImage = state.tempImages[imageIndex];
     if (tempWordData && selectedImage) {
-        tempWordData.imageUrl = selectedImage.url;
-        tempWordData.imageAuthor = selectedImage.author;
-        tempWordData.imageAuthorLink = selectedImage.authorLink;
+        const modalContainer = document.getElementById('image-picker-modal');
+        if(modalContainer) {
+            modalContainer.innerHTML = `
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-2xl mx-auto relative text-center">
+                    <div class="loader mx-auto"></div>
+                    <p class="mt-4 text-gray-600 dark:text-gray-300">Đang tải và lưu hình ảnh...</p>
+                </div>`;
+        }
+
+        const firebaseImageUrl = await uploadImageToFirebase(selectedImage.url, tempWordData.word);
+
+        if (firebaseImageUrl) {
+            tempWordData.imageUrl = firebaseImageUrl;
+            // We no longer need to store author info since we are hosting the image
+            tempWordData.imageAuthor = '';
+            tempWordData.imageAuthorLink = '';
+        } else {
+            // Handle upload failure, maybe just skip adding the image
+            alert("Không thể tải hình ảnh lên. Vui lòng thử lại hoặc chọn ảnh khác.");
+            tempWordData.imageUrl = ''; // Or keep the old one if editing
+        }
     }
+    // saveNewWord will be called after the async operation completes
     saveNewWord();
 }
 

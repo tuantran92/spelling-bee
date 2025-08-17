@@ -361,13 +361,8 @@ function updateFlashcard() {
         imageContainer.classList.remove('hidden');
         textContentEl.classList.remove('no-image');
         
-        if (word.imageAuthor && word.imageAuthorLink) {
-             // *** THAY ĐỔI DÒNG CHỮ GHI CÔNG ***
-             attributionEl.innerHTML = `Photo by <a href="${word.imageAuthorLink}" target="_blank" class="underline">${word.imageAuthor}</a> on <a href="https://pixabay.com/" target="_blank" class="underline">Pixabay</a>`;
-            attributionEl.style.display = 'block';
-        } else {
-            attributionEl.style.display = 'none';
-        }
+        // The attribution is no longer needed as the image is hosted on firebase
+        attributionEl.style.display = 'none';
 
     } else {
         imageContainer.classList.add('hidden');

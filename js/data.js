@@ -1,7 +1,8 @@
 // js/data.js
 
 import { doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db } from './firebase.js';
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { db, storage } from './firebase.js';
 import { state, setState } from './state.js';
 import { SRS_INTERVALS, wordsApiKey, pixabayApiKey } from './config.js';
 import { updateDashboard } from './ui.js';
@@ -258,6 +259,33 @@ export async function fetchAllUsersForLeaderboard() {
     } catch (error) {
         console.error("Lỗi khi tải dữ liệu bảng xếp hạng:", error);
         return [];
+    }
+}
+export async function uploadImageToFirebase(imageUrl, word) {
+    if (!imageUrl || !word) return null;
+
+    try {
+        // Use a CORS proxy to fetch the image if direct fetching fails
+        const response = await fetch(`https://cors-anywhere.herokuapp.com/${imageUrl}`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.statusText}`);
+        }
+        const blob = await response.blob();
+
+        // Create a unique file name
+        const fileName = `${new Date().getTime()}_${word}.jpg`;
+        const storageRef = ref(storage, `word_images/${state.selectedProfileId}/${fileName}`);
+
+        // Upload the blob to Firebase Storage
+        const snapshot = await uploadBytes(storageRef, blob);
+
+        // Get the download URL
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        return downloadURL;
+    } catch (error) {
+        console.error("Error uploading image to Firebase:", error);
+        // Fallback or secondary attempt without proxy can be added here if needed
+        return null; // Return null on failure
     }
 }
 
