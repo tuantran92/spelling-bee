@@ -367,6 +367,7 @@ export async function loadMoreImages() {
 }
 
 
+// THAY THẾ HÀM NÀY
 export async function selectWordImage(imageIndex) {
     const selectedImage = state.tempImages[imageIndex];
     if (tempWordData && selectedImage) {
