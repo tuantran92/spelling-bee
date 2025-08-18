@@ -12,6 +12,88 @@ import { checkAchievements } from './achievements.js';
 
 const MASTER_VOCAB_ID = "sharedList";
 
+// DANH SÁCH PHIÊN ÂM DỰ PHÒNG CHO CÁC TỪ THÔNG DỤNG (Bản cải thiện)
+const commonWordPhonetics = {
+    // Articles & Determiners (Mạo từ & Từ hạn định)
+    "a": "/ə/",
+    "an": "/ən/",
+    "the": "/ðə/",
+    "this": "/ðɪs/",
+    "that": "/ðæt/",
+
+    // Conjunctions (Liên từ)
+    "and": "/ænd/",
+    "but": "/bʌt/",
+    "or": "/ɔːr/",
+    "for": "/fɔːr/",
+
+    // Prepositions (Giới từ)
+    "of": "/əv/",
+    "in": "/ɪn/",
+    "on": "/ɑːn/",
+    "at": "/æt/",
+    "to": "/tuː/",
+    "with": "/wɪð/",
+    "by": "/baɪ/",
+    "from": "/frʌm/",
+
+    // Pronouns (Đại từ)
+    "I": "/aɪ/",
+    "you": "/juː/",
+    "he": "/hiː/",
+    "she": "/ʃiː/",
+    "it": "/ɪt/",
+    "we": "/wiː/",
+    "they": "/ðeɪ/",
+    "me": "/miː/",
+    "him": "/hɪm/",
+    "her": "/hɜːr/",
+    "us": "/ʌs/",
+    "them": "/ðem/",
+    "my": "/maɪ/",
+
+    // Common Verbs (Động từ thông dụng)
+    "is": "/ɪz/",
+    "are": "/ɑːr/",
+    "was": "/wɒz/",
+    "were": "/wɜːr/",
+    "be": "/biː/",
+    "have": "/hæv/",
+    "has": "/hæz/",
+    "do": "/duː/",
+    "does": "/dʌz/",
+    "go": "/ɡoʊ/",
+    "say": "/seɪ/",
+    "get": "/ɡɛt/",
+    "make": "/meɪk/",
+    "know": "/noʊ/",
+    "think": "/θɪŋk/",
+    "take": "/teɪk/",
+    "see": "/siː/",
+    "come": "/kʌm/",
+    "want": "/wɑːnt/",
+
+    // Common Nouns (Danh từ thông dụng)
+    "book": "/bʊk/",
+    "bus": "/bʌs/",
+    "car": "/kɑːr/",
+    "cat": "/kæt/",
+    "dog": "/dɒɡ/",
+    "day": "/deɪ/",
+    "good": "/ɡʊd/",
+    "hello": "/həˈloʊ/",
+    "house": "/haʊs/",
+    "life": "/laɪf/",
+    "love": "/lʌv/",
+    "man": "/mæn/",
+    "person": "/ˈpɜːrsn/",
+    "stop": "/stɑːp/",
+    "time": "/taɪm/",
+    "world": "/wɜːrld/",
+    "woman": "/ˈwʊmən/",
+    "year": "/jɪər/"
+};
+
 // ... (Toàn bộ các hàm khác từ updateAndCacheSuggestions đến fetchAllUsersForLeaderboard giữ nguyên không đổi) ...
 export function updateAndCacheSuggestions() {
     const { appData, vocabList } = state;
@@ -258,8 +340,10 @@ export async function fetchAllUsersForLeaderboard() {
     }
 }
 
+// HÀM UPLOAD ẢNH ĐÃ ĐƯỢC SỬA LẠI HOÀN CHỈNH
 export async function uploadImageViaCloudFunction(imageUrl, word) {
     if (!imageUrl || !word) return null;
+
     try {
         const uploadImage = httpsCallable(functions, 'uploadImageFromUrl');
         const result = await uploadImage({
@@ -267,13 +351,19 @@ export async function uploadImageViaCloudFunction(imageUrl, word) {
             word: word,
             profileId: state.selectedProfileId
         });
-        if (result.data && result.data.success) {
-            return result.data.url;
+
+        const responseData = result.data;
+        console.log("Đã nhận phản hồi từ server:", responseData);
+
+        if (responseData && responseData.success && responseData.url) {
+            return responseData.url;
         } else {
-            throw new Error(result.data.error || "Cloud function returned an error.");
+            console.error("Phản hồi từ server không thành công hoặc thiếu URL:", responseData);
+            return null;
         }
+
     } catch (error) {
-        console.error("Error calling uploadImageFromUrl cloud function:", error);
+        console.error("Lỗi khi gọi cloud function 'uploadImageFromUrl':", error);
         return null;
     }
 }
@@ -308,31 +398,32 @@ export async function fetchWordData(word) {
     const encodedWord = encodeURIComponent(word);
     let wordData = { phonetic: null, definition: null, example: null, partOfSpeech: null, synonyms: [] };
 
-    const getPhoneticFromSingleWord = async (singleWord) => {
-        if (commonWordPhonetics[singleWord]) {
-            return commonWordPhonetics[singleWord];
+    async function getPhoneticFromSingleWord(word) {
+      try {
+        // Cố gắng lấy phiên âm từ API trước
+        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
         }
-
-        if (wordsApiKey && wordsApiKey !== "DÁN_API_KEY_CỦA_BẠN_VÀO_ĐÂY") {
-            const url = `https://wordsapiv1.p.rapidapi.com/words/${encodeURIComponent(singleWord)}`;
-            const options = {
-                method: 'GET',
-                headers: {
-                    'X-RapidAPI-Key': wordsApiKey,
-                    'X-RapidAPI-Host': 'wordsapiv1.p.rapidapi.com'
-                }
-            };
-            try {
-                const response = await fetch(url, options);
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.pronunciation?.all || data.pronunciation?.noun || data.pronunciation?.verb || null;
-                }
-            } catch (error) {
-                console.error(`Lỗi WordsAPI cho từ "${singleWord}":`, error);
-            }
+        const data = await response.json();
+        const phonetic = data[0]?.phonetic || data[0]?.phonetics?.find(p => p.text)?.text;
+        if (phonetic) {
+          return phonetic;
+        } else {
+          throw new Error('Phonetic not found in API response');
         }
-        return null;
+      } catch (error) {
+        // Nếu API lỗi, tìm trong danh sách dự phòng commonWordPhonetics
+        console.warn(`Could not fetch phonetic for "${word}" from API. Trying common words list.`);
+        const matchingWord = Object.keys(commonWordPhonetics).find(key => key.toLowerCase() === word.toLowerCase());
+        if (matchingWord) {
+          console.log(`Found phonetic for "${word}" in common words list.`);
+          return commonWordPhonetics[matchingWord];
+        } else {
+          console.warn(`Could not find phonetic for "${word}" in common words list.`);
+          return null; // Trả về null nếu không tìm thấy ở đâu cả
+        }
+      }
     };
     
     if (wordsApiKey && wordsApiKey !== "DÁN_API_KEY_CỦA_BẠN_VÀO_ĐÂY") {
