@@ -4,6 +4,7 @@ import { state, setState } from './state.js';
 import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords, updateAndCacheSuggestions, fetchWordData } from './data.js';
 import { scrambleWord, levenshteinDistance, playSound, maskWord, shuffleArray } from './utils.js';
 import { closeGameScreen } from './ui.js';
+import { speak } from './utils.js';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
@@ -346,7 +347,7 @@ export function startReading(containerId) {
 }
 
 function updateFlashcard() {
-    const gameList = state.flashcardList || []; // Sử dụng danh sách đã xáo trộn
+    const gameList = state.flashcardList || []; 
     const contentEl = document.getElementById('flashcard-content');
     if (gameList.length === 0 || !contentEl) {
         if (contentEl) contentEl.innerHTML = `<p class="text-orange-500">Không có từ nào để học.</p>`;
@@ -374,7 +375,7 @@ function updateFlashcard() {
     document.getElementById("flashcard-word").textContent = word.word;
     document.getElementById("flashcard-phonetic").textContent = word.phonetic || '';
     document.getElementById("flashcard-meaning").textContent = word.meaning;
-    
+
     const definitionEl = document.getElementById("flashcard-definition");
     if (word.definition) {
         definitionEl.textContent = `(${word.definition})`;
@@ -391,10 +392,22 @@ function updateFlashcard() {
         exampleEl.style.display = 'none';
     }
 
-    document.getElementById("flashcard-speak-btn").onclick = (event) => speakWord(word.word, event);
-    document.getElementById("card-counter").textContent = `${state.currentFlashcardIndex + 1} / ${gameList.length}`;
+    const speakButton = document.getElementById("flashcard-speak-btn");
+    speakButton.onclick = (event) => {
+        if (event) event.stopPropagation();
+        window.speechSynthesis.cancel(); 
 
-    speakWord(word.word);
+        speak(word.word, 'en-US', () => {
+            if (word.meaning) {
+                setTimeout(() => {
+                    speak(word.meaning, 'vi-VN');
+                }, 300); 
+            }
+        });
+    };
+
+    document.getElementById("card-counter").textContent = `${state.currentFlashcardIndex + 1} / ${gameList.length}`;
+    setTimeout(() => document.getElementById("flashcard-speak-btn").click(), 200);
 }
 
 export function changeFlashcard(direction) {

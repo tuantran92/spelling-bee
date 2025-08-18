@@ -1,4 +1,5 @@
 // js/utils.js
+import { state } from './state.js';
 
 export function parseCSV(text) {
     const rows = text.split(/\r?\n/).slice(1);
@@ -140,3 +141,49 @@ export function maskWord(word) {
  * @param {number} ms - Thời gian chờ (mili-giây)
  */
 export const delay = ms => new Promise(res => setTimeout(res, ms));
+
+export function speak(text, lang, onEndCallback) {
+    if (!text) {
+        if (onEndCallback) onEndCallback();
+        return;
+    }
+    if (typeof SpeechSynthesisUtterance === "undefined") {
+        if (onEndCallback) onEndCallback();
+        return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+
+    const rateSlider = document.getElementById('rate-slider');
+    utterance.rate = rateSlider ? parseFloat(rateSlider.value) : 1;
+
+    if (state.availableVoices && state.availableVoices.length > 0) {
+        const voiceSelect = document.getElementById('voice-select');
+        const selectedVoiceName = voiceSelect ? voiceSelect.value : null;
+        let voiceToUse = null;
+
+        // 1. Ưu tiên giọng người dùng đã chọn, nếu nó khớp với ngôn ngữ đang cần đọc
+        if (selectedVoiceName) {
+            const selectedVoice = state.availableVoices.find(voice => voice.name === selectedVoiceName);
+            if (selectedVoice && selectedVoice.lang.startsWith(lang.substring(0, 2))) {
+                voiceToUse = selectedVoice;
+            }
+        }
+
+        // 2. Nếu không, tìm một giọng đọc bất kỳ khác khớp với ngôn ngữ đang cần
+        if (!voiceToUse) {
+            voiceToUse = state.availableVoices.find(voice => voice.lang.startsWith(lang.substring(0, 2)));
+        }
+
+        if (voiceToUse) {
+            utterance.voice = voiceToUse;
+        }
+    }
+
+    if (onEndCallback && typeof onEndCallback === 'function') {
+        utterance.onend = onEndCallback;
+    }
+
+    window.speechSynthesis.speak(utterance);
+}

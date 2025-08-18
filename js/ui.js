@@ -389,29 +389,68 @@ export function toggleDarkMode() {
 
 export function setupVoiceOptions() {
     const synth = window.speechSynthesis;
+
     function populateVoiceList() {
         const voiceSelect = document.getElementById('voice-select');
         if (!voiceSelect) return;
-        const currentVal = voiceSelect.value;
-        const voices = synth.getVoices().filter(voice => voice.lang.startsWith('en'));
-        setState({ availableVoices: voices });
-        voiceSelect.innerHTML = '';
-        if (state.availableVoices.length === 0) {
-            voiceSelect.innerHTML = `<option value="">Không có giọng đọc</option>`;
-            return;
-        }
-        state.availableVoices.forEach(voice => {
-            const option = document.createElement('option');
-            option.textContent = `${voice.name} (${voice.lang})`;
-            option.value = voice.name;
-            voiceSelect.appendChild(option);
-        });
-        if (currentVal) voiceSelect.value = currentVal;
+
+        // Đợi một chút để đảm bảo danh sách giọng đọc đã sẵn sàng
+        setTimeout(() => {
+            let voices = synth.getVoices();
+            if (voices.length === 0) {
+                 // Thử lại nếu danh sách rỗng
+                setTimeout(populateVoiceList, 100);
+                return;
+            }
+
+            // Lọc cả giọng Tiếng Anh (en) và Tiếng Việt (vi)
+            const supportedVoices = voices.filter(voice => voice.lang.startsWith('en') || voice.lang.startsWith('vi'));
+            setState({ availableVoices: supportedVoices });
+
+            const savedVoiceName = state.appData.settings.voice;
+            voiceSelect.innerHTML = '';
+
+            // Nhóm giọng đọc theo ngôn ngữ
+            const enVoices = supportedVoices.filter(v => v.lang.startsWith('en'));
+            const viVoices = supportedVoices.filter(v => v.lang.startsWith('vi'));
+
+            if (enVoices.length > 0) {
+                const group = document.createElement('optgroup');
+                group.label = 'Giọng Tiếng Anh';
+                enVoices.forEach(voice => {
+                    let option = document.createElement('option');
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    option.value = voice.name;
+                    if (voice.name === savedVoiceName) option.selected = true;
+                    group.appendChild(option);
+                });
+                voiceSelect.appendChild(group);
+            }
+
+            if (viVoices.length > 0) {
+                const group = document.createElement('optgroup');
+                group.label = 'Giọng Tiếng Việt';
+                viVoices.forEach(voice => {
+                    let option = document.createElement('option');
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    option.value = voice.name;
+                    if (voice.name === savedVoiceName) option.selected = true;
+                    group.appendChild(option);
+                });
+                voiceSelect.appendChild(group);
+            }
+
+            if (voiceSelect.selectedIndex === -1 && voiceSelect.options.length > 0) {
+                voiceSelect.options[0].selected = true;
+            }
+
+        }, 50); // Thêm độ trễ nhỏ
     }
+
+    populateVoiceList();
     if (synth.onvoiceschanged !== undefined) {
         synth.onvoiceschanged = populateVoiceList;
     }
-    populateVoiceList();
 }
 
 export function addSettingsEventListeners() {
