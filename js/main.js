@@ -58,6 +58,10 @@ function attachGlobalFunctions() {
     // Profile (gán toàn bộ module)
     window.profile = profile;
 
+    // === THÊM DÒNG NÀY VÀO ===
+    window.exportToCSV = vocabManager.exportToCSV;
+    // === KẾT THÚC THÊM ===
+
     // Vocab Manager
     window.openVocabForm = vocabManager.openVocabForm;
     window.handleVocabSubmit = vocabManager.handleVocabSubmit;

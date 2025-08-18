@@ -3,6 +3,7 @@
 import { state, setState } from './state.js';
 import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImages, uploadImageViaCloudFunction } from './data.js';
 import { SRS_INTERVALS } from './config.js';
+import { showToast } from './ui.js';
 
 let tempWordData = null; // Biến tạm để giữ dữ liệu từ mới
 
@@ -31,9 +32,9 @@ export function renderVocabManagementList(containerId) {
         </div>
         <div id="vocab-list-display" class="space-y-2"></div>
         <div id="vocab-load-more-container" class="mt-6 text-center"></div>
-        <div class="mt-6 border-t dark:border-gray-700 pt-4">
-             <button onclick="importFromGoogleSheet()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Import từ Google Sheet</button>
-             <div id="import-feedback" class="mt-2 h-5 text-sm text-center"></div>
+        <div class="mt-6 border-t dark:border-gray-700 pt-4 flex flex-col md:flex-row gap-2">
+            <button onclick="importFromGoogleSheet()" class="w-full bg-blue-600 ...">Import từ Google Sheet</button>
+            <button onclick="exportToCSV()" class="w-full bg-green-600 ...">Export ra Excel (CSV)</button>
         </div>
     `;
 
@@ -446,3 +447,43 @@ export async function importFromGoogleSheet() {
         handleFilterChange();
     }
 }
+
+// === HÀM MỚI ĐỂ EXPORT ===
+export function exportToCSV() {
+    const vocabList = state.vocabList;
+    if (vocabList.length === 0) {
+        alert("Không có từ vựng nào để export.");
+        return;
+    }
+
+    // Tên các cột trong file CSV
+    const headers = ['word', 'meaning', 'example', 'category', 'difficulty', 'phonetic', 'definition'];
+    
+    // Chuyển đổi mảng object thành chuỗi CSV
+    let csvContent = "data:text/csv;charset=utf-8," 
+        + headers.join(",") + "\n" 
+        + vocabList.map(item => {
+            return headers.map(header => {
+                // Xử lý giá trị để không làm hỏng cấu trúc CSV (ví dụ: có dấu phẩy trong nội dung)
+                let value = item[header] || '';
+                let stringValue = String(value).replace(/"/g, '""'); // Thay thế dấu " bằng ""
+                if (stringValue.includes(',')) {
+                    stringValue = `"${stringValue}"`; // Bao quanh bằng dấu " nếu có dấu phẩy
+                }
+                return stringValue;
+            }).join(",");
+        }).join("\n");
+
+    // Tạo link ẩn và thực hiện click để tải file
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "vocabulary_export.csv");
+    document.body.appendChild(link); 
+    
+    link.click();
+    
+    document.body.removeChild(link);
+    showToast('Đã bắt đầu tải file CSV!');
+}
+// === KẾT THÚC HÀM MỚI ===
