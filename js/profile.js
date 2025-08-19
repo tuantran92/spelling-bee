@@ -24,12 +24,16 @@ export async function displayProfileScreen() {
                 const avatarSrc = profile.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name)}&background=random&color=fff`;
                 const profileItem = document.createElement('div');
                 profileItem.className = 'flex items-center justify-between gap-2';
+
+                // --- BẮT ĐẦU THAY ĐỔI TẠI ĐÂY ---
                 profileItem.innerHTML = `
                     <button class="flex-grow flex items-center gap-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg" onclick="profile.promptPasswordForLogin('${doc.id}', '${profile.name}')">
-                        <img src="${avatarSrc}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">
-                        <span class="flex-grow text-left">${profile.name}</span>
+                        <img src="${avatarSrc}" alt="Avatar" class="w-16 h-16 rounded-full object-cover">
+                        <span class="flex-grow text-left text-xl">${profile.name}</span>
                     </button>
                 `;
+                // --- KẾT THÚC THAY ĐỔI ---
+
                 profileListEl.appendChild(profileItem);
             });
         }
@@ -38,7 +42,6 @@ export async function displayProfileScreen() {
         document.getElementById('profile-feedback').textContent = "Không thể tải danh sách hồ sơ.";
     }
 }
-
 // ===================================================================
 // HÀM UPLOAD AVATAR ĐÃ SỬA HOÀN CHỈNH
 // ===================================================================
