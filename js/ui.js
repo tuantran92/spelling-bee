@@ -484,3 +484,27 @@ export function addSettingsEventListeners() {
     safeAddEventListener('font-size-slider', 'input', handleFontSizeChange);
     safeAddEventListener('avatar-upload-input', 'change', profile.handleAvatarUpload);
 }
+
+// === HÀM MỚI CHO TOAST ===
+export function showToast(message, duration = 3000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = 'bg-gray-800 text-white py-2 px-4 rounded-lg shadow-lg animate-fade-in-up';
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        // Thêm class để bắt đầu animation fade-out
+        toast.classList.remove('animate-fade-in-up');
+        toast.classList.add('animate-fade-out-down');
+        
+        // Xóa element khỏi DOM sau khi animation kết thúc
+        toast.addEventListener('animationend', () => {
+            toast.remove();
+        });
+    }, duration);
+}
+// === KẾT THÚC HÀM MỚI ===

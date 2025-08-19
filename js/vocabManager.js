@@ -3,6 +3,7 @@
 import { state, setState } from './state.js';
 import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImages, uploadImageViaCloudFunction } from './data.js';
 import { SRS_INTERVALS } from './config.js';
+import { showToast } from './ui.js';
 
 let tempWordData = null; // Biến tạm để giữ dữ liệu từ mới
 
