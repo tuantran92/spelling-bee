@@ -1,5 +1,4 @@
 // js/gameModes.js
-
 import { state, setState } from './state.js';
 import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords, updateAndCacheSuggestions, fetchWordData } from './data.js';
 import { scrambleWord, levenshteinDistance, playSound, maskWord, shuffleArray } from './utils.js';
@@ -302,10 +301,9 @@ export function startReading(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // Lấy danh sách từ vựng hiện tại (đã lọc hoặc toàn bộ) và xáo trộn nó
     const currentList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
-    const shuffledList = shuffleArray([...currentList]); // Tạo bản sao và xáo trộn
-    setState({ flashcardList: shuffledList, currentFlashcardIndex: 0 }); // Lưu danh sách đã xáo trộn vào state
+    const shuffledList = shuffleArray([...currentList]);
+    setState({ flashcardList: shuffledList, currentFlashcardIndex: 0 });
 
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Flashcard</h2>
@@ -338,8 +336,13 @@ export function startReading(containerId) {
                 <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </button>
         </div>
-        <div id="card-counter-container" class="text-center mt-4 text-gray-500 dark:text-gray-400 font-semibold">
-            <span id="card-counter"></span>
+        <div class="mt-4 flex items-center justify-between">
+            <button id="flashcard-speak-meaning-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                Đọc tiếng Việt
+            </button>
+            <div id="card-counter-container" class="text-gray-500 dark:text-gray-400 font-semibold">
+                <span id="card-counter"></span>
+            </div>
         </div>
     `;
     
@@ -393,53 +396,33 @@ function updateFlashcard() {
     }
 
     const speakButton = document.getElementById("flashcard-speak-btn");
+    const speakMeaningButton = document.getElementById("flashcard-speak-meaning-btn");
+
     speakButton.onclick = (event) => {
         if (event) event.stopPropagation();
-        window.speechSynthesis.cancel(); 
-
-        speak(word.word, 'en-US', () => {
-            if (word.meaning) {
-                setTimeout(() => {
-                    speak(word.meaning, 'vi-VN');
-                }, 300); 
-            }
-        });
+        speak(word.word, 'en-US');
+    };
+    
+    speakMeaningButton.onclick = (event) => {
+        if (event) event.stopPropagation();
+        speak(word.meaning, 'vi-VN');
     };
 
     document.getElementById("card-counter").textContent = `${state.currentFlashcardIndex + 1} / ${gameList.length}`;
-    setTimeout(() => document.getElementById("flashcard-speak-btn").click(), 200);
+    
+    // Giữ lại chức năng đọc tiếng Anh tự động
+    speak(word.word, 'en-US');
 }
 
+
 export function changeFlashcard(direction) {
-    const gameList = state.flashcardList || []; // Sử dụng danh sách đã xáo trộn
+    const gameList = state.flashcardList || [];
     if (gameList.length === 0) return;
     const newIndex = (state.currentFlashcardIndex + direction + gameList.length) % gameList.length;
     setState({ currentFlashcardIndex: newIndex });
     updateFlashcard();
     recordDailyActivity(1);
     saveUserData();
-}
-
-// --- THÊM MỚI: CÁC HÀM XỬ LÝ VUỐT ---
-function handleTouchStart(evt) {
-    touchStartX = evt.touches[0].clientX;
-    touchEndX = touchStartX; // Reset
-}
-
-function handleTouchMove(evt) {
-    touchEndX = evt.touches[0].clientX;
-}
-
-function handleTouchEnd() {
-    const movedBy = touchStartX - touchEndX;
-    // Vuốt sang trái (qua thẻ tiếp theo)
-    if (movedBy > swipeThreshold) {
-        changeFlashcard(1);
-    }
-    // Vuốt sang phải (về thẻ trước đó)
-    if (movedBy < -swipeThreshold) {
-        changeFlashcard(-1);
-    }
 }
 
 // --- Sắp xếp chữ (Scramble) ---
@@ -705,7 +688,6 @@ export function checkListening() {
     }
 }
 
-// *** ĐÂY LÀ PHẦN ĐƯỢC THAY ĐỔI ***
 // --- Luyện Phát Âm (Pronunciation) ---
 export function startPronunciation(containerId) {
     const container = document.getElementById(containerId);
@@ -763,7 +745,6 @@ export function listenForPronunciation() {
     };
 
     recognition.onspeechend = () => {
-        console.log("User stopped speaking, finalizing result..."); // Có thể thêm dòng này để debug
         recognition.stop();
     };
 
@@ -822,8 +803,6 @@ export function listenForPronunciation() {
 
     recognition.start();
 }
-// *** KẾT THÚC PHẦN THAY ĐỔI ***
-
 // --- Điền vào chỗ trống (Fill Blank) ---
 export async function startFillBlank(containerId) {
     const screenEl = document.getElementById(containerId);
