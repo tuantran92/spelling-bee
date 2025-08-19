@@ -113,10 +113,13 @@ function renderExamQuestion() {
     const question = questions[currentQuestionIndex];
     const word = question.wordData;
 
+    // --- BẮT ĐẦU THAY ĐỔI TẠI ĐÂY ---
+
     examArea.innerHTML = `
-        <div class="flex justify-between items-center mb-4">
-            <div class="text-sm font-medium">Câu ${currentQuestionIndex + 1}/${questions.length}</div>
-            <div id="exam-timer" class="text-lg font-bold text-red-500"></div>
+        <div class="grid grid-cols-3 items-center mb-2">
+            <div class="text-sm font-medium text-left">Câu ${currentQuestionIndex + 1}/${questions.length}</div>
+            <div id="exam-timer" class="text-3xl font-bold text-red-500 text-center"></div>
+            <div></div>
         </div>
         <div class="flex justify-center items-center gap-4 mb-6">
             <div class="text-center font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg">
@@ -135,6 +138,9 @@ function renderExamQuestion() {
             `).join('')}
         </div>
     `;
+
+    // --- KẾT THÚC THAY ĐỔI ---
+
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
     document.getElementById('exam-timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
