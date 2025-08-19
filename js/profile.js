@@ -4,9 +4,10 @@ import { collection, getDocs, addDoc, query, where, deleteDoc, doc, getDoc, setD
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { db, storage } from './firebase.js';
 import { state, setState } from './state.js';
-import { showTab } from './ui.js';
+//import { showTab } from './ui.js';
 import * as data from './data.js';
 import { hashText } from './utils.js';
+import { showToast, showTab } from './ui.js';
 
 export async function displayProfileScreen() {
     try {
@@ -38,30 +39,48 @@ export async function displayProfileScreen() {
     }
 }
 
+// ===================================================================
+// HÀM UPLOAD AVATAR ĐÃ SỬA HOÀN CHỈNH
+// ===================================================================
 export async function handleAvatarUpload(event) {
     const file = event.target.files[0];
-    if (!file || !state.selectedProfileId) return;
+    if (!file) {
+        return;
+    }
+    // Giải quyết lỗi gốc: đảm bảo đã chọn profile
+    if (!state.selectedProfileId) {
+        console.error("Lỗi: Chưa chọn hồ sơ nào (state.selectedProfileId is null).");
+        showToast("Đã xảy ra lỗi, vui lòng đăng nhập lại.", 4000);
+        return;
+    }
 
-    const avatarEl = document.getElementById('profile-avatar');
-    const oldSrc = avatarEl.src;
-    avatarEl.src = URL.createObjectURL(file);
+    showToast("Đang tải ảnh lên...", 2000);
 
     try {
         const storageRef = ref(storage, `avatars/${state.selectedProfileId}/${file.name}`);
         const snapshot = await uploadBytes(storageRef, file);
         const downloadURL = await getDownloadURL(snapshot.ref);
 
+        // 1. Cập nhật state và lưu vào collection "users/{profileId}"
         state.appData.avatarUrl = downloadURL;
-        await data.saveUserData();
+        await data.saveUserData(); 
         
+        // 2. Cập nhật vào collection "profiles/{profileId}" để hiển thị ở màn hình chọn
         const profileRef = doc(db, "profiles", state.selectedProfileId);
         await setDoc(profileRef, { avatarUrl: downloadURL }, { merge: true });
 
-        alert('Cập nhật ảnh đại diện thành công!');
+        // Cập nhật ảnh ngay trên giao diện
+        const profileAvatarImg = document.getElementById('profileAvatarImg');
+        if(profileAvatarImg) profileAvatarImg.src = downloadURL;
+
+        const avatarInList = document.getElementById('avatar-img-in-profile-list-' + state.selectedProfileId);
+        if(avatarInList) avatarInList.src = downloadURL;
+        
+        showToast("Cập nhật ảnh đại diện thành công!", 3000);
+
     } catch (error) {
         console.error("Lỗi tải ảnh lên:", error);
-        alert('Đã xảy ra lỗi khi tải ảnh lên. Vui lòng thử lại.');
-        avatarEl.src = oldSrc;
+        showToast("Lỗi tải ảnh lên: " + error.message, 4000);
     }
 }
 
