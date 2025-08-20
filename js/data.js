@@ -1,12 +1,12 @@
 // js/data.js
 
 import { doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js"; // THÊM DÒNG NÀY
-import { db, storage, functions } from './firebase.js'; // Thêm functions vào
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js"; // Đảm bảo có getStorage
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+import { db, functions } from './firebase.js'; // storage sẽ được khởi tạo riêng
 import { state, setState } from './state.js';
 import { SRS_INTERVALS, wordsApiKey, pixabayApiKey } from './config.js';
-import { updateDashboard } from './ui.js';
+import { updateDashboard, showToast } from './ui.js';
 import { parseCSV, shuffleArray, delay } from './utils.js';
 import { checkAchievements } from './achievements.js';
 
@@ -494,3 +494,30 @@ export async function fetchWordData(word) {
 
     return wordData;
 }
+
+// === START: THÊM HÀM MỚI VÀO CUỐI FILE ===
+/**
+ * Tải file ảnh tùy chỉnh lên Firebase Storage.
+ * @param {File} file - File ảnh để tải lên.
+ * @param {string} profileId - ID của hồ sơ người dùng.
+ * @returns {Promise<string>} URL của ảnh đã tải lên.
+ */
+export async function uploadCustomImage(file, profileId) {
+    const storage = getStorage();
+    // Tạo một tên file độc nhất để tránh ghi đè
+    const filePath = `images/${profileId}/${Date.now()}-${file.name}`;
+    const storageRef = ref(storage, filePath);
+
+    try {
+        // Tải file lên
+        const snapshot = await uploadBytes(storageRef, file);
+        // Lấy URL công khai
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        return downloadURL;
+    } catch (error) {
+        console.error("Lỗi tải ảnh lên:", error);
+        showToast("Tải ảnh lên thất bại. Vui lòng thử lại.", "error");
+        throw error;
+    }
+}
+// === END: THÊM HÀM MỚI VÀO CUỐI FILE ===

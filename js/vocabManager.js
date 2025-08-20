@@ -1,15 +1,18 @@
 // js/vocabManager.js
 
 import { state, setState } from './state.js';
-import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImages, uploadImageViaCloudFunction } from './data.js';
+import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImages, uploadImageViaCloudFunction, uploadCustomImage } from './data.js';
 import { SRS_INTERVALS } from './config.js';
 import { showToast } from './ui.js';
-
-let tempWordData = null; // Biến tạm để giữ dữ liệu từ mới
 
 const ITEMS_PER_PAGE = 30;
 let currentLoadedCount = ITEMS_PER_PAGE;
 let fullFilteredList = [];
+
+// === START: BIẾN TOÀN CỤC CHO TÌM KIẾM ẢNH ===
+let currentImageSearchTerm = '';
+let currentImagePage = 1;
+// === END: BIẾN TOÀN CỤC CHO TÌM KIẾM ẢNH ===
 
 export function renderVocabManagementList(containerId) {
     const container = document.getElementById(containerId);
@@ -33,8 +36,8 @@ export function renderVocabManagementList(containerId) {
         <div id="vocab-list-display" class="space-y-2"></div>
         <div id="vocab-load-more-container" class="mt-6 text-center"></div>
         <div class="mt-6 border-t dark:border-gray-700 pt-4 flex flex-col md:flex-row gap-2">
-            <button onclick="importFromGoogleSheet()" class="w-full bg-blue-600 ...">Import từ Google Sheet</button>
-            <button onclick="exportToCSV()" class="w-full bg-green-600 ...">Export ra Excel (CSV)</button>
+            <button onclick="importFromGoogleSheet()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105">Import từ Google Sheet</button>
+            <button onclick="exportToCSV()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105">Export ra Excel (CSV)</button>
         </div>
     `;
 
@@ -222,34 +225,120 @@ export function closeWordStats() {
     modalContainer.innerHTML = '';
 }
 
-export function openVocabForm(wordIndex = -1) {
-    setState({ editingWordIndex: wordIndex });
-    const isEditing = wordIndex > -1;
-    const word = isEditing ? state.vocabList[wordIndex] : {};
+export function openVocabForm(word = null) {
+    setState({ editingWord: word });
     const modalContainer = document.getElementById('vocab-form-modal');
+    const isEditing = !!word;
+
     modalContainer.innerHTML = `
-        <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md mx-auto relative">
-             <button onclick="closeVocabForm()" class="absolute top-2 right-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-2 z-10">
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-lg mx-auto relative max-h-[90vh] overflow-y-auto">
+            <button id="close-vocab-form-btn" class="absolute top-2 right-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-2 z-10">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
-            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">${isEditing ? 'Sửa từ' : 'Thêm từ mới'}</h3>
-            <div class="space-y-4">
-                <input type="text" id="vocab-word" placeholder="Từ vựng (tiếng Anh)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" value="${word.word || ''}">
-                <input type="text" id="vocab-meaning" placeholder="Nghĩa (tiếng Việt)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" value="${word.meaning || ''}">
-                <input type="text" id="vocab-example" placeholder="Ví dụ (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" value="${word.example || ''}">
-                <input type="text" id="vocab-category" placeholder="Chủ đề (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" value="${word.category || ''}">
-                <select id="vocab-difficulty" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
-                    <option value="easy" ${word.difficulty === 'easy' ? 'selected' : ''}>Dễ</option>
-                    <option value="medium" ${!word.difficulty || word.difficulty === 'medium' ? 'selected' : ''}>Trung bình</option>
-                    <option value="hard" ${word.difficulty === 'hard' ? 'selected' : ''}>Khó</option>
-                </select>
-            </div>
-            <p id="vocab-form-feedback" class="text-red-500 text-sm mt-2 h-4"></p>
-            <div class="flex gap-2 mt-4">
-                 <button onclick="handleVocabSubmit()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">${isEditing ? 'Lưu thay đổi' : 'Thêm từ'}</button>
-            </div>
+            <h3 id="vocab-form-title" class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4"></h3>
+            <form id="vocab-form" class="space-y-4">
+                <input type="text" name="word" placeholder="Từ vựng (tiếng Anh)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" required>
+                <input type="text" name="meaning" placeholder="Nghĩa (tiếng Việt)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" required>
+                <input type="text" name="example" placeholder="Câu ví dụ (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                <input type="text" name="category" placeholder="Chủ đề (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                
+                <div class="mt-4">
+                    <label for="image-search-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tìm ảnh minh họa</label>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <input type="text" id="image-search-input" class="flex-1 block w-full rounded-none rounded-l-md sm:text-sm border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="vd: happy cat">
+                        <button type="button" id="search-image-btn" class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400">Tìm</button>
+                    </div>
+                </div>
+                <div id="image-results-wrapper" class="mt-2 bg-gray-100 dark:bg-gray-900 rounded p-1">
+                    <div id="image-search-results" class="grid grid-cols-3 gap-2 h-32 overflow-y-auto"></div>
+                    <div id="image-load-more-container" class="text-center pt-2"></div>
+                </div>
+
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Hoặc tải lên ảnh của bạn</label>
+                    <div class="mt-1 flex items-center justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md dark:border-gray-600">
+                        <div id="custom-image-preview-container" class="text-center hidden">
+                             <img id="custom-image-preview" src="#" alt="Xem trước ảnh" class="mx-auto h-24 object-contain">
+                             <button type="button" id="remove-custom-image-btn" class="mt-2 text-sm text-red-500 hover:text-red-700">Xóa ảnh</button>
+                        </div>
+                        <div id="custom-image-upload-prompt" class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                            <div class="flex text-sm text-gray-600 dark:text-gray-400">
+                                <label for="custom-image-upload-input" class="relative cursor-pointer bg-white dark:bg-gray-900 rounded-md font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 focus-within:outline-none">
+                                    <span>Tải lên một file</span>
+                                    <input id="custom-image-upload-input" name="custom-image-upload-input" type="file" class="sr-only" accept="image/png, image/jpeg, image/gif, image/webp">
+                                </label>
+                                <p class="pl-1">hoặc kéo và thả</p>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-500">PNG, JPG, GIF, WEBP tối đa 2MB</p>
+                        </div>
+                    </div>
+                </div>
+
+                <p id="vocab-form-feedback" class="text-center text-sm mt-2 h-5"></p>
+                <div class="flex gap-2 mt-4">
+                     <button type="submit" id="vocab-form-submit-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg"></button>
+                </div>
+            </form>
         </div>
     `;
+
+    const form = document.getElementById('vocab-form');
+    const searchBtn = document.getElementById('search-image-btn');
+    const searchInput = document.getElementById('image-search-input');
+
+    document.getElementById('vocab-form-title').textContent = isEditing ? 'Sửa từ' : 'Thêm từ mới';
+    document.getElementById('vocab-form-submit-btn').textContent = isEditing ? 'Lưu thay đổi' : 'Thêm từ';
+    form.word.value = word?.word || '';
+    form.meaning.value = word?.meaning || '';
+    form.example.value = word?.example || '';
+    form.category.value = word?.category || '';
+    form.word.readOnly = isEditing;
+    searchInput.value = word?.word || '';
+    
+    searchBtn.addEventListener('click', () => {
+        searchImages(searchInput.value, true); // true để reset
+    });
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            searchImages(searchInput.value, true);
+        }
+    });
+
+    document.getElementById('close-vocab-form-btn').addEventListener('click', closeVocabForm);
+    form.addEventListener('submit', handleVocabFormSubmit);
+    
+    const customImageInput = document.getElementById('custom-image-upload-input');
+    const previewContainer = document.getElementById('custom-image-preview-container');
+    const previewImage = document.getElementById('custom-image-preview');
+    const uploadPrompt = document.getElementById('custom-image-upload-prompt');
+    const removeImageBtn = document.getElementById('remove-custom-image-btn');
+    
+    form.customImageFile = null;
+
+    customImageInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            if (file.size > 2 * 1024 * 1024) {
+                 showToast("Lỗi: Kích thước ảnh không được vượt quá 2MB.", "error");
+                 return;
+            }
+            form.customImageFile = file;
+            previewImage.src = URL.createObjectURL(file);
+            previewContainer.classList.remove('hidden');
+            uploadPrompt.classList.add('hidden');
+            document.querySelector('.image-result.selected')?.classList.remove('selected', 'ring-4', 'ring-indigo-500');
+        }
+    });
+    removeImageBtn.addEventListener('click', () => {
+        form.customImageFile = null;
+        customImageInput.value = '';
+        previewContainer.classList.add('hidden');
+        uploadPrompt.classList.remove('hidden');
+    });
+    
     modalContainer.classList.remove('hidden');
     modalContainer.classList.add('flex');
 }
@@ -259,178 +348,140 @@ export function closeVocabForm() {
     modalContainer.classList.add('hidden');
     modalContainer.classList.remove('flex');
     modalContainer.innerHTML = '';
+    setState({ editingWord: null });
 }
 
-export async function handleVocabSubmit() {
-    const word = document.getElementById('vocab-word').value.trim().toLowerCase();
-    const meaning = document.getElementById('vocab-meaning').value.trim();
+async function searchImages(term, isNewSearch = false) {
+    if (!term) return;
+
+    if (isNewSearch) {
+        currentImagePage = 1;
+        currentImageSearchTerm = term;
+        document.getElementById('image-search-results').innerHTML = '';
+    } else {
+        currentImagePage++;
+    }
+
+    const resultsContainer = document.getElementById('image-search-results');
+    const loadMoreContainer = document.getElementById('image-load-more-container');
+    const tempLoaderId = `loader-${Date.now()}`;
+    loadMoreContainer.innerHTML = `<div id="${tempLoaderId}" class="loader mx-auto"></div>`;
+
+    const images = await fetchWordImages(currentImageSearchTerm, currentImagePage);
+    
+    document.getElementById(tempLoaderId)?.remove();
+
+    if (!images || images.length === 0) {
+        if (currentImagePage === 1) {
+            resultsContainer.innerHTML = '<p class="text-center text-gray-500 col-span-3">Không tìm thấy ảnh nào.</p>';
+        }
+        loadMoreContainer.innerHTML = '<p class="text-xs text-gray-400">Đã tải hết ảnh.</p>';
+        return;
+    }
+
+    images.forEach(img => {
+        const imgElement = document.createElement('img');
+        imgElement.src = img.url;
+        imgElement.dataset.url = img.url;
+        imgElement.className = "image-result w-full h-20 object-cover rounded cursor-pointer hover:opacity-75";
+        imgElement.addEventListener('click', () => {
+            document.querySelectorAll('.image-result').forEach(i => i.classList.remove('selected', 'ring-4', 'ring-indigo-500'));
+            imgElement.classList.add('selected', 'ring-4', 'ring-indigo-500');
+            document.getElementById('remove-custom-image-btn').click();
+        });
+        resultsContainer.appendChild(imgElement);
+    });
+
+    loadMoreContainer.innerHTML = `<button type="button" id="load-more-images-btn" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Tải thêm</button>`;
+    document.getElementById('load-more-images-btn').onclick = () => searchImages(currentImageSearchTerm, false);
+}
+
+export async function handleVocabFormSubmit(event) {
+    event.preventDefault();
+    const form = document.getElementById('vocab-form');
     const feedbackEl = document.getElementById('vocab-form-feedback');
+    const word = form.word.value.trim().toLowerCase();
+    const meaning = form.meaning.value.trim();
 
     if (!word || !meaning) {
         feedbackEl.textContent = "Từ vựng và nghĩa không được để trống.";
         return;
     }
 
-    const originalEditingIndex = state.editingWordIndex;
-    const isEditing = originalEditingIndex > -1;
-    let existingWordIndex = state.vocabList.findIndex((v, i) => v.word === word && i !== originalEditingIndex);
-
-    if (existingWordIndex > -1) {
-        if (!confirm(`Từ "${word}" đã tồn tại. Bạn có muốn cập nhật nó với thông tin mới không?`)) {
-            return; 
-        }
-        setState({ editingWordIndex: existingWordIndex });
+    const isEditing = !!state.editingWord;
+    const existingWord = state.vocabList.find(v => v.word === word);
+    if (existingWord && (!isEditing || existingWord.word !== state.editingWord.word)) {
+        feedbackEl.textContent = `Từ "${word}" đã tồn tại.`;
+        return;
     }
 
-    feedbackEl.textContent = "Đang làm giàu dữ liệu...";
-    setState({ imageSearchPage: 1, imageSearchTerm: word, tempImages: [] });
+    feedbackEl.textContent = 'Đang xử lý...';
+    let imageUrl = form.querySelector('.image-result.selected')?.dataset.url || state.editingWord?.imageUrl || null;
 
-    const [apiData, images] = await Promise.all([
-        fetchWordData(word),
-        fetchWordImages(word, 1)
-    ]);
+    if (form.customImageFile) {
+        feedbackEl.textContent = 'Đang tải ảnh lên...';
+        try {
+            imageUrl = await uploadCustomImage(form.customImageFile, state.selectedProfileId);
+        } catch (error) {
+            feedbackEl.textContent = 'Tải ảnh thất bại.';
+            return;
+        }
+    }
     
-    tempWordData = {
+    const oldWordData = state.editingWord || {};
+    const wordData = {
         word: word,
         meaning: meaning,
-        phonetic: apiData?.phonetic || '',
-        definition: apiData?.definition || '',
-        example: document.getElementById('vocab-example').value.trim() || apiData?.example || '',
-        partOfSpeech: apiData?.partOfSpeech || '',
-        synonyms: apiData?.synonyms || [],
-        category: document.getElementById('vocab-category').value.trim() || 'Chung',
-        difficulty: document.getElementById('vocab-difficulty').value,
+        example: form.example.value.trim(),
+        category: form.category.value.trim() || 'Chung',
+        difficulty: oldWordData.difficulty || 'medium',
+        phonetic: oldWordData.phonetic || '',
+        definition: oldWordData.definition || '',
+        partOfSpeech: oldWordData.partOfSpeech || '',
+        imageUrl: imageUrl,
     };
-
-    feedbackEl.textContent = "";
-    closeVocabForm();
-
-    if (images.length > 0) {
-        openImagePickerModal(images);
-    } else {
-        saveNewWord();
-    }
-}
-
-function openImagePickerModal(images) {
-    const modalContainer = document.getElementById('image-picker-modal');
-    modalContainer.innerHTML = `
-        <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-2xl mx-auto relative">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Chọn một hình ảnh cho "${tempWordData.word}"</h3>
-            <div id="image-picker-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
-                ${images.map((img, index) => `
-                    <div class="cursor-pointer group" onclick="selectWordImage(${index})">
-                        <img src="${img.url}" class="w-full h-32 object-cover rounded-lg group-hover:ring-4 ring-indigo-500 transition-all">
-                    </div>
-                `).join('')}
-            </div>
-            <div class="mt-4 text-center" id="image-picker-footer">
-                 <button id="load-more-images-btn" onclick="loadMoreImages()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Tải thêm</button>
-                 <button onclick="skipImageSelection()" class="ml-2 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Bỏ qua / Giữ ảnh cũ</button>
-            </div>
-        </div>
-    `;
-    setState({ tempImages: images });
-    modalContainer.classList.remove('hidden');
-}
-
-export async function loadMoreImages() {
-    const loadMoreBtn = document.getElementById('load-more-images-btn');
-    loadMoreBtn.disabled = true;
-    loadMoreBtn.textContent = 'Đang tải...';
-
-    const nextPage = state.imageSearchPage + 1;
-    const newImages = await fetchWordImages(state.imageSearchTerm, nextPage);
-
-    if (newImages.length > 0) {
-        const grid = document.getElementById('image-picker-grid');
-        const currentImageCount = state.tempImages.length;
-        
-        newImages.forEach((img, index) => {
-            const newIndex = currentImageCount + index;
-            const imgDiv = document.createElement('div');
-            imgDiv.className = 'cursor-pointer group';
-            imgDiv.setAttribute('onclick', `selectWordImage(${newIndex})`);
-            imgDiv.innerHTML = `<img src="${img.url}" class="w-full h-32 object-cover rounded-lg group-hover:ring-4 ring-indigo-500 transition-all">`;
-            grid.appendChild(imgDiv);
-        });
-
-        setState({ 
-            tempImages: [...state.tempImages, ...newImages],
-            imageSearchPage: nextPage 
-        });
-
-        loadMoreBtn.disabled = false;
-        loadMoreBtn.textContent = 'Tải thêm';
-    } else {
-        loadMoreBtn.textContent = 'Không còn ảnh';
-    }
-}
-
-export async function selectWordImage(imageIndex) {
-    const isEditing = state.editingWordIndex > -1; // SỬA Ở ĐÂY
-    const selectedImage = state.tempImages[imageIndex];
-    if (tempWordData && selectedImage) {
-        const modalContainer = document.getElementById('image-picker-modal');
-        if (modalContainer) {
-            modalContainer.innerHTML = `
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-2xl mx-auto relative text-center">
-                    <div class="loader mx-auto"></div>
-                    <p class="mt-4 text-gray-600 dark:text-gray-300">Đang tải và lưu hình ảnh...</p>
-                </div>`;
-        }
-        const firebaseImageUrl = await uploadImageViaCloudFunction(selectedImage.url, tempWordData.word);
-        if (firebaseImageUrl) {
-            tempWordData.imageUrl = firebaseImageUrl;
-            tempWordData.imageAuthor = '';
-            tempWordData.imageAuthorLink = '';
-        } else {
-            alert("Không thể tải hình ảnh lên. Vui lòng thử lại hoặc chọn ảnh khác.");
-            const oldWord = isEditing ? state.vocabList[state.editingWordIndex] : null;
-            tempWordData.imageUrl = oldWord ? oldWord.imageUrl : '';
-        }
-    }
-    await saveNewWord();
-}
-
-export function skipImageSelection() {
-    saveNewWord();
-}
-
-async function saveNewWord() {
-    const isEditing = state.editingWordIndex > -1;
-    const newVocabList = [...state.vocabList];
-
-    if (isEditing) {
-        const oldWord = newVocabList[state.editingWordIndex];
-        tempWordData.imageUrl = tempWordData.imageUrl || (oldWord ? oldWord.imageUrl : '') || '';
-        tempWordData.imageAuthor = tempWordData.imageAuthor || (oldWord ? oldWord.imageAuthor : '') || '';
-        tempWordData.imageAuthorLink = tempWordData.imageAuthorLink || (oldWord ? oldWord.imageAuthorLink : '') || '';
-        newVocabList[state.editingWordIndex] = tempWordData;
-    } else {
-        newVocabList.push(tempWordData);
-    }
     
+    feedbackEl.textContent = 'Đang làm giàu dữ liệu...';
+    const apiData = await fetchWordData(word);
+    if(apiData){
+        wordData.phonetic = apiData.phonetic || wordData.phonetic;
+        wordData.definition = apiData.definition || wordData.definition;
+        wordData.example = wordData.example || apiData.example;
+        wordData.partOfSpeech = apiData.partOfSpeech || wordData.partOfSpeech;
+    }
+
+    const newVocabList = [...state.vocabList];
+    if (isEditing) {
+        const index = state.vocabList.findIndex(v => v.word === state.editingWord.word);
+        if (index > -1) {
+            newVocabList[index] = { ...newVocabList[index], ...wordData };
+        }
+    } else {
+        newVocabList.push(wordData);
+        if (!state.appData.progress[word]) {
+            state.appData.progress[word] = { level: 0, nextReview: new Date().toISOString(), wrongAttempts: 0, correctAttempts: 0, history: [] };
+        }
+    }
+
     setState({ vocabList: newVocabList });
     await saveMasterVocab();
     
-    tempWordData = null; 
-    setState({ tempImages: [] });
-    document.getElementById('image-picker-modal').classList.add('hidden');
-    
-    setState({ editingWordIndex: -1 });
-
+    feedbackEl.textContent = '';
+    closeVocabForm();
     handleFilterChange();
+    showToast(isEditing ? 'Đã cập nhật từ!' : 'Đã thêm từ mới!', 'success');
 }
 
 export function editVocabWord(index) {
-    openVocabForm(index);
+    const word = state.vocabList[index];
+    openVocabForm(word);
 }
 
 export async function deleteVocabWord(index) {
     const wordToDelete = state.vocabList[index].word;
     if (confirm(`Bạn có chắc muốn xóa từ "${wordToDelete}"?`)) {
         state.vocabList.splice(index, 1);
+        delete state.appData.progress[wordToDelete];
         await saveMasterVocab();
         handleFilterChange();
     }
@@ -438,52 +489,35 @@ export async function deleteVocabWord(index) {
 
 export async function importFromGoogleSheet() {
     const result = await dataImport();
-    const feedbackEl = document.getElementById('import-feedback');
-    if (feedbackEl) {
-        feedbackEl.textContent = result.message;
-        feedbackEl.className = `mt-2 h-5 text-sm text-center ${result.success ? 'text-green-500' : 'text-red-500'}`;
-    }
+    showToast(result.message, result.success ? 'success' : 'error');
     if (result.success) {
         handleFilterChange();
     }
 }
 
-// === HÀM MỚI ĐỂ EXPORT ===
 export function exportToCSV() {
     const vocabList = state.vocabList;
     if (vocabList.length === 0) {
         alert("Không có từ vựng nào để export.");
         return;
     }
-
-    // Tên các cột trong file CSV
     const headers = ['word', 'meaning', 'example', 'category', 'difficulty', 'phonetic', 'definition'];
-    
-    // Chuyển đổi mảng object thành chuỗi CSV
-    let csvContent = "data:text/csv;charset=utf-8," 
-        + headers.join(",") + "\n" 
-        + vocabList.map(item => {
-            return headers.map(header => {
-                // Xử lý giá trị để không làm hỏng cấu trúc CSV (ví dụ: có dấu phẩy trong nội dung)
-                let value = item[header] || '';
-                let stringValue = String(value).replace(/"/g, '""'); // Thay thế dấu " bằng ""
-                if (stringValue.includes(',')) {
-                    stringValue = `"${stringValue}"`; // Bao quanh bằng dấu " nếu có dấu phẩy
-                }
-                return stringValue;
-            }).join(",");
-        }).join("\n");
-
-    // Tạo link ẩn và thực hiện click để tải file
+    let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + vocabList.map(item => {
+        return headers.map(header => {
+            let value = item[header] || '';
+            let stringValue = String(value).replace(/"/g, '""');
+            if (stringValue.includes(',')) {
+                stringValue = `"${stringValue}"`;
+            }
+            return stringValue;
+        }).join(",");
+    }).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
     link.setAttribute("download", "vocabulary_export.csv");
     document.body.appendChild(link); 
-    
     link.click();
-    
     document.body.removeChild(link);
     showToast('Đã bắt đầu tải file CSV!');
 }
-// === KẾT THÚC HÀM MỚI ===
