@@ -188,8 +188,14 @@ export function renderReviewCard(containerId) {
     }
     const word = words[currentIndex];
 
+    // Tạo toàn bộ HTML cho thẻ mới một lần duy nhất
     screenEl.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Ôn tập Thông minh</h2>
+        
+        <div id="review-image-container" class="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4 flex items-center justify-center overflow-hidden ${word.imageUrl ? '' : 'hidden'}">
+            <img id="review-image" src="${word.imageUrl || ''}" class="w-full h-full object-contain" alt="Vocabulary Image">
+        </div>
+
         <div class="relative w-full h-56 md:h-64">
             <div id="review-card" class="absolute w-full h-full bg-cyan-600 rounded-xl flex flex-col items-center justify-center p-4 shadow-lg">
                 <div class="text-center">
@@ -221,12 +227,23 @@ export function handleReviewAnswer(isCorrect) {
     playSound(isCorrect ? 'correct' : 'wrong');
     updateWordLevel(word, isCorrect);
 
-    if (currentIndex + 1 < words.length) {
-        setState({ reviewSession: { ...state.reviewSession, currentIndex: currentIndex + 1 }});
-        renderReviewCard('review-screen-content');
-    } else {
-        finishReviewSession();
+    // Vô hiệu hóa các nút để tránh bấm nhầm trong lúc chờ
+    const controls = document.getElementById("review-controls");
+    if (controls) {
+        controls.querySelectorAll('button').forEach(btn => btn.disabled = true);
+        // Thêm một hiệu ứng nhỏ để cho biết câu trả lời đã được ghi nhận
+        controls.style.opacity = '0.5'; 
     }
+
+    // Đặt thời gian chờ để chuyển sang từ tiếp theo một cách sạch sẽ
+    setTimeout(() => {
+        if (currentIndex + 1 < words.length) {
+            setState({ reviewSession: { ...state.reviewSession, currentIndex: currentIndex + 1 } });
+            renderReviewCard('review-screen-content'); // Gọi hàm vẽ lại thẻ tiếp theo
+        } else {
+            finishReviewSession();
+        }
+    }, 1000); // Đợi 1 giây
 }
 
 function finishReviewSession() {
