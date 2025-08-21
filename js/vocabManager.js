@@ -226,25 +226,34 @@ export function closeWordStats() {
 }
 
 // ===================================================================
-// START: HÀM openVocabForm ĐÃ ĐƯỢC THIẾT KẾ LẠI
+// START: THAY THẾ TOÀN BỘ HÀM NÀY
 // ===================================================================
 export function openVocabForm(word = null) {
     setState({ editingWord: word });
     const modalContainer = document.getElementById('vocab-form-modal');
     const isEditing = !!word;
 
+    // Cập nhật HTML của modal để rộng hơn và có cấu trúc mới
     modalContainer.innerHTML = `
-        <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-lg mx-auto relative max-h-[90vh] overflow-y-auto">
+        <div id="vocab-modal-content-wrapper" class="bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-2xl mx-auto relative max-h-[90vh] overflow-y-auto">
             <button id="close-vocab-form-btn" class="absolute top-2 right-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-2 z-10">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
             <h3 id="vocab-form-title" class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4"></h3>
             <form id="vocab-form" class="space-y-3">
-                <input type="text" name="word" placeholder="Từ vựng (tiếng Anh)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" required>
-                <input type="text" name="meaning" placeholder="Nghĩa (tiếng Việt)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" required>
-                <input type="text" name="example" placeholder="Câu ví dụ (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
-                <input type="text" name="category" placeholder="Chủ đề (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
-                
+                <div id="vocab-details-section" class="space-y-3">
+                    <input type="text" name="word" placeholder="Từ vựng (tiếng Anh)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" required>
+                    <input type="text" name="meaning" placeholder="Nghĩa (tiếng Việt)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" required>
+                    <input type="text" name="example" placeholder="Câu ví dụ (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                    <input type="text" name="category" placeholder="Chủ đề (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                </div>
+
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+                    <button type="button" id="toggle-details-btn" class="flex-shrink mx-4 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"></button>
+                    <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+
                 <div class="pt-2">
                     <label for="image-search-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tìm ảnh minh họa</label>
                     <div class="mt-1 flex rounded-md shadow-sm">
@@ -252,9 +261,9 @@ export function openVocabForm(word = null) {
                         <button type="button" id="search-image-btn" class="inline-flex items-center px-4 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm dark:bg-gray-800 dark:border-gray-600">Tìm</button>
                     </div>
                 </div>
-                
+
                 <div id="image-results-wrapper" class="bg-gray-100 dark:bg-gray-900 rounded p-2">
-                    <div id="image-search-results" class="grid grid-cols-3 gap-2 h-64 overflow-y-auto">
+                    <div id="image-search-results" class="grid grid-cols-3 gap-2 h-64 overflow-y-auto transition-all duration-300">
                          <p class="col-span-3 text-center text-gray-500 dark:text-gray-400 p-4">Nhập từ khóa và nhấn "Tìm" để xem ảnh.</p>
                     </div>
                     <div id="image-load-more-container" class="text-center pt-2"></div>
@@ -265,7 +274,7 @@ export function openVocabForm(word = null) {
                     <button type="button" id="toggle-upload-btn" class="flex-shrink mx-4 text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Hoặc tải ảnh của bạn</button>
                     <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
                 </div>
-                
+
                 <div id="custom-upload-section" class="hidden">
                      <div class="flex items-center justify-center w-full">
                         <label for="custom-image-upload-input" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
@@ -292,6 +301,10 @@ export function openVocabForm(word = null) {
     `;
 
     const form = document.getElementById('vocab-form');
+    const contentWrapper = document.getElementById('vocab-modal-content-wrapper');
+    const detailsSection = document.getElementById('vocab-details-section');
+    const toggleDetailsBtn = document.getElementById('toggle-details-btn');
+
     document.getElementById('vocab-form-title').textContent = isEditing ? 'Sửa từ' : 'Thêm từ mới';
     document.getElementById('vocab-form-submit-btn').textContent = isEditing ? 'Lưu thay đổi' : 'Thêm từ';
     form.word.value = word?.word || '';
@@ -301,15 +314,28 @@ export function openVocabForm(word = null) {
     form.word.readOnly = isEditing;
     document.getElementById('image-search-input').value = word?.word || '';
 
-    // GÁN SỰ KIỆN CHO CÁC ELEMENT ĐÚNG CÁCH
+    // LOGIC MỚI: Xử lý việc ẩn/hiện
+    if (isEditing) {
+        contentWrapper.classList.add('details-hidden');
+        toggleDetailsBtn.textContent = 'Hiện thông tin từ vựng';
+    } else {
+        toggleDetailsBtn.textContent = 'Ẩn thông tin từ vựng';
+    }
+
+    toggleDetailsBtn.addEventListener('click', () => {
+        const isHidden = contentWrapper.classList.toggle('details-hidden');
+        toggleDetailsBtn.textContent = isHidden ? 'Hiện thông tin từ vựng' : 'Ẩn thông tin từ vựng';
+    });
+    // KẾT THÚC LOGIC MỚI
+
     document.getElementById('search-image-btn').addEventListener('click', () => {
         const searchTerm = document.getElementById('image-search-input').value || document.getElementById('vocab-form').word.value;
         searchImages(searchTerm, true);
     });
-    
+
     document.getElementById('image-search-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            e.preventDefault(); // Ngăn form submit
+            e.preventDefault();
             const searchTerm = e.target.value || document.getElementById('vocab-form').word.value;
             searchImages(searchTerm, true);
         }
@@ -318,11 +344,11 @@ export function openVocabForm(word = null) {
     document.getElementById('close-vocab-form-btn').addEventListener('click', closeVocabForm);
     form.addEventListener('submit', handleVocabFormSubmit);
 
-    const toggleBtn = document.getElementById('toggle-upload-btn');
+    const toggleUploadBtn = document.getElementById('toggle-upload-btn');
     const uploadSection = document.getElementById('custom-upload-section');
-    toggleBtn.addEventListener('click', () => {
+    toggleUploadBtn.addEventListener('click', () => {
         const isHidden = uploadSection.classList.toggle('hidden');
-        toggleBtn.textContent = isHidden ? 'Hoặc tải ảnh của bạn' : 'Ẩn phần tải ảnh';
+        toggleUploadBtn.textContent = isHidden ? 'Hoặc tải ảnh của bạn' : 'Ẩn phần tải ảnh';
     });
 
     const customImageInput = document.getElementById('custom-image-upload-input');
@@ -330,7 +356,7 @@ export function openVocabForm(word = null) {
     const previewImage = document.getElementById('custom-image-preview');
     const uploadPrompt = document.getElementById('custom-image-upload-prompt');
     const removeImageBtn = document.getElementById('remove-custom-image-btn');
-    
+
     form.customImageFile = null;
 
     customImageInput.addEventListener('change', (event) => {
@@ -353,12 +379,12 @@ export function openVocabForm(word = null) {
         previewContainer.classList.add('hidden');
         uploadPrompt.classList.remove('hidden');
     });
-    
+
     modalContainer.classList.remove('hidden');
     modalContainer.classList.add('flex');
 }
 // ===================================================================
-// END: HÀM openVocabForm
+// END: THAY THẾ TOÀN BỘ HÀM NÀY
 // ===================================================================
 
 export function closeVocabForm() {
