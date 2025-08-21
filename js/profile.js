@@ -296,3 +296,59 @@ export async function updateAllPhonetics() {
          }
     }, 3000);
 }
+
+// ======================================================
+// START: THÊM HÀM MỚI NÀY VÀO CUỐI FILE
+// ======================================================
+export function initDataMigration() {
+    const migrateBtn = document.getElementById('migrate-images-btn');
+    // Nếu không tìm thấy nút (do đang ở tab khác), thì không làm gì cả
+    if (!migrateBtn) return;
+
+    // Gắn sự kiện click vào nút
+    migrateBtn.addEventListener('click', async () => {
+        const feedbackEl = document.getElementById('migration-feedback');
+
+        if (!confirm('CẢNH BÁO: Quá trình này sẽ quét toàn bộ từ vựng của bạn và tải lại các ảnh từ Pixabay. Việc này có thể mất vài phút và không thể hoàn tác. Bạn có muốn tiếp tục không?')) {
+            return;
+        }
+
+        migrateBtn.disabled = true;
+        migrateBtn.textContent = 'Đang xử lý, vui lòng không tắt trang...';
+        feedbackEl.textContent = 'Bắt đầu quá trình...';
+
+        try {
+            // Import các hàm cần thiết của Firebase Functions
+            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js');
+            const functions = getFunctions(undefined, 'asia-southeast1'); // Chỉ định vùng nếu cần
+
+            // Tên function phải khớp với tên bạn export trong file functions/index.js
+            const migratePixabayImages = httpsCallable(functions, 'migratePixabayImages');
+
+            // Gọi function và chờ kết quả
+            const result = await migratePixabayImages();
+
+            const message = result.data.message;
+            feedbackEl.textContent = message;
+            showToast(`Chuyển đổi hoàn tất! Đã cập nhật ${result.data.count} ảnh.`, 'success');
+
+            // Tải lại danh sách từ vựng để hiển thị ảnh mới nếu có thay đổi
+            if (result.data.count > 0) {
+                const { fetchVocabList } = await import('./data.js');
+                await fetchVocabList();
+            }
+
+        } catch (error) {
+            console.error("Lỗi khi chuyển đổi ảnh:", error);
+            feedbackEl.textContent = `Lỗi: ${error.message}`;
+            showToast("Đã xảy ra lỗi trong quá trình chuyển đổi.", "error");
+        } finally {
+            // Dù thành công hay thất bại, bật lại nút bấm
+            migrateBtn.disabled = false;
+            migrateBtn.textContent = 'Bắt đầu chuyển đổi ảnh';
+        }
+    });
+}
+// ======================================================
+// END: KẾT THÚC HÀM CẦN THÊM
+// ======================================================

@@ -2,13 +2,17 @@
 
 import { doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js"; // Đảm bảo có getStorage
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+//import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 import { db, functions } from './firebase.js'; // storage sẽ được khởi tạo riêng
 import { state, setState } from './state.js';
 import { SRS_INTERVALS, wordsApiKey, pixabayApiKey } from './config.js';
 import { updateDashboard, showToast } from './ui.js';
 import { parseCSV, shuffleArray, delay } from './utils.js';
 import { checkAchievements } from './achievements.js';
+//import { auth } from './firebase.js';
+
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+import { auth } from './firebase.js';
 
 const MASTER_VOCAB_ID = "sharedList";
 
@@ -391,33 +395,35 @@ export async function fetchAllUsersForLeaderboard() {
     }
 }
 
-// HÀM UPLOAD ẢNH ĐÃ ĐƯỢC SỬA LẠI HOÀN CHỈNH
+// ===================================================================
+// START: THAY THẾ TOÀN BỘ HÀM NÀY
+// ===================================================================
 export async function uploadImageViaCloudFunction(imageUrl, word) {
-    if (!imageUrl || !word) return null;
-
-    try {
-        const uploadImage = httpsCallable(functions, 'uploadImageFromUrl');
-        const result = await uploadImage({
-            imageUrl: imageUrl,
-            word: word,
-            profileId: state.selectedProfileId
-        });
-
-        const responseData = result.data;
-        console.log("Đã nhận phản hồi từ server:", responseData);
-
-        if (responseData && responseData.success && responseData.url) {
-            return responseData.url;
-        } else {
-            console.error("Phản hồi từ server không thành công hoặc thiếu URL:", responseData);
-            return null;
-        }
-
-    } catch (error) {
-        console.error("Lỗi khi gọi cloud function 'uploadImageFromUrl':", error);
-        return null;
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error("Không tìm thấy người dùng đã xác thực.");
     }
+    const userId = user.uid;
+
+    const functions = getFunctions(undefined, 'asia-southeast1');
+    const uploadImageFromUrl = httpsCallable(functions, 'uploadImageFromUrl');
+
+    const result = await uploadImageFromUrl({ imageUrl, word, userId });
+
+    if (result.data.success) {
+      return result.data.url;
+    }
+    return null;
+
+  } catch (error) {
+    console.error("Lỗi khi gọi cloud function 'uploadImageFromUrl':", error);
+    throw error; 
+  }
 }
+// ===================================================================
+// END: THAY THẾ TOÀN BỘ HÀM NÀY
+// ===================================================================
 
 export async function fetchWordImages(word, page = 1) {
     if (!pixabayApiKey || pixabayApiKey === "KEY_PIXABAY_CUA_BAN") {

@@ -1,13 +1,15 @@
+// functions/index.js
+
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const cloudinary = require("cloudinary").v2;
+const axios = require("axios");
+const cloudinary = require("cloudinary").v2; // Thêm thư viện Cloudinary
 
 admin.initializeApp();
 
-// Cấu hình Cloudinary bằng biến môi trường (cách mới và ổn định hơn)
+// --- CẤU HÌNH CLOUDINARY ---
 // LƯU Ý: Bạn sẽ cần chạy lại lệnh `firebase functions:config:set` ở bước sau
 const cloudinaryConfig = functions.config().cloudinary;
-
 if (cloudinaryConfig && cloudinaryConfig.cloud_name) {
   cloudinary.config({
     cloud_name: cloudinaryConfig.cloud_name,
@@ -20,106 +22,87 @@ if (cloudinaryConfig && cloudinaryConfig.cloud_name) {
 }
 
 
-/**
- * Callable Function để tải ảnh từ một URL lên Cloudinary.
- * Đây là phiên bản cuối cùng, ổn định nhất.
- */
 exports.uploadImageFromUrl = functions.region('asia-southeast1').https.onCall(async (data, context) => {
-  // onCall tự động kiểm tra xác thực người dùng
   if (!context.auth) {
     console.error("Lỗi xác thực: Người dùng chưa đăng nhập.");
-    throw new functions.https.HttpsError(
-      "unauthenticated",
-      "The function must be called while authenticated."
-    );
+    throw new functions.https.HttpsError("unauthenticated", "Yêu cầu cần được xác thực.");
   }
 
-  // Kiểm tra tham số đầu vào
-  const { imageUrl, word, profileId } = data;
-  if (!imageUrl || !word) {
-    console.error("Lỗi tham số: Thiếu imageUrl hoặc word.", data);
-    throw new functions.https.HttpsError(
-      "invalid-argument",
-      "The function must be called with 'imageUrl' and 'word' arguments."
-    );
+  // **FIX**: Thay profileId bằng userId
+  const { imageUrl, word, userId } = data;
+  if (!imageUrl || !word || !userId) {
+    console.error("Lỗi tham số: Thiếu imageUrl, word, hoặc userId.", data);
+    throw new functions.https.HttpsError("invalid-argument", "Cần có 'imageUrl', 'word', và 'userId'.");
   }
 
-  // Kiểm tra lại nếu config chưa có thì báo lỗi sớm
   if (!cloudinary.config().cloud_name) {
-      console.error("Lỗi nghiêm trọng: Cấu hình Cloudinary không tồn tại. Deploy sẽ thất bại.");
-       throw new functions.https.HttpsError(
-      "internal",
-      "Cấu hình phía server bị thiếu."
-    );
+    console.error("Lỗi nghiêm trọng: Cấu hình Cloudinary không tồn tại.");
+    throw new functions.https.HttpsError("internal", "Cấu hình phía server bị thiếu.");
   }
 
   try {
     const result = await cloudinary.uploader.upload(imageUrl, {
-      folder: `spelling-bee/${profileId || "unknown-profile"}`,
+      // **FIX**: Dùng userId để tạo thư mục
+      folder: `spelling-bee/user_uploads/${userId}`,
       public_id: `${Date.now()}_${word.replace(/\s+/g, '_')}`
     });
-
     console.log("Upload ảnh lên Cloudinary thành công:", result.secure_url);
-
-    // Trả về kết quả thành công cho client
     return { success: true, url: result.secure_url };
-
-  } catch (error) {
+  } catch (error)
+  {
     console.error("Lỗi khi upload ảnh lên Cloudinary:", error);
-    throw new functions.https.HttpsError(
-      "internal",
-      "Unable to upload image.",
-      error.message
-    );
+    throw new functions.https.HttpsError("internal", "Không thể upload ảnh.", error.message);
   }
 });
 
-// Thêm import cho Google Generative AI ở đầu file cùng các import khác
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-// Lấy API key đã lưu
-const geminiKey = functions.config().gemini.key;
-const genAI = new GoogleGenerativeAI(geminiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
-
 
 /**
- * Cloud Function để tự động phân loại từ vựng bằng AI.
+ * CHỨC NĂNG CŨ: Di dời ảnh từ Pixabay sang Firebase Storage.
+ * (Giữ lại để bạn có thể dùng nếu cần)
  */
-exports.categorizeVocabulary = functions.region('asia-southeast1').https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "Người dùng chưa được xác thực.");
+exports.migratePixabayImages = functions
+  .region("asia-southeast1")
+  .runWith({ timeoutSeconds: 540, memory: '1GB' })
+  .https.onCall(async (data, context) => {
+    // ... (Code của chức năng migratePixabayImages giữ nguyên như cũ)
+    if (!context.auth) { throw new functions.https.HttpsError("unauthenticated", "Yêu cầu cần được xác thực."); }
+    const uid = context.auth.uid;
+    const db = admin.firestore();
+    const bucket = admin.storage().bucket();
+    let updatedCount = 0;
+    let checkedCount = 0;
+    const sharedListRef = db.collection("masterVocab").doc("sharedList");
+    const sharedListSnap = await sharedListRef.get();
+    if (!sharedListSnap.exists) { return { message: "Không tìm thấy document 'sharedList'.", count: 0, checked: 0 }; }
+    const vocabList = sharedListSnap.data().vocabList || [];
+    if (vocabList.length === 0) { return { message: "Danh sách 'vocabList' rỗng.", count: 0, checked: 0 }; }
+    const newVocabList = [...vocabList];
+    const migrationPromises = [];
+    newVocabList.forEach((wordData, index) => {
+      checkedCount++;
+      const imageUrl = wordData.imageUrl;
+      if (imageUrl && typeof imageUrl === 'string' && (imageUrl.includes("pixabay.com") || imageUrl.includes("cdn.pixabay.com"))) {
+        const promise = (async () => {
+          try {
+            const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
+            const imageBuffer = Buffer.from(response.data, "binary");
+            const contentType = response.headers["content-type"] || "image/jpeg";
+            const fileExtension = contentType.split("/")[1] || "jpg";
+            const fileName = `vocab_images/${uid}/${wordData.word}_${index}.${fileExtension}`;
+            const file = bucket.file(fileName);
+            await file.save(imageBuffer, { metadata: { contentType } });
+            await file.makePublic();
+            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+            newVocabList[index].imageUrl = publicUrl;
+            updatedCount++;
+          } catch (error) { console.error(`Lỗi khi xử lý từ "${wordData.word}":`, error.message); }
+        })();
+        migrationPromises.push(promise);
+      }
+    });
+    await Promise.all(migrationPromises);
+    if (updatedCount > 0) {
+      await sharedListRef.update({ vocabList: newVocabList });
     }
-
-    const { words } = data; // Nhận danh sách từ ['word1', 'word2', ...]
-    if (!words || !Array.isArray(words) || words.length === 0) {
-        throw new functions.https.HttpsError("invalid-argument", "Danh sách từ không hợp lệ.");
-    }
-
-    // Câu lệnh "prompt" để ra lệnh cho AI
-    const prompt = `
-        Hãy phân loại danh sách các từ vựng tiếng Anh sau đây vào các chủ đề chung (ví dụ: Animals, Food, Technology, Business, Travel, etc.).
-        Chỉ trả về một đối tượng JSON hợp lệ, không giải thích gì thêm.
-        Trong đó, key là từ vựng và value là chủ đề của từ đó (viết hoa chữ cái đầu).
-        Ví dụ: { "dog": "Animals", "apple": "Food", "computer": "Technology" }
-
-        Danh sách từ: ${words.join(", ")}
-    `;
-
-    try {
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const jsonText = response.text().replace(/```json|```/g, "").trim();
-        
-        console.log("Kết quả từ Gemini:", jsonText);
-
-        // Parse kết quả JSON từ AI
-        const categories = JSON.parse(jsonText);
-        
-        return { success: true, categories: categories };
-
-    } catch (error) {
-        console.error("Lỗi khi gọi Gemini API:", error);
-        throw new functions.https.HttpsError("internal", "Không thể phân loại từ vựng.");
-    }
-});
+    return { message: `Hoàn tất! Đã kiểm tra ${checkedCount} từ và cập nhật ${updatedCount} ảnh.`, count: updatedCount, checked: checkedCount };
+  });

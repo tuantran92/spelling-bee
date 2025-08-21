@@ -4,6 +4,7 @@ import { state, setState } from './state.js';
 import { saveMasterVocab, importFromGoogleSheet as dataImport, fetchWordData, fetchWordImages, uploadImageViaCloudFunction, uploadCustomImage } from './data.js';
 import { SRS_INTERVALS } from './config.js';
 import { showToast } from './ui.js';
+import { auth } from './firebase.js';
 
 const ITEMS_PER_PAGE = 30;
 let currentLoadedCount = ITEMS_PER_PAGE;
@@ -396,7 +397,7 @@ export function closeVocabForm() {
 }
 
 // ===================================================================
-// START: HÀM searchImages ĐÃ ĐƯỢC CẢI TIẾN
+// START: THAY THẾ TOÀN BỘ HÀM searchImages
 // ===================================================================
 async function searchImages(term, isNewSearch = false) {
     const searchBtn = document.getElementById('search-image-btn');
@@ -408,7 +409,6 @@ async function searchImages(term, isNewSearch = false) {
         return;
     }
 
-    // Vô hiệu hóa nút và hiển thị trạng thái loading
     if (searchBtn) {
         searchBtn.disabled = true;
         searchBtn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
@@ -417,17 +417,17 @@ async function searchImages(term, isNewSearch = false) {
     if (isNewSearch) {
         currentImagePage = 1;
         currentImageSearchTerm = term;
-        resultsContainer.innerHTML = ''; // Xóa kết quả cũ
+        resultsContainer.innerHTML = '';
     } else {
         currentImagePage++;
     }
-    
+
     loadMoreContainer.innerHTML = `<div class="loader mx-auto"></div>`;
 
     try {
         const images = await fetchWordImages(currentImageSearchTerm, currentImagePage);
-        
-        if (isNewSearch) { // Chỉ xóa thông báo mặc định khi có kết quả tìm kiếm mới
+
+        if (isNewSearch) {
              resultsContainer.innerHTML = '';
         }
 
@@ -438,27 +438,25 @@ async function searchImages(term, isNewSearch = false) {
             loadMoreContainer.innerHTML = '<p class="text-xs text-gray-400">Đã tải hết ảnh.</p>';
             return;
         }
-        
+
         images.forEach(img => {
             const imgElement = document.createElement('img');
             imgElement.src = img.url;
-            imgElement.dataset.url = img.url;
+            // **FIX**: Sửa lại tên dataset cho đúng
+            imgElement.dataset.imageUrl = img.url; 
             imgElement.alt = `Ảnh minh họa cho ${currentImageSearchTerm}`;
-            // Class để ảnh lấp đầy ô và có hiệu ứng đẹp hơn
             imgElement.className = "image-result w-full h-full object-cover rounded cursor-pointer transition-transform duration-200 hover:scale-105";
             imgElement.addEventListener('click', () => {
                 document.querySelectorAll('.image-result').forEach(i => i.classList.remove('selected', 'ring-4', 'ring-indigo-500'));
                 imgElement.classList.add('selected', 'ring-4', 'ring-indigo-500');
-                // Nếu khu vực upload đang mở, tự động xóa ảnh đã chọn ở đó
                 if (document.getElementById('remove-custom-image-btn')) {
                     document.getElementById('remove-custom-image-btn').click();
                 }
             });
             resultsContainer.appendChild(imgElement);
         });
-        
-        // Cập nhật nút "Tải thêm"
-        if (images.length > 0) { // Chỉ hiển thị nút khi có kết quả
+
+        if (images.length > 0) {
             loadMoreContainer.innerHTML = `<button type="button" id="load-more-images-btn" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Tải thêm</button>`;
             document.getElementById('load-more-images-btn').onclick = () => searchImages(currentImageSearchTerm, false);
         }
@@ -468,7 +466,6 @@ async function searchImages(term, isNewSearch = false) {
         showToast("Có lỗi xảy ra khi tìm ảnh.", "error");
         resultsContainer.innerHTML = '<p class="col-span-3 text-center text-red-500 dark:text-red-400 p-4">Lỗi tải ảnh.</p>';
     } finally {
-        // Luôn bật lại nút sau khi hoàn tất
         if (searchBtn) {
             searchBtn.disabled = false;
             searchBtn.textContent = 'Tìm';
@@ -476,84 +473,115 @@ async function searchImages(term, isNewSearch = false) {
     }
 }
 // ===================================================================
-// END: HÀM searchImages
+// END: THAY THẾ TOÀN BỘ HÀM searchImages
 // ===================================================================
 
+// ===================================================================
+// START: THAY THẾ TOÀN BỘ HÀM handleVocabFormSubmit
+// ===================================================================
 export async function handleVocabFormSubmit(event) {
     event.preventDefault();
     const form = document.getElementById('vocab-form');
     const feedbackEl = document.getElementById('vocab-form-feedback');
-    const word = form.word.value.trim().toLowerCase();
-    const meaning = form.meaning.value.trim();
+    const submitBtn = document.getElementById('vocab-form-submit-btn');
 
-    if (!word || !meaning) {
-        feedbackEl.textContent = "Từ vựng và nghĩa không được để trống.";
-        return;
-    }
-
-    const isEditing = !!state.editingWord;
-    const existingWord = state.vocabList.find(v => v.word === word);
-    if (existingWord && (!isEditing || existingWord.word !== state.editingWord.word)) {
-        feedbackEl.textContent = `Từ "${word}" đã tồn tại.`;
-        return;
-    }
-
-    feedbackEl.textContent = 'Đang xử lý...';
-    let imageUrl = form.querySelector('.image-result.selected')?.dataset.url || state.editingWord?.imageUrl || null;
-
-    if (form.customImageFile) {
-        feedbackEl.textContent = 'Đang tải ảnh lên...';
-        try {
-            imageUrl = await uploadCustomImage(form.customImageFile, state.selectedProfileId);
-        } catch (error) {
-            feedbackEl.textContent = 'Tải ảnh thất bại.';
-            return;
-        }
-    }
-    
-    const oldWordData = state.editingWord || {};
-    const wordData = {
-        word: word,
-        meaning: meaning,
-        example: form.example.value.trim(),
-        category: form.category.value.trim() || 'Chung',
-        difficulty: oldWordData.difficulty || 'medium',
-        phonetic: oldWordData.phonetic || '',
-        definition: oldWordData.definition || '',
-        partOfSpeech: oldWordData.partOfSpeech || '',
-        imageUrl: imageUrl,
-    };
-    
-    feedbackEl.textContent = 'Đang làm giàu dữ liệu...';
-    const apiData = await fetchWordData(word);
-    if(apiData){
-        wordData.phonetic = apiData.phonetic || wordData.phonetic;
-        wordData.definition = apiData.definition || wordData.definition;
-        wordData.example = wordData.example || apiData.example;
-        wordData.partOfSpeech = apiData.partOfSpeech || wordData.partOfSpeech;
-    }
-
-    const newVocabList = [...state.vocabList];
-    if (isEditing) {
-        const index = state.vocabList.findIndex(v => v.word === state.editingWord.word);
-        if (index > -1) {
-            newVocabList[index] = { ...newVocabList[index], ...wordData };
-        }
-    } else {
-        newVocabList.push(wordData);
-        if (!state.appData.progress[word]) {
-            state.appData.progress[word] = { level: 0, nextReview: new Date().toISOString(), wrongAttempts: 0, correctAttempts: 0, history: [] };
-        }
-    }
-
-    setState({ vocabList: newVocabList });
-    await saveMasterVocab();
-    
+    const originalBtnText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Đang xử lý...';
     feedbackEl.textContent = '';
-    closeVocabForm();
-    handleFilterChange();
-    showToast(isEditing ? 'Đã cập nhật từ!' : 'Đã thêm từ mới!', 'success');
+
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            throw new Error("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
+        }
+        const userId = user.uid;
+
+        const word = form.word.value.trim().toLowerCase();
+        const meaning = form.meaning.value.trim();
+
+        if (!word || !meaning) {
+            throw new Error("Từ vựng và nghĩa không được để trống.");
+        }
+
+        const isEditing = !!state.editingWord;
+        const existingWord = state.vocabList.find(v => v.word === word);
+        if (existingWord && (!isEditing || existingWord.word !== state.editingWord.word)) {
+            throw new Error(`Từ "${word}" đã tồn tại.`);
+        }
+
+        const selectedImageEl = form.querySelector('.image-result.selected');
+        let finalImageUrl = state.editingWord?.imageUrl || null;
+
+        if (form.customImageFile) {
+            feedbackEl.textContent = 'Đang tải ảnh lên...';
+            finalImageUrl = await uploadCustomImage(form.customImageFile, userId);
+        } else if (selectedImageEl && selectedImageEl.dataset.imageUrl && selectedImageEl.dataset.imageUrl !== finalImageUrl) {
+            const pixabayUrl = selectedImageEl.dataset.imageUrl;
+            feedbackEl.textContent = 'Đang tối ưu và lưu ảnh...';
+
+            finalImageUrl = await uploadImageViaCloudFunction(pixabayUrl, word);
+            if (!finalImageUrl) {
+                throw new Error("Tải ảnh lên Cloudinary thất bại.");
+            }
+        }
+
+        const oldWordData = state.editingWord || {};
+        const wordData = {
+            word: word,
+            meaning: meaning,
+            example: form.example.value.trim(),
+            category: form.category.value.trim() || 'Chung',
+            difficulty: oldWordData.difficulty || 'medium',
+            phonetic: oldWordData.phonetic || '',
+            definition: oldWordData.definition || '',
+            partOfSpeech: oldWordData.partOfSpeech || '',
+            imageUrl: finalImageUrl,
+        };
+
+        feedbackEl.textContent = 'Đang làm giàu dữ liệu...';
+        const apiData = await fetchWordData(word);
+        if(apiData){
+            wordData.phonetic = apiData.phonetic || wordData.phonetic;
+            wordData.definition = apiData.definition || wordData.definition;
+            wordData.example = wordData.example || apiData.example;
+            wordData.partOfSpeech = apiData.partOfSpeech || wordData.partOfSpeech;
+        }
+
+        const newVocabList = [...state.vocabList];
+        if (isEditing) {
+            const index = state.vocabList.findIndex(v => v.word === state.editingWord.word);
+            if (index > -1) {
+                newVocabList[index] = { ...newVocabList[index], ...wordData };
+            }
+        } else {
+            newVocabList.push(wordData);
+            if (!state.appData.progress[word]) {
+                state.appData.progress[word] = { level: 0, nextReview: new Date().toISOString(), wrongAttempts: 0, correctAttempts: 0, history: [] };
+            }
+        }
+
+        setState({ vocabList: newVocabList });
+        await saveMasterVocab();
+
+        feedbackEl.textContent = '';
+        closeVocabForm();
+        filterAndDisplayVocab(); // Cập nhật lại danh sách
+        showToast(isEditing ? 'Đã cập nhật từ!' : 'Đã thêm từ mới!', 'success');
+
+    } catch (error) {
+        console.error("Lỗi khi xử lý form:", error);
+        showToast(error.message, 'error');
+        feedbackEl.textContent = `Lỗi: ${error.message}`;
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+    }
 }
+// ===================================================================
+// END: THAY THẾ TOÀN BỘ HÀM handleVocabFormSubmit
+// ===================================================================
+
 
 export function editVocabWord(index) {
     const word = state.vocabList[index];

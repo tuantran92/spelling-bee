@@ -202,6 +202,23 @@ export function renderProfileTab() {
                     ${renderSettingsItem('delete-profile-btn', 'Xóa hồ sơ này', 'profile.promptDeleteProfile()', 'text-red-500')}
                 </div>
             </div>
+
+
+
+            <div class="space-y-4">
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2">BẢO TRÌ DỮ LIỆU</h3>
+                <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
+                    <p class="text-sm text-gray-500 mb-2">
+                        Chạy chức năng này một lần duy nhất để chuyển các ảnh từ Pixabay (sẽ hết hạn sau 24h) sang kho lưu trữ vĩnh viễn của bạn.
+                    </p>
+                    <button id="migrate-images-btn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-colors duration-200">
+                        Bắt đầu chuyển đổi ảnh
+                    </button>
+                    <p id="migration-feedback" class="text-sm text-center mt-2 h-4 text-indigo-500"></p>
+                </div>
+            </div>
+
+
             <div class="space-y-4">
                 <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2">CÀI ĐẶT</h3>
                 <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
@@ -454,6 +471,7 @@ export function setupVoiceOptions() {
 }
 
 export function addSettingsEventListeners() {
+    profile.initDataMigration(); // <== THÊM DÒNG NÀY
     const safeAddEventListener = (id, event, handler) => {
         const element = document.getElementById(id);
         if (element) {
