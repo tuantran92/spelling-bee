@@ -313,6 +313,9 @@ export function checkSpelling() {
 }
 
 
+// ===================================================================
+// START: THAY THẾ HÀM startReading
+// ===================================================================
 export function startReading(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -327,133 +330,153 @@ export function startReading(containerId) {
 
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Flashcard</h2>
-        <div class="relative group">
-            <div id="flashcard-content" class="w-full bg-gray-100 dark:bg-gray-700 rounded-xl flex flex-col p-4 shadow-lg text-center">
-                
-                <div id="flashcard-image-container" class="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-                    <img id="flashcard-image" src="" class="w-full h-full object-contain" alt="Vocabulary Image">
+
+        <div id="flashcard-container" class="w-full h-[60vh] max-h-[500px] bg-gray-800 rounded-2xl shadow-lg relative overflow-hidden flex flex-col justify-end cursor-pointer group transition-all duration-300 transform hover:scale-105">
+            <div class="absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t from-black/80 via-black/60 to-transparent"></div>
+
+            <div id="flashcard-text-content" class="relative p-4 md:p-6 text-white z-10 w-full">
+                <div class="flex items-center gap-3">
+                    <p id="flashcard-word" class="font-bold text-4xl md:text-5xl"></p>
+                    <button id="flashcard-speak-btn" class="bg-white/20 hover:bg-white/30 p-2 rounded-full text-white">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                    </button>
                 </div>
-                
-                <div id="flashcard-text-content">
-                    <p id="flashcard-word" class="font-bold vocab-font-size-flashcard text-gray-900 dark:text-gray-100"></p>
-                    <p id="flashcard-phonetic" class="text-lg text-indigo-500 dark:text-indigo-400 font-mono mt-1"></p>
-                    <p id="flashcard-meaning" class="text-xl font-semibold mt-2 text-gray-800 dark:text-gray-200"></p>
-                    <p id="flashcard-definition" class="text-sm italic text-gray-600 dark:text-gray-400 px-2 mt-2"></p>
-                    <p id="flashcard-example" class="text-sm italic text-gray-500 dark:text-gray-400 px-2 mt-2"></p>
+                <p id="flashcard-phonetic" class="text-lg text-gray-300 font-mono mt-1"></p>
+
+                <div id="flashcard-details" class="transition-all duration-500 max-h-0 overflow-hidden">
+                    <hr class="border-gray-500 my-3">
+                    <p id="flashcard-meaning" class="text-2xl font-semibold mt-2 text-cyan-300"></p>
+                    <p id="flashcard-definition" class="text-sm italic mt-2"></p>
+                    <p id="flashcard-example" class="text-sm italic mt-2"></p>
                 </div>
-                
-                <div class="flex-grow"></div> 
-                <p id="flashcard-attribution" class="w-full text-left text-xs text-gray-400 dark:text-gray-500 mt-3" style="display: none;"></p>
-                <button id="flashcard-speak-btn" class="absolute bottom-4 right-4 bg-teal-500 hover:bg-teal-600 p-2 rounded-full">
-                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
-                </button>
             </div>
         </div>
 
         <div class="mt-4 flex flex-col items-center gap-4">
-             <div id="card-counter-container" class="text-gray-500 dark:text-gray-400 font-semibold">
-                <span id="card-counter">1 / ${shuffledList.length}</span>
-            </div>
+            <p class="text-sm text-gray-500">Nhấp vào thẻ để xem nghĩa. Nhớ hay không?</p>
             <div class="flex gap-4 w-full max-w-sm">
                 <button onclick="handleFlashcardAnswer(false)" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow-md">Không nhớ</button>
                 <button onclick="handleFlashcardAnswer(true)" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-md">Nhớ</button>
             </div>
-             <button id="flashcard-speak-meaning-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg mt-2">
-                Đọc tiếng Việt
-            </button>
+            <div id="card-counter-container" class="text-gray-500 dark:text-gray-400 font-semibold">
+                <span id="card-counter">1 / ${shuffledList.length}</span>
+            </div>
         </div>
     `;
-    
+
     updateFlashcard();
 }
+// ===================================================================
+// END: THAY THẾ HÀM startReading
+// ===================================================================
 
+// ===================================================================
+// START: THAY THẾ HÀM updateFlashcard
+// ===================================================================
 function updateFlashcard() {
-    const gameList = state.flashcardList || []; 
-    const contentEl = document.getElementById('flashcard-content');
-    if (gameList.length === 0 || !contentEl) {
-        if (contentEl) contentEl.innerHTML = `<p class="text-orange-500">Không có từ nào để học.</p>`;
+    const gameList = state.flashcardList || [];
+    const container = document.getElementById('reading-screen-content');
+    const cardContainer = document.getElementById('flashcard-container');
+
+    if (gameList.length === 0 || !cardContainer) {
+        if(container) container.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-orange-500">Không có từ nào để học.</p>`;
         return;
     }
 
     if (state.currentFlashcardIndex >= gameList.length) {
-        // Kết thúc phiên
-        const container = document.getElementById('reading-screen-content');
-        container.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Hoàn thành!</h2><p>Bạn đã học xong hết các thẻ.</p>`;
+        container.innerHTML = `<h2 class="text-2xl font-semibold mb-4">Hoàn thành!</h2><p>Bạn đã học xong hết các thẻ.</p><button onclick="startReading('reading-screen-content')" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Học lại</button>`;
         return;
     }
 
     const word = gameList[state.currentFlashcardIndex];
     setState({ currentWord: word });
 
-    const imageContainer = document.getElementById("flashcard-image-container");
-    const imageEl = document.getElementById("flashcard-image");
     const textContentEl = document.getElementById("flashcard-text-content");
-    const attributionEl = document.getElementById("flashcard-attribution");
+    const detailsEl = document.getElementById('flashcard-details');
 
+    // Reset state
+    cardContainer.classList.remove('is-flipped');
+    detailsEl.style.maxHeight = '0px';
+
+    // Update background
     if (word.imageUrl) {
-        imageEl.src = word.imageUrl;
-        imageContainer.classList.remove('hidden');
-        textContentEl.classList.remove('no-image');
-        attributionEl.style.display = 'none';
+        cardContainer.style.backgroundImage = `url('${word.imageUrl}')`;
+        cardContainer.style.backgroundSize = 'cover';
+        cardContainer.style.backgroundPosition = 'center';
+        cardContainer.style.backgroundColor = '';
+        textContentEl.classList.remove('items-center', 'text-center');
+        cardContainer.querySelector('.bg-gradient-to-t').style.display = 'block';
     } else {
-        imageContainer.classList.add('hidden');
-        textContentEl.classList.add('no-image');
-        attributionEl.style.display = 'none';
+        cardContainer.style.backgroundImage = 'none';
+        cardContainer.style.backgroundColor = '#374151'; // fallback dark gray
+        textContentEl.classList.add('items-center', 'text-center');
+        cardContainer.querySelector('.bg-gradient-to-t').style.display = 'none';
     }
 
+    // Populate text
     document.getElementById("flashcard-word").textContent = word.word;
     document.getElementById("flashcard-phonetic").textContent = word.phonetic || '';
     document.getElementById("flashcard-meaning").textContent = word.meaning;
-    const definitionEl = document.getElementById("flashcard-definition");
-    if (word.definition) {
-        definitionEl.textContent = `(${word.definition})`;
-        definitionEl.style.display = 'block';
-    } else {
-        definitionEl.style.display = 'none';
-    }
+    document.getElementById("flashcard-definition").textContent = word.definition ? `"${word.definition}"` : '';
+    document.getElementById("flashcard-example").textContent = word.example ? `Vd: ${word.example}` : '';
+    document.getElementById("card-counter").textContent = `${state.currentFlashcardIndex + 1} / ${gameList.length}`;
 
-    const exampleEl = document.getElementById("flashcard-example");
-    if (word.example) {
-        exampleEl.textContent = `Vd: ${word.example}`;
-        exampleEl.style.display = 'block';
-    } else {
-        exampleEl.style.display = 'none';
-    }
-
-    const speakButton = document.getElementById("flashcard-speak-btn");
-    const speakMeaningButton = document.getElementById("flashcard-speak-meaning-btn");
-
-    speakButton.onclick = (event) => {
-        if (event) event.stopPropagation();
+    // Add listeners
+    document.getElementById("flashcard-speak-btn").onclick = (e) => {
+        e.stopPropagation();
         speak(word.word, 'en-US');
     };
-    
-    speakMeaningButton.onclick = (event) => {
-        if (event) event.stopPropagation();
-        speak(word.meaning, 'vi-VN');
+
+    cardContainer.onclick = () => {
+        cardContainer.classList.toggle('is-flipped');
+        if (cardContainer.classList.contains('is-flipped')) {
+            detailsEl.style.maxHeight = detailsEl.scrollHeight + "px"; // Mở rộng để hiển thị nội dung
+            speak(word.meaning, 'vi-VN');
+        } else {
+            detailsEl.style.maxHeight = '0px'; // Thu lại
+        }
     };
 
-    document.getElementById("card-counter").textContent = `${state.currentFlashcardIndex + 1} / ${gameList.length}`;
-    
+    // Initial speak
     speak(word.word, 'en-US');
 }
+// ===================================================================
+// END: THAY THẾ HÀM updateFlashcard
+// ===================================================================
 
 
-// Hàm mới để xử lý câu trả lời và chuyển thẻ
+// ===================================================================
+// START: THAY THẾ HÀM handleFlashcardAnswer
+// ===================================================================
 window.handleFlashcardAnswer = (remembered) => {
     const word = state.flashcardList[state.currentFlashcardIndex];
-    
-    // Gọi hàm cập nhật level và điểm
+
     updateWordLevel(word, remembered); 
-    
-    // Phát âm thanh tương ứng
     playSound(remembered ? 'correct' : 'wrong');
 
-    // Chuyển sang thẻ tiếp theo
-    const newIndex = state.currentFlashcardIndex + 1;
-    setState({ currentFlashcardIndex: newIndex });
-    updateFlashcard();
+    // Thêm hiệu ứng lướt qua cho thẻ
+    const cardContainer = document.getElementById('flashcard-container');
+    if (cardContainer) {
+        cardContainer.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+        cardContainer.style.transform = remembered ? 'translateX(100%)' : 'translateX(-100%)';
+        cardContainer.style.opacity = '0';
+    }
+
+    setTimeout(() => {
+        if (cardContainer) {
+            // Reset style trước khi hiển thị thẻ mới
+            cardContainer.style.transition = 'none';
+            cardContainer.style.transform = 'translateX(0)';
+            cardContainer.style.opacity = '1';
+        }
+        const newIndex = state.currentFlashcardIndex + 1;
+        setState({ currentFlashcardIndex: newIndex });
+        updateFlashcard();
+    }, 300); // 300ms, khớp với thời gian transition
 }
+// ===================================================================
+// END: THAY THẾ HÀM handleFlashcardAnswer
+// ===================================================================
 
 // --- Sắp xếp chữ (Scramble) ---
 export function startScramble(containerId) {
