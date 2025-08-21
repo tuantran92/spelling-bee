@@ -330,10 +330,8 @@ export function startReading(containerId) {
 
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Flashcard</h2>
-
         <div id="flashcard-container" class="w-full h-[60vh] max-h-[500px] bg-gray-800 rounded-2xl shadow-lg relative overflow-hidden flex flex-col justify-end cursor-pointer group transition-all duration-300 transform hover:scale-105">
             <div class="absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t from-black/80 via-black/60 to-transparent"></div>
-
             <div id="flashcard-text-content" class="relative p-4 md:p-6 text-white z-10 w-full">
                 <div class="flex items-center gap-3">
                     <p id="flashcard-word" class="font-bold text-4xl md:text-5xl"></p>
@@ -345,13 +343,19 @@ export function startReading(containerId) {
 
                 <div id="flashcard-details" class="transition-all duration-500 max-h-0 overflow-hidden">
                     <hr class="border-gray-500 my-3">
-                    <p id="flashcard-meaning" class="text-2xl font-semibold mt-2 text-cyan-300"></p>
+
+                    <div class="flex items-center gap-3">
+                        <p id="flashcard-meaning" class="text-2xl font-semibold mt-2 text-cyan-300"></p>
+                        <button id="flashcard-speak-meaning-btn" class="bg-white/20 hover:bg-white/30 p-2 rounded-full text-white mt-2">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                        </button>
+                    </div>
+
                     <p id="flashcard-definition" class="text-sm italic mt-2"></p>
                     <p id="flashcard-example" class="text-sm italic mt-2"></p>
                 </div>
             </div>
         </div>
-
         <div class="mt-4 flex flex-col items-center gap-4">
             <p class="text-sm text-gray-500">Nhấp vào thẻ để xem nghĩa. Nhớ hay không?</p>
             <div class="flex gap-4 w-full max-w-sm">
@@ -394,11 +398,9 @@ function updateFlashcard() {
     const textContentEl = document.getElementById("flashcard-text-content");
     const detailsEl = document.getElementById('flashcard-details');
 
-    // Reset state
     cardContainer.classList.remove('is-flipped');
     detailsEl.style.maxHeight = '0px';
 
-    // Update background
     if (word.imageUrl) {
         cardContainer.style.backgroundImage = `url('${word.imageUrl}')`;
         cardContainer.style.backgroundSize = 'cover';
@@ -408,12 +410,11 @@ function updateFlashcard() {
         cardContainer.querySelector('.bg-gradient-to-t').style.display = 'block';
     } else {
         cardContainer.style.backgroundImage = 'none';
-        cardContainer.style.backgroundColor = '#374151'; // fallback dark gray
+        cardContainer.style.backgroundColor = '#374151';
         textContentEl.classList.add('items-center', 'text-center');
         cardContainer.querySelector('.bg-gradient-to-t').style.display = 'none';
     }
 
-    // Populate text
     document.getElementById("flashcard-word").textContent = word.word;
     document.getElementById("flashcard-phonetic").textContent = word.phonetic || '';
     document.getElementById("flashcard-meaning").textContent = word.meaning;
@@ -421,23 +422,26 @@ function updateFlashcard() {
     document.getElementById("flashcard-example").textContent = word.example ? `Vd: ${word.example}` : '';
     document.getElementById("card-counter").textContent = `${state.currentFlashcardIndex + 1} / ${gameList.length}`;
 
-    // Add listeners
     document.getElementById("flashcard-speak-btn").onclick = (e) => {
         e.stopPropagation();
         speak(word.word, 'en-US');
     };
 
+    // **FIX**: Gắn sự kiện cho nút đọc Tiếng Việt
+    document.getElementById("flashcard-speak-meaning-btn").onclick = (e) => {
+        e.stopPropagation(); // Ngăn thẻ bị lật lại
+        speak(word.meaning, 'vi-VN');
+    };
+
     cardContainer.onclick = () => {
         cardContainer.classList.toggle('is-flipped');
         if (cardContainer.classList.contains('is-flipped')) {
-            detailsEl.style.maxHeight = detailsEl.scrollHeight + "px"; // Mở rộng để hiển thị nội dung
-            speak(word.meaning, 'vi-VN');
+            detailsEl.style.maxHeight = detailsEl.scrollHeight + "px";
         } else {
-            detailsEl.style.maxHeight = '0px'; // Thu lại
+            detailsEl.style.maxHeight = '0px';
         }
     };
 
-    // Initial speak
     speak(word.word, 'en-US');
 }
 // ===================================================================
