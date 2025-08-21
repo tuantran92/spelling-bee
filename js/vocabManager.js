@@ -487,13 +487,30 @@ export async function deleteVocabWord(index) {
     }
 }
 
+// ---------------------------------------------------------------- //
+// ----- BẮT ĐẦU THAY ĐỔI TẠI ĐÂY ----- //
+// ---------------------------------------------------------------- //
 export async function importFromGoogleSheet() {
-    const result = await dataImport();
-    showToast(result.message, result.success ? 'success' : 'error');
-    if (result.success) {
-        handleFilterChange();
+    try {
+        const result = await dataImport();
+        
+        if (result) {
+            showToast(result.message, result.success ? 'success' : 'error');
+            // Chỉ render lại UI nếu có từ mới được thêm vào
+            if (result.success && result.addedCount > 0) {
+                handleFilterChange();
+            }
+        } else {
+            showToast('Có lỗi không xác định xảy ra.', 'error');
+        }
+    } catch (error) {
+        console.error("Lỗi khi gọi importFromGoogleSheet trong vocabManager:", error);
+        showToast('Import thất bại. Vui lòng xem console.', 'error');
     }
 }
+// ---------------------------------------------------------------- //
+// ----- KẾT THÚC THAY ĐỔI ----- //
+// ---------------------------------------------------------------- //
 
 export function exportToCSV() {
     const vocabList = state.vocabList;

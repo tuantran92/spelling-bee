@@ -485,26 +485,50 @@ export function addSettingsEventListeners() {
     safeAddEventListener('avatar-upload-input', 'change', profile.handleAvatarUpload);
 }
 
-// === HÀM MỚI CHO TOAST ===
-export function showToast(message, duration = 3000) {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
+// Biến toàn cục để quản lý bộ đếm thời gian của toast, tránh bị chồng chéo
+let toastTimeout;
 
-    const toast = document.createElement('div');
-    toast.className = 'bg-gray-800 text-white py-2 px-4 rounded-lg shadow-lg animate-fade-in-up';
-    toast.textContent = message;
+// ===================================================================
+// START: THAY THẾ TOÀN BỘ HÀM SHOWTOAST BẰNG PHIÊN BẢN NÀY
+// ===================================================================
+export function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    
+    // Nếu không tìm thấy element, dừng lại để tránh lỗi
+    if (!toast || !toastMessage) {
+        console.error("Lỗi: Không tìm thấy element #toast hoặc #toast-message trong DOM.");
+        return;
+    }
 
-    container.appendChild(toast);
+    // Hủy bộ đếm thời gian của thông báo cũ (nếu có) để hiển thị ngay thông báo mới
+    clearTimeout(toastTimeout);
 
-    setTimeout(() => {
-        // Thêm class để bắt đầu animation fade-out
-        toast.classList.remove('animate-fade-in-up');
-        toast.classList.add('animate-fade-out-down');
-        
-        // Xóa element khỏi DOM sau khi animation kết thúc
-        toast.addEventListener('animationend', () => {
-            toast.remove();
-        });
+    // Thiết lập màu sắc
+    toast.classList.remove('bg-green-500', 'bg-red-500', 'bg-blue-500', 'hidden');
+    if (type === 'success') {
+        toast.classList.add('bg-green-500');
+    } else if (type === 'error') {
+        toast.classList.add('bg-red-500');
+    } else {
+        toast.classList.add('bg-blue-500');
+    }
+
+    // Gán nội dung và hiển thị thông báo
+    toastMessage.textContent = message;
+    toast.classList.remove('hidden');
+
+    // --- PHẦN QUAN TRỌNG NHẤT ---
+    // Tính toán thời gian hiển thị động dựa trên độ dài của tin nhắn
+    // Thời gian cơ bản là 3.5 giây, cộng thêm 70 mili giây cho mỗi ký tự.
+    // Thời gian tối đa là 10 giây để tránh hiển thị quá lâu.
+    const duration = Math.min(10000, 3500 + message.length * 70);
+
+    // Đặt hẹn giờ để ẩn thông báo
+    toastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
     }, duration);
 }
-// === KẾT THÚC HÀM MỚI ===
+// ===================================================================
+// END: THAY THẾ TOÀN BỘ HÀM SHOWTOAST
+// ===================================================================

@@ -284,14 +284,19 @@ export function recordDailyActivity(count) {
     updateDashboard();
 }
 
+// ---------------------------------------------------------------- //
+// ----- BẮT ĐẦU THAY ĐỔI TẠI ĐÂY ----- //
+// ---------------------------------------------------------------- //
 export async function importFromGoogleSheet() {
     const url = prompt("Dán link Google Sheet vào đây. Sheet cần được chia sẻ công khai và có các cột: word, meaning, example, category.");
-    if (!url) return { success: false, message: 'Hủy bỏ.' };
+    if (!url) {
+        return { success: false, message: 'Đã hủy bỏ import.' };
+    }
 
     const regex = /spreadsheets\/d\/([a-zA-Z0-9-_]+)/;
     const matches = url.match(regex);
     if (!matches) {
-        return { success: false, message: 'URL không hợp lệ.' };
+        return { success: false, message: 'URL không hợp lệ. Vui lòng kiểm tra lại.' };
     }
 
     const sheetId = matches[1];
@@ -299,25 +304,71 @@ export async function importFromGoogleSheet() {
 
     try {
         const response = await fetch(csvUrl);
-        if (!response.ok) throw new Error('Lỗi mạng khi tải sheet.');
+        if (!response.ok) {
+            throw new Error('Lỗi mạng hoặc sheet không được chia sẻ công khai.');
+        }
         const csvText = await response.text();
-        const newVocabList = parseCSV(csvText).map(word => ({
-            ...word,
-            difficulty: 'medium'
-        }));
+        const wordsFromSheet = parseCSV(csvText);
 
-        setState({ vocabList: newVocabList });
-        await saveMasterVocab();
-        await loadUserData(state.appData.profileName);
+        if (wordsFromSheet.length === 0) {
+            return { success: false, message: "Không tìm thấy từ vựng nào trong sheet." };
+        }
+
+        const currentVocabList = [...state.vocabList];
+        const existingWords = new Set(currentVocabList.map(v => v.word.toLowerCase()));
+        
+        let addedCount = 0;
+        let skippedCount = 0;
+
+        wordsFromSheet.forEach(wordData => {
+            if (existingWords.has(wordData.word.toLowerCase())) {
+                skippedCount++;
+            } else {
+                const newWord = {
+                    ...wordData,
+                    difficulty: 'medium', // Gán giá trị mặc định
+                    // Thêm các trường dữ liệu mặc định khác nếu cần
+                    phonetic: '',
+                    definition: '',
+                    partOfSpeech: '',
+                    imageUrl: null
+                };
+                currentVocabList.push(newWord);
+                // Thêm vào tiến trình học của người dùng
+                if (!state.appData.progress[newWord.word]) {
+                    state.appData.progress[newWord.word] = { level: 0, nextReview: new Date().toISOString(), wrongAttempts: 0, correctAttempts: 0, history: [] };
+                }
+                addedCount++;
+            }
+        });
+
+        // Chỉ lưu lại nếu có sự thay đổi
+        if (addedCount > 0) {
+            setState({ vocabList: currentVocabList });
+            await saveMasterVocab();
+        }
+        
+        // Tạo thông báo kết quả
+        let message = `Đã thêm ${addedCount} từ mới.`;
+        if (skippedCount > 0) {
+            message += ` Bỏ qua ${skippedCount} từ đã có.`;
+        } else {
+            message += " Không có từ nào bị trùng lặp.";
+        }
 
         checkAchievements('firstImport');
-        return { success: true, message: `Import thành công ${newVocabList.length} từ!` };
+        
+        // Trả về kết quả để UI xử lý
+        return { success: true, message: message, addedCount: addedCount };
 
     } catch (error) {
         console.error('Lỗi import:', error);
-        return { success: false, message: 'Lỗi: Không thể tải sheet. Kiểm tra lại URL và quyền chia sẻ.' };
+        return { success: false, message: 'Lỗi: Không thể tải hoặc xử lý sheet.' };
     }
 }
+// ---------------------------------------------------------------- //
+// ----- KẾT THÚC THAY ĐỔI ----- //
+// ---------------------------------------------------------------- //
 
 export async function fetchAllUsersForLeaderboard() {
     try {

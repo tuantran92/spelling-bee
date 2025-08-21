@@ -89,13 +89,30 @@
         .animate-fade-out-down {
             animation: fade-out-down 0.3s ease-in forwards;
         }
+
+                /* === THÊM MỚI HIỆU ỨNG CHO TOAST === */
+        @keyframes fade-in-down {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-out-up {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+        .animate-fade-in-down {
+            animation: fade-in-down 0.3s ease-out forwards;
+        }
+        .animate-fade-out-up {
+            animation: fade-out-up 0.3s ease-in forwards;
+        }
+        /* === KẾT THÚC THÊM MỚI === */
         /* === KẾT THÚC CSS CHO TOAST === */
     </style>
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
 
-    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[200] space-y-2"></div>
     <div id="app-wrapper" class="w-full md:max-w-2xl lg:max-w-4xl mx-auto md:my-8 md:rounded-2xl md:shadow-2xl bg-white dark:bg-gray-800 min-h-screen flex flex-col">
 
         <div id="profile-selection-container" class="flex-grow flex items-center justify-center p-4">
@@ -219,6 +236,10 @@
 
     <audio id="audio-correct" src="./assets/correct.mp3" preload="auto"></audio>
     <audio id="audio-wrong" src="./assets/wrong.mp3" preload="auto"></audio>
+    <div id="toast" class="hidden fixed top-5 right-5 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center max-w-sm">
+        <span id="toast-message" class="flex-grow"></span>
+        <button id="toast-close-btn" class="ml-4 font-bold text-xl leading-none">&times;</button>
+    </div>
 
     <script type="module" src="./js/main.js"></script>
 </body>
