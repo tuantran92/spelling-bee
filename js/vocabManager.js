@@ -225,6 +225,9 @@ export function closeWordStats() {
     modalContainer.innerHTML = '';
 }
 
+// ===================================================================
+// START: HÀM openVocabForm ĐÃ ĐƯỢC THIẾT KẾ LẠI
+// ===================================================================
 export function openVocabForm(word = null) {
     setState({ editingWord: word });
     const modalContainer = document.getElementById('vocab-form-modal');
@@ -236,59 +239,59 @@ export function openVocabForm(word = null) {
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
             <h3 id="vocab-form-title" class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4"></h3>
-            <form id="vocab-form" class="space-y-4">
+            <form id="vocab-form" class="space-y-3">
                 <input type="text" name="word" placeholder="Từ vựng (tiếng Anh)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" required>
                 <input type="text" name="meaning" placeholder="Nghĩa (tiếng Việt)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" required>
                 <input type="text" name="example" placeholder="Câu ví dụ (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
                 <input type="text" name="category" placeholder="Chủ đề (không bắt buộc)" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
                 
-                <div class="mt-4">
+                <div class="pt-2">
                     <label for="image-search-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tìm ảnh minh họa</label>
                     <div class="mt-1 flex rounded-md shadow-sm">
-                        <input type="text" id="image-search-input" class="flex-1 block w-full rounded-none rounded-l-md sm:text-sm border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="vd: happy cat">
-                        <button type="button" id="search-image-btn" class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400">Tìm</button>
+                        <input type="text" id="image-search-input" class="flex-1 block w-full rounded-none rounded-l-md sm:text-sm border-gray-300 dark:bg-gray-700 dark:border-gray-600" placeholder="Tự động điền theo từ vựng ở trên">
+                        <button type="button" id="search-image-btn" class="inline-flex items-center px-4 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm dark:bg-gray-800 dark:border-gray-600">Tìm</button>
                     </div>
                 </div>
-                <div id="image-results-wrapper" class="mt-2 bg-gray-100 dark:bg-gray-900 rounded p-1">
-                    <div id="image-search-results" class="grid grid-cols-3 gap-2 h-32 overflow-y-auto"></div>
+                
+                <div id="image-results-wrapper" class="bg-gray-100 dark:bg-gray-900 rounded p-2">
+                    <div id="image-search-results" class="grid grid-cols-3 gap-2 h-64 overflow-y-auto">
+                         <p class="col-span-3 text-center text-gray-500 dark:text-gray-400 p-4">Nhập từ khóa và nhấn "Tìm" để xem ảnh.</p>
+                    </div>
                     <div id="image-load-more-container" class="text-center pt-2"></div>
                 </div>
 
-                <div class="mt-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Hoặc tải lên ảnh của bạn</label>
-                    <div class="mt-1 flex items-center justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md dark:border-gray-600">
-                        <div id="custom-image-preview-container" class="text-center hidden">
-                             <img id="custom-image-preview" src="#" alt="Xem trước ảnh" class="mx-auto h-24 object-contain">
-                             <button type="button" id="remove-custom-image-btn" class="mt-2 text-sm text-red-500 hover:text-red-700">Xóa ảnh</button>
-                        </div>
-                        <div id="custom-image-upload-prompt" class="space-y-1 text-center">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                            </svg>
-                            <div class="flex text-sm text-gray-600 dark:text-gray-400">
-                                <label for="custom-image-upload-input" class="relative cursor-pointer bg-white dark:bg-gray-900 rounded-md font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 focus-within:outline-none">
-                                    <span>Tải lên một file</span>
-                                    <input id="custom-image-upload-input" name="custom-image-upload-input" type="file" class="sr-only" accept="image/png, image/jpeg, image/gif, image/webp">
-                                </label>
-                                <p class="pl-1">hoặc kéo và thả</p>
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+                    <button type="button" id="toggle-upload-btn" class="flex-shrink mx-4 text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Hoặc tải ảnh của bạn</button>
+                    <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                
+                <div id="custom-upload-section" class="hidden">
+                     <div class="flex items-center justify-center w-full">
+                        <label for="custom-image-upload-input" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                            <div id="custom-image-preview-container" class="hidden p-2 text-center">
+                                <img id="custom-image-preview" src="#" alt="Xem trước" class="mx-auto h-20 object-contain">
+                                <button type="button" id="remove-custom-image-btn" class="mt-1 text-xs text-red-500 hover:text-red-700">Xóa ảnh</button>
                             </div>
-                            <p class="text-xs text-gray-500 dark:text-gray-500">PNG, JPG, GIF, WEBP tối đa 2MB</p>
-                        </div>
-                    </div>
+                            <div id="custom-image-upload-prompt" class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <svg class="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
+                                <p class="mb-1 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Nhấn để chọn file</span></p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, WEBP (Tối đa 2MB)</p>
+                            </div>
+                            <input id="custom-image-upload-input" type="file" class="hidden" accept="image/png, image/jpeg, image/gif, image/webp" />
+                        </label>
+                    </div> 
                 </div>
 
                 <p id="vocab-form-feedback" class="text-center text-sm mt-2 h-5"></p>
-                <div class="flex gap-2 mt-4">
-                     <button type="submit" id="vocab-form-submit-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg"></button>
+                <div class="pt-2">
+                     <button type="submit" id="vocab-form-submit-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg"></button>
                 </div>
             </form>
         </div>
     `;
 
     const form = document.getElementById('vocab-form');
-    const searchBtn = document.getElementById('search-image-btn');
-    const searchInput = document.getElementById('image-search-input');
-
     document.getElementById('vocab-form-title').textContent = isEditing ? 'Sửa từ' : 'Thêm từ mới';
     document.getElementById('vocab-form-submit-btn').textContent = isEditing ? 'Lưu thay đổi' : 'Thêm từ';
     form.word.value = word?.word || '';
@@ -296,20 +299,32 @@ export function openVocabForm(word = null) {
     form.example.value = word?.example || '';
     form.category.value = word?.category || '';
     form.word.readOnly = isEditing;
-    searchInput.value = word?.word || '';
-    
-    searchBtn.addEventListener('click', () => {
-        searchImages(searchInput.value, true); // true để reset
+    document.getElementById('image-search-input').value = word?.word || '';
+
+    // GÁN SỰ KIỆN CHO CÁC ELEMENT ĐÚNG CÁCH
+    document.getElementById('search-image-btn').addEventListener('click', () => {
+        const searchTerm = document.getElementById('image-search-input').value || document.getElementById('vocab-form').word.value;
+        searchImages(searchTerm, true);
     });
-    searchInput.addEventListener('keypress', (e) => {
+    
+    document.getElementById('image-search-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            searchImages(searchInput.value, true);
+            e.preventDefault(); // Ngăn form submit
+            const searchTerm = e.target.value || document.getElementById('vocab-form').word.value;
+            searchImages(searchTerm, true);
         }
     });
 
     document.getElementById('close-vocab-form-btn').addEventListener('click', closeVocabForm);
     form.addEventListener('submit', handleVocabFormSubmit);
-    
+
+    const toggleBtn = document.getElementById('toggle-upload-btn');
+    const uploadSection = document.getElementById('custom-upload-section');
+    toggleBtn.addEventListener('click', () => {
+        const isHidden = uploadSection.classList.toggle('hidden');
+        toggleBtn.textContent = isHidden ? 'Hoặc tải ảnh của bạn' : 'Ẩn phần tải ảnh';
+    });
+
     const customImageInput = document.getElementById('custom-image-upload-input');
     const previewContainer = document.getElementById('custom-image-preview-container');
     const previewImage = document.getElementById('custom-image-preview');
@@ -342,6 +357,9 @@ export function openVocabForm(word = null) {
     modalContainer.classList.remove('hidden');
     modalContainer.classList.add('flex');
 }
+// ===================================================================
+// END: HÀM openVocabForm
+// ===================================================================
 
 export function closeVocabForm() {
     const modalContainer = document.getElementById('vocab-form-modal');
@@ -351,50 +369,89 @@ export function closeVocabForm() {
     setState({ editingWord: null });
 }
 
+// ===================================================================
+// START: HÀM searchImages ĐÃ ĐƯỢC CẢI TIẾN
+// ===================================================================
 async function searchImages(term, isNewSearch = false) {
-    if (!term) return;
+    const searchBtn = document.getElementById('search-image-btn');
+    const resultsContainer = document.getElementById('image-search-results');
+    const loadMoreContainer = document.getElementById('image-load-more-container');
+
+    if (!term) {
+        showToast("Vui lòng nhập từ khóa để tìm ảnh.", "error");
+        return;
+    }
+
+    // Vô hiệu hóa nút và hiển thị trạng thái loading
+    if (searchBtn) {
+        searchBtn.disabled = true;
+        searchBtn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+    }
 
     if (isNewSearch) {
         currentImagePage = 1;
         currentImageSearchTerm = term;
-        document.getElementById('image-search-results').innerHTML = '';
+        resultsContainer.innerHTML = ''; // Xóa kết quả cũ
     } else {
         currentImagePage++;
     }
-
-    const resultsContainer = document.getElementById('image-search-results');
-    const loadMoreContainer = document.getElementById('image-load-more-container');
-    const tempLoaderId = `loader-${Date.now()}`;
-    loadMoreContainer.innerHTML = `<div id="${tempLoaderId}" class="loader mx-auto"></div>`;
-
-    const images = await fetchWordImages(currentImageSearchTerm, currentImagePage);
     
-    document.getElementById(tempLoaderId)?.remove();
+    loadMoreContainer.innerHTML = `<div class="loader mx-auto"></div>`;
 
-    if (!images || images.length === 0) {
-        if (currentImagePage === 1) {
-            resultsContainer.innerHTML = '<p class="text-center text-gray-500 col-span-3">Không tìm thấy ảnh nào.</p>';
+    try {
+        const images = await fetchWordImages(currentImageSearchTerm, currentImagePage);
+        
+        if (isNewSearch) { // Chỉ xóa thông báo mặc định khi có kết quả tìm kiếm mới
+             resultsContainer.innerHTML = '';
         }
-        loadMoreContainer.innerHTML = '<p class="text-xs text-gray-400">Đã tải hết ảnh.</p>';
-        return;
-    }
 
-    images.forEach(img => {
-        const imgElement = document.createElement('img');
-        imgElement.src = img.url;
-        imgElement.dataset.url = img.url;
-        imgElement.className = "image-result w-full h-20 object-cover rounded cursor-pointer hover:opacity-75";
-        imgElement.addEventListener('click', () => {
-            document.querySelectorAll('.image-result').forEach(i => i.classList.remove('selected', 'ring-4', 'ring-indigo-500'));
-            imgElement.classList.add('selected', 'ring-4', 'ring-indigo-500');
-            document.getElementById('remove-custom-image-btn').click();
+        if (!images || images.length === 0) {
+            if (currentImagePage === 1) {
+                resultsContainer.innerHTML = '<p class="col-span-3 text-center text-gray-500 dark:text-gray-400 p-4">Không tìm thấy ảnh nào.</p>';
+            }
+            loadMoreContainer.innerHTML = '<p class="text-xs text-gray-400">Đã tải hết ảnh.</p>';
+            return;
+        }
+        
+        images.forEach(img => {
+            const imgElement = document.createElement('img');
+            imgElement.src = img.url;
+            imgElement.dataset.url = img.url;
+            imgElement.alt = `Ảnh minh họa cho ${currentImageSearchTerm}`;
+            // Class để ảnh lấp đầy ô và có hiệu ứng đẹp hơn
+            imgElement.className = "image-result w-full h-full object-cover rounded cursor-pointer transition-transform duration-200 hover:scale-105";
+            imgElement.addEventListener('click', () => {
+                document.querySelectorAll('.image-result').forEach(i => i.classList.remove('selected', 'ring-4', 'ring-indigo-500'));
+                imgElement.classList.add('selected', 'ring-4', 'ring-indigo-500');
+                // Nếu khu vực upload đang mở, tự động xóa ảnh đã chọn ở đó
+                if (document.getElementById('remove-custom-image-btn')) {
+                    document.getElementById('remove-custom-image-btn').click();
+                }
+            });
+            resultsContainer.appendChild(imgElement);
         });
-        resultsContainer.appendChild(imgElement);
-    });
+        
+        // Cập nhật nút "Tải thêm"
+        if (images.length > 0) { // Chỉ hiển thị nút khi có kết quả
+            loadMoreContainer.innerHTML = `<button type="button" id="load-more-images-btn" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Tải thêm</button>`;
+            document.getElementById('load-more-images-btn').onclick = () => searchImages(currentImageSearchTerm, false);
+        }
 
-    loadMoreContainer.innerHTML = `<button type="button" id="load-more-images-btn" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Tải thêm</button>`;
-    document.getElementById('load-more-images-btn').onclick = () => searchImages(currentImageSearchTerm, false);
+    } catch (error) {
+        console.error("Lỗi khi tìm ảnh:", error);
+        showToast("Có lỗi xảy ra khi tìm ảnh.", "error");
+        resultsContainer.innerHTML = '<p class="col-span-3 text-center text-red-500 dark:text-red-400 p-4">Lỗi tải ảnh.</p>';
+    } finally {
+        // Luôn bật lại nút sau khi hoàn tất
+        if (searchBtn) {
+            searchBtn.disabled = false;
+            searchBtn.textContent = 'Tìm';
+        }
+    }
 }
+// ===================================================================
+// END: HÀM searchImages
+// ===================================================================
 
 export async function handleVocabFormSubmit(event) {
     event.preventDefault();
