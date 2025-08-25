@@ -14,7 +14,7 @@ import * as ui from './ui.js';
 const learningGameModes = [
     'suggestion-screen', 'review-screen', 'spelling-screen', 'reading-screen', 
     'scramble-screen', 'mcq-screen', 'listening-screen', 'pronunciation-screen', 
-    'fill-blank-screen', 'exam-screen', 'remember-word-screen' // <-- THÊM DÒNG NÀY
+    'fill-blank-screen', 'exam-screen', 'remember-word-screen' 
 ];
 
 function startSessionTimer() {
@@ -49,18 +49,13 @@ function attachGlobalFunctions() {
         closeGameScreen(screenId);
     };
 
-    // UI
+    // UI & Profile
     window.toggleDarkMode = ui.toggleDarkMode;
     window.showProgressSubTab = ui.showProgressSubTab;
     window.applyFilters = applyFilters;
     window.handleFontSizeChange = ui.handleFontSizeChange;
-
-    // Profile (gán toàn bộ module)
     window.profile = profile;
-
-    // === THÊM DÒNG NÀY VÀO ===
     window.exportToCSV = vocabManager.exportToCSV;
-    // === KẾT THÚC THÊM ===
 
     // Vocab Manager
     window.openVocabForm = vocabManager.openVocabForm;
@@ -79,10 +74,7 @@ function attachGlobalFunctions() {
     // Game Modes
     window.speakWord = game.speakWord;
     window.checkSpelling = game.checkSpelling;
-    window.changeFlashcard = game.changeFlashcard;
-    window.checkScramble = game.checkScramble;
-    window.toggleScrambleHint = game.toggleScrambleHint;
-    window.showScrambleAnswer = game.showScrambleAnswer; // Dòng đã được thêm
+    window.handleFlashcardAnswer = window.handleFlashcardAnswer; // Giả định nó đã có sẵn trên window hoặc trong `game`
     window.checkMcq = game.checkMcq;
     window.checkListening = game.checkListening;
     window.listenForPronunciation = game.listenForPronunciation;
@@ -92,7 +84,15 @@ function attachGlobalFunctions() {
     window.translateFillBlankSentence = game.translateFillBlankSentence;
     window.handleReviewAnswer = game.handleReviewAnswer;
     window.startSuggestionMode = game.startSuggestionMode;
-    window.checkRememberWord = game.checkRememberWord; // <-- THÊM DÒNG NÀY
+    window.checkRememberWord = game.checkRememberWord; // SỬA LỖI: Thêm lại hàm này
+
+    // Game Sắp xếp chữ (Scramble)
+    window.checkScramble = game.checkScramble;
+    window.toggleScrambleHint = game.toggleScrambleHint;
+    window.showScrambleAnswer = game.showScrambleAnswer;
+    window.handleScrambleLetterClick = game.handleScrambleLetterClick;
+    window.handleAnswerLetterClick = game.handleAnswerLetterClick;
+    window.handleScrambleBackspace = game.handleScrambleBackspace;
 
     // Exam
     window.startExam = exam.startExam;
