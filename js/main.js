@@ -14,7 +14,7 @@ import * as ui from './ui.js';
 const learningGameModes = [
     'suggestion-screen', 'review-screen', 'spelling-screen', 'reading-screen', 
     'scramble-screen', 'mcq-screen', 'listening-screen', 'pronunciation-screen', 
-    'fill-blank-screen', 'exam-screen'
+    'fill-blank-screen', 'exam-screen', 'remember-word-screen' // <-- THÊM DÒNG NÀY
 ];
 
 function startSessionTimer() {
@@ -92,6 +92,7 @@ function attachGlobalFunctions() {
     window.translateFillBlankSentence = game.translateFillBlankSentence;
     window.handleReviewAnswer = game.handleReviewAnswer;
     window.startSuggestionMode = game.startSuggestionMode;
+    window.checkRememberWord = game.checkRememberWord; // <-- THÊM DÒNG NÀY
 
     // Exam
     window.startExam = exam.startExam;

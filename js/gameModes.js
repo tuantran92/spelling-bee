@@ -588,63 +588,19 @@ export function checkScramble() {
     }
 }
 
+// ===================================================================
+// START: THAY ĐỔI TOÀN BỘ LOGIC CỦA TRẮC NGHIỆM (MCQ)
+// ===================================================================
 
 // --- Trắc nghiệm (MCQ) ---
-function renderNextMcqQuestion() {
-    const wordEl = document.getElementById("mcq-word");
-    const phoneticEl = document.getElementById("mcq-phonetic");
-    const speakBtn = document.getElementById('mcq-speak-btn');
-    const optionsEl = document.getElementById("mcq-options");
-    const resultEl = document.getElementById("mcq-result");
 
-    if (!wordEl || !speakBtn || !optionsEl || !resultEl) {
-        console.error("MCQ UI elements not found. Cannot render next question.");
-        return;
-    }
-
-    const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
-    if (gameList.length < 4) {
-        const container = document.getElementById('mcq-screen-content');
-        if (container) {
-            container.innerHTML = '<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-red-500">Không đủ từ vựng để tiếp tục.</p>';
-        }
-        return;
-    }
-    
-    const correctWord = getNextWord();
-    setState({ currentWord: correctWord });
-
-    const options = [correctWord];
-    while (options.length < 4) {
-        const randomWord = state.vocabList[Math.floor(Math.random() * state.vocabList.length)];
-        if (!options.some(opt => opt.word === randomWord.word)) {
-            options.push(randomWord);
-        }
-    }
-    options.sort(() => .5 - Math.random());
-
-    wordEl.textContent = state.currentWord.word;
-    if (phoneticEl) {
-        phoneticEl.textContent = state.currentWord.phonetic || '';
-    }
-    speakBtn.onclick = () => speakWord(state.currentWord.word);
-    resultEl.textContent = ''; 
-    optionsEl.innerHTML = ''; 
-
-    options.forEach(opt => {
-        const button = document.createElement("button");
-        button.className = "bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors vocab-font-size";
-        button.textContent = opt.meaning;
-        button.onclick = (event) => checkMcq(event.currentTarget, opt.word === state.currentWord.word);
-        optionsEl.appendChild(button);
-    });
-
-    speakWord(state.currentWord.word);
-}
-
-export function startMcq(containerId) {
+// Hàm này giờ sẽ render toàn bộ giao diện cho mỗi câu hỏi
+function renderMcqScreen(containerId) {
     const container = document.getElementById(containerId);
-    if (!container) return;
+    if (!container) {
+        console.error("MCQ container not found.");
+        return;
+    }
 
     const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
     if (gameList.length < 4) {
@@ -652,25 +608,55 @@ export function startMcq(containerId) {
         return;
     }
     
+    const correctWord = getNextWord();
+    setState({ currentWord: correctWord });
+
+    // Tạo các lựa chọn
+    const options = [correctWord];
+    while (options.length < 4) {
+        const randomWord = state.vocabList[Math.floor(Math.random() * state.vocabList.length)];
+        if (!options.some(opt => opt.word === randomWord.word)) {
+            options.push(randomWord);
+        }
+    }
+    const shuffledOptions = shuffleArray(options);
+
+    // Tạo HTML cho các nút lựa chọn
+    const optionsHtml = shuffledOptions.map(opt => {
+        // Chuyển giá trị boolean thành chuỗi 'true'/'false' để dùng trong HTML
+        const isCorrect = (opt.word === correctWord.word).toString();
+        return `<button onclick="checkMcq(this, ${isCorrect})" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors vocab-font-size">${opt.meaning}</button>`;
+    }).join('');
+
+    // Render toàn bộ giao diện vào container
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Chọn nghĩa đúng:</h2>
         <div class="flex justify-center items-center gap-4 mb-6">
-            <div id="mcq-word-container" class="text-center font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg">
-                <p id="mcq-word" class="vocab-font-size-mcq"></p>
-                <p id="mcq-phonetic" class="text-lg text-gray-500 dark:text-gray-400 font-mono mt-1"></p>
+            <div class="text-center font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg">
+                <p class="vocab-font-size-mcq">${correctWord.word}</p>
+                <p class="text-lg text-gray-500 dark:text-gray-400 font-mono mt-1">${correctWord.phonetic || ''}</p>
             </div>
-            <button id="mcq-speak-btn" class="p-3 bg-sky-500 hover:bg-sky-600 rounded-full text-white shadow-md"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg></button>
+            <button onclick="speakWord('${correctWord.word}', event)" class="p-3 bg-sky-500 hover:bg-sky-600 rounded-full text-white shadow-md">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+            </button>
         </div>
-        <div id="mcq-options" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        <div id="mcq-options" class="grid grid-cols-1 md:grid-cols-2 gap-4">${optionsHtml}</div>
         <p id="mcq-result" class="mt-6 h-6 text-lg font-medium"></p>
     `;
 
-    renderNextMcqQuestion();
+    speakWord(correctWord.word);
 }
 
+// Hàm bắt đầu game, chỉ cần gọi hàm render lần đầu
+export function startMcq(containerId) {
+    renderMcqScreen(containerId);
+}
+
+// Hàm kiểm tra câu trả lời, được đơn giản hóa
 export function checkMcq(clickedButton, isCorrect) {
     const resultEl = document.getElementById("mcq-result");
-    const isFirstAttempt = !document.querySelector("#mcq-options button:disabled");
+    const optionsContainer = document.getElementById("mcq-options");
+    const isFirstAttempt = !optionsContainer.querySelector("button:disabled");
 
     playSound(isCorrect ? 'correct' : 'wrong');
     
@@ -681,20 +667,27 @@ export function checkMcq(clickedButton, isCorrect) {
     if (isCorrect) {
         resultEl.textContent = "✅ Chính xác!";
         resultEl.className = "mt-6 h-6 text-lg font-medium text-green-500";
-        document.querySelectorAll("#mcq-options button").forEach(btn => {
+        // Vô hiệu hóa tất cả các nút và đổi màu nút đúng
+        optionsContainer.querySelectorAll("button").forEach(btn => {
             btn.disabled = true;
             if (btn === clickedButton) {
                 btn.className = "bg-green-500 text-white font-semibold py-3 px-4 rounded-lg vocab-font-size";
             }
         });
-        setTimeout(renderNextMcqQuestion, 1500);
+        // Gọi hàm render lại toàn bộ màn hình cho câu hỏi tiếp theo
+        setTimeout(() => renderMcqScreen('mcq-screen-content'), 1500);
     } else {
         resultEl.textContent = "❌ Sai rồi, hãy chọn lại!";
         resultEl.className = "mt-6 h-6 text-lg font-medium text-red-500";
+        // Chỉ vô hiệu hóa nút đã chọn sai
         clickedButton.disabled = true;
         clickedButton.className = "bg-red-500 text-white font-semibold py-3 px-4 rounded-lg cursor-not-allowed vocab-font-size";
     }
 }
+
+// ===================================================================
+// END: SỬA LỖI TRẮC NGHIỆM
+// ===================================================================
 
 
 // --- Luyện nghe (Listening) ---
@@ -1055,3 +1048,87 @@ export function skipFillBlankQuestion() {
     state.fillBlankSession.currentIndex++;
     startFillBlank('fill-blank-screen-content');
 }
+
+// ===================================================================
+// START: CHỨC NĂNG "NHỚ TỪ MỚI" (Không thay đổi)
+// ===================================================================
+
+function renderNextRememberWordQuestion(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
+    if (gameList.length < 1) {
+        container.innerHTML = '<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-red-500">Không có từ vựng nào để chơi.</p>';
+        return;
+    }
+
+    const correctWordObj = getNextWord();
+    if (!correctWordObj) { 
+        container.innerHTML = '<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-red-500">Không thể lấy từ tiếp theo.</p>';
+        return;
+    }
+
+    setState({ currentWord: correctWordObj });
+    const correctAnswer = correctWordObj.word;
+
+    const options = [correctAnswer];
+    while (options.length < 4) {
+        const shuffled = scrambleWord(correctAnswer);
+        if (!options.includes(shuffled)) {
+            options.push(shuffled);
+        }
+    }
+    const shuffledOptions = shuffleArray(options);
+
+    container.innerHTML = `
+        <h2 class="text-2xl font-semibold mb-4">Từ nào dưới đây có nghĩa là:</h2>
+        <div class="text-center font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg mb-6">
+            <p class="vocab-font-size-mcq">${correctWordObj.meaning}</p>
+        </div>
+        <div id="remember-word-options" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${shuffledOptions.map(opt => `
+                <button onclick="checkRememberWord(this, '${opt === correctAnswer}')" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors vocab-font-size">
+                    ${opt}
+                </button>
+            `).join('')}
+        </div>
+        <p id="remember-word-result" class="mt-6 h-6 text-lg font-medium"></p>
+    `;
+}
+
+export function startRememberWord(containerId) {
+    renderNextRememberWordQuestion(containerId);
+}
+
+export function checkRememberWord(clickedButton, isCorrectStr) {
+    const isCorrect = isCorrectStr === 'true';
+    const resultEl = document.getElementById("remember-word-result");
+    const optionsContainer = document.getElementById("remember-word-options");
+
+    playSound(isCorrect ? 'correct' : 'wrong');
+    updateWordLevel(state.currentWord, isCorrect);
+
+    optionsContainer.querySelectorAll('button').forEach(btn => {
+        btn.disabled = true;
+        const btnIsCorrect = btn.textContent.trim() === state.currentWord.word;
+        if (btnIsCorrect) {
+            btn.className = "bg-green-500 text-white font-semibold py-3 px-4 rounded-lg vocab-font-size";
+        }
+    });
+
+    if (isCorrect) {
+        resultEl.textContent = "✅ Chính xác!";
+        resultEl.className = "mt-6 h-6 text-lg font-medium text-green-500";
+        clickedButton.className = "bg-green-500 text-white font-semibold py-3 px-4 rounded-lg vocab-font-size";
+        setTimeout(() => renderNextRememberWordQuestion('remember-word-screen-content'), 1500);
+    } else {
+        resultEl.textContent = `❌ Sai rồi! Đáp án đúng là "${state.currentWord.word}"`;
+        resultEl.className = "mt-6 h-6 text-lg font-medium text-red-500";
+        clickedButton.className = "bg-red-500 text-white font-semibold py-3 px-4 rounded-lg cursor-not-allowed vocab-font-size";
+        setTimeout(() => renderNextRememberWordQuestion('remember-word-screen-content'), 2500);
+    }
+}
+// ===================================================================
+// END: CHỨC NĂNG "NHỚ TỪ MỚI"
+// ===================================================================

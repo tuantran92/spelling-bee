@@ -57,6 +57,7 @@ export function showGameScreen(screenId) {
         'exam-screen': exam.setupExamScreen,
         'pronunciation-screen': game.startPronunciation,
         'fill-blank-screen': game.startFillBlank,
+        'remember-word-screen': game.startRememberWord, // <-- THÊM DÒNG NÀY
     };
     if (screenInitializers[screenId]) { screenInitializers[screenId](`${screenId}-content`); }
 }
@@ -128,6 +129,7 @@ export function renderHomeTab() {
                 ${renderPracticeModeItem('Đánh Vần', 'Luyện kỹ năng viết đúng chính tả', 'spelling-screen')}
                 ${renderPracticeModeItem('Flashcard', 'Học từ với thẻ ghi nhớ', 'reading-screen')}
                 ${renderPracticeModeItem('Trắc Nghiệm', 'Chọn nghĩa đúng của từ', 'mcq-screen')}
+                ${renderPracticeModeItem('Nhớ từ mới', 'Chọn từ đúng trong các từ bị xáo trộn', 'remember-word-screen')}
                 ${renderPracticeModeItem('Luyện Nghe', 'Nghe và gõ lại từ', 'listening-screen')}
                 ${renderPracticeModeItem('Sắp Xếp Chữ', 'Tạo thành từ đúng', 'scramble-screen')}
                 ${renderPracticeModeItem('Phát Âm', 'Kiểm tra phát âm của bạn', 'pronunciation-screen')}
@@ -323,6 +325,7 @@ function renderPracticeModeItem(title, description, screenId) {
         'spelling-screen':    { color: 'blue', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>'},
         'reading-screen':     { color: 'teal', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>'},
         'mcq-screen':         { color: 'sky', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>'},
+        'remember-word-screen': { color: 'teal', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>'},
         'listening-screen':   { color: 'rose', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>'},
         'scramble-screen':    { color: 'orange', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>'},
         'pronunciation-screen': { color: 'red', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 SVG_COLOR_CLASS" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>'},

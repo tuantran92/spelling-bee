@@ -14,18 +14,53 @@ export function parseCSV(text) {
     }).filter(item => item !== null);
 }
 
+// ===================================================================
+// START: THAY ĐỔI THUẬT TOÁN TẠI ĐÂY
+// ===================================================================
+/**
+ * Xáo trộn một vài ký tự trong từ để dễ đoán hơn.
+ * @param {string} word - Từ gốc cần xáo trộn.
+ * @returns {string} Từ đã được xáo trộn nhẹ.
+ */
 export function scrambleWord(word) {
+    if (word.length <= 1) {
+        return word;
+    }
+
     let scrambled;
     const letters = word.split("");
+    const len = letters.length;
+
     do {
-        for (let i = letters.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [letters[i], letters[j]] = [letters[j], letters[i]];
+        const tempLetters = [...letters]; // Làm việc trên một bản sao
+
+        // Xác định số lần hoán đổi ký tự dựa trên độ dài của từ.
+        // Càng dài thì hoán đổi càng nhiều, nhưng chỉ khoảng 1/3 số ký tự.
+        // Luôn hoán đổi ít nhất 1 lần.
+        const swaps = Math.max(1, Math.floor(len / 3));
+
+        for (let i = 0; i < swaps; i++) {
+            // Chọn 2 vị trí ngẫu nhiên và khác nhau để hoán đổi
+            const index1 = Math.floor(Math.random() * len);
+            let index2 = Math.floor(Math.random() * len);
+            
+            while (index1 === index2) {
+                index2 = Math.floor(Math.random() * len);
+            }
+
+            // Hoán đổi 2 ký tự
+            [tempLetters[index1], tempLetters[index2]] = [tempLetters[index2], tempLetters[index1]];
         }
-        scrambled = letters.join("");
-    } while (scrambled === word && word.length > 1);
+        scrambled = tempLetters.join("");
+        
+    } while (scrambled === word); // Đảm bảo từ sau khi xáo trộn phải khác từ gốc
+
     return scrambled;
 }
+// ===================================================================
+// END: THAY ĐỔI THUẬT TOÁN
+// ===================================================================
+
 
 export async function hashText(text) {
     const encoder = new TextEncoder();
