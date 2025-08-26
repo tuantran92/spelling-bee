@@ -61,6 +61,9 @@ export function renderHomeTab() {
         ${renderPracticeModeItem('Phát Âm', 'Kiểm tra phát âm của bạn', 'pronunciation-screen')}
         ${renderPracticeModeItem('Điền từ', 'Hoàn thành câu với từ đúng', 'fill-blank-screen')}
         ${renderPracticeModeItem('Luyện Thi', 'Kiểm tra kiến thức tổng hợp', 'exam-screen')}
+        ${renderPracticeModeItem('Nối từ (Word Match)', 'Ghép từ với nghĩa đúng', 'word-match-screen')}
+        ${renderPracticeModeItem('Đoán chữ', 'Đoán chữ cái của từ', 'hangman-screen')}
+
       </div>
     </div>
   `;

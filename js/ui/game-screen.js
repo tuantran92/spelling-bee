@@ -32,6 +32,9 @@ export function showGameScreen(screenId) {
     'pronunciation-screen':game.startPronunciation,
     'fill-blank-screen':   game.startFillBlank,
     'remember-word-screen':game.startRememberWord,
+    'word-match-screen':  game.startWordMatch,
+    'hangman-screen':     game.startHangman,
+
   };
   if (init[screenId]) init[screenId](`${screenId}-content`);
 }

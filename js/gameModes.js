@@ -32,6 +32,9 @@ export {
   skipFillBlankQuestion, translateFillBlankSentence
 } from './game-modes/fill-blank.js';
 export { startReading, handleFlashcardAnswer } from './game-modes/reading.js';
+export { startWordMatch } from './game-modes/word-match.js';
+export { startHangman, hangmanGuess } from './game-modes/hangman.js';
+
 
 // js/gameModes.js
 import { state, setState } from './state.js';

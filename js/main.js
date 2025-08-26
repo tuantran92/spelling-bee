@@ -116,6 +116,10 @@ function attachGlobalFunctions() {
   window.startSuggestionSession = game.startSuggestionSession; // NEW
   window.nextSuggestionWord     = game.nextSuggestionWord;     // NEW
   window.handleReviewAnswer     = game.handleReviewAnswer;
+ // Word Match & Hangman
+ window.startWordMatch = game.startWordMatch;
+ window.startHangman   = game.startHangman;
+ window.hangmanGuess   = game.hangmanGuess;
 
 }
 
