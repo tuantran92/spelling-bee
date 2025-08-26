@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Luyện Từ Vựng PRO</title>
-    <link rel="icon" type="image/png" href="/spelling-bee/assets/favicon.png">
+    <link rel="icon" type="image/png" href="./assets/favicon.png">
 
     <script>
         if (localStorage.getItem('darkMode') === 'true' ||
@@ -49,15 +49,21 @@
             justify-content: center;
         }
         .game-screen.active { display: flex; }
+        /* =================================================================== */
+        /* START: THAY ĐỔI Ở ĐÂY */
+        /* =================================================================== */
         .game-container {
             width: 95%;
-            max-width: 500px;
-            max-height: 90vh;
+            max-width: 42rem; /* Tăng chiều rộng tối đa (tương đương max-w-2xl) */
+            max-height: 95vh;   /* Tăng chiều cao tối đa */
             overflow-y: auto;
         }
+        /* =================================================================== */
+        /* END: THAY ĐỔI */
+        /* =================================================================== */
         @media (min-width: 768px) {
             .game-container {
-                max-width: 700px;
+                max-width: 48rem; /* Tăng thêm cho màn hình lớn hơn */
             }
         }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
@@ -74,14 +80,12 @@
         #flashcard-content { min-height: 24rem; }
         #flashcard-text-content.no-image { margin: auto 0; }
         
-        /* THÊM VÀO CUỐI THẺ <style> */
         #vocab-form-modal .details-hidden #vocab-details-section {
             display: none;
         }
         #vocab-form-modal .details-hidden #image-search-results {
-            height: 25rem; /* Tăng chiều cao lên đáng kể */
+            height: 25rem; 
         }
-        /* === CSS CHO TOAST === */
         @keyframes fade-in-up {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -97,7 +101,6 @@
             animation: fade-out-down 0.3s ease-in forwards;
         }
 
-                /* === THÊM MỚI HIỆU ỨNG CHO TOAST === */
         @keyframes fade-in-down {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -112,8 +115,6 @@
         .animate-fade-out-up {
             animation: fade-out-up 0.3s ease-in forwards;
         }
-        /* === KẾT THÚC THÊM MỚI === */
-        /* === KẾT THÚC CSS CHO TOAST === */
     </style>
 </head>
 

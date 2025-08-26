@@ -59,7 +59,7 @@ function attachGlobalFunctions() {
 
     // Vocab Manager
     window.openVocabForm = vocabManager.openVocabForm;
-    window.handleVocabSubmit = vocabManager.handleVocabSubmit;
+    window.handleVocabFormSubmit = vocabManager.handleVocabFormSubmit;
     window.editVocabWord = vocabManager.editVocabWord;
     window.deleteVocabWord = vocabManager.deleteVocabWord;
     window.importFromGoogleSheet = vocabManager.importFromGoogleSheet;
@@ -74,7 +74,7 @@ function attachGlobalFunctions() {
     // Game Modes
     window.speakWord = game.speakWord;
     window.checkSpelling = game.checkSpelling;
-    window.handleFlashcardAnswer = window.handleFlashcardAnswer; // Giả định nó đã có sẵn trên window hoặc trong `game`
+    window.handleFlashcardAnswer = game.handleFlashcardAnswer;
     window.checkMcq = game.checkMcq;
     window.checkListening = game.checkListening;
     window.listenForPronunciation = game.listenForPronunciation;

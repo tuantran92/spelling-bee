@@ -1117,12 +1117,19 @@ export function skipFillBlankQuestion() {
 }
 
 // ===================================================================
-// START: THÊM LẠI CHỨC NĂNG "NHỚ TỪ MỚI" ĐÃ BỊ LỖI
+// START: CẬP NHẬT GIAO DIỆN CHO CHỨC NĂNG "NHỚ TỪ MỚI"
 // ===================================================================
 
 function renderNextRememberWordQuestion(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    // Xóa nền cũ của container game chính (nếu có)
+    const gameContainer = container.closest('.game-container');
+    if (gameContainer) {
+        gameContainer.style.backgroundImage = '';
+        gameContainer.classList.remove('bg-cover', 'bg-center');
+    }
 
     const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
     if (gameList.length < 1) {
@@ -1148,8 +1155,18 @@ function renderNextRememberWordQuestion(containerId) {
     }
     const shuffledOptions = shuffleArray(options);
 
+    const hasImage = !!correctWordObj.imageUrl;
+    const imageHtml = hasImage 
+        ? `<div class="w-full h-48 md:h-64 bg-gray-200 dark:bg-gray-700 rounded-lg mb-6 overflow-hidden">
+             <img src="${correctWordObj.imageUrl}" alt="Hình minh họa cho ${correctWordObj.word}" class="w-full h-full object-cover">
+           </div>`
+        : '';
+
     container.innerHTML = `
         <h2 class="text-2xl font-semibold mb-4">Từ nào dưới đây có nghĩa là:</h2>
+        
+        ${imageHtml}
+
         <div class="text-center font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg mb-6">
             <p class="vocab-font-size-mcq">${correctWordObj.meaning}</p>
         </div>
@@ -1181,21 +1198,21 @@ export function checkRememberWord(clickedButton, isCorrectStr) {
         const btnIsCorrect = btn.textContent.trim() === state.currentWord.word;
         if (btnIsCorrect) {
             btn.className = "bg-green-500 text-white font-semibold py-3 px-4 rounded-lg vocab-font-size";
+        } else {
+             btn.classList.add('opacity-50');
         }
     });
 
     if (isCorrect) {
         resultEl.textContent = "✅ Chính xác!";
-        resultEl.className = "mt-6 h-6 text-lg font-medium text-green-500";
         clickedButton.className = "bg-green-500 text-white font-semibold py-3 px-4 rounded-lg vocab-font-size";
         setTimeout(() => renderNextRememberWordQuestion('remember-word-screen-content'), 1500);
     } else {
         resultEl.textContent = `❌ Sai rồi! Đáp án đúng là "${state.currentWord.word}"`;
-        resultEl.className = "mt-6 h-6 text-lg font-medium text-red-500";
         clickedButton.className = "bg-red-500 text-white font-semibold py-3 px-4 rounded-lg cursor-not-allowed vocab-font-size";
         setTimeout(() => renderNextRememberWordQuestion('remember-word-screen-content'), 2500);
     }
 }
 // ===================================================================
-// END: THÊM LẠI CHỨC NĂNG "NHỚ TỪ MỚI"
+// END: CẬP NHẬT CHỨC NĂNG "NHỚ TỪ MỚI"
 // ===================================================================
