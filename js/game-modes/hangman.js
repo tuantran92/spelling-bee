@@ -1,5 +1,5 @@
 // js/game-modes/hangman.js
-// Hangman – đoán chữ cái. UI thoáng: không còn hình minh hoạ, có hiển thị lives.
+// Hangman – đoán chữ cái. Thêm hiệu ứng vui khi đoán sai.
 
 import { state, setState } from '../state.js';
 import { shuffleArray, playSound, speak } from '../utils.js';
@@ -20,7 +20,7 @@ function pickWord() {
 
 function maskedWord(word, guessedSet) {
   return word.split('').map(ch => {
-    if (!/[a-z]/i.test(ch)) return ch; // giữ khoảng trắng/ký tự khác
+    if (!/[a-z]/i.test(ch)) return ch;
     return guessedSet.has(ch.toLowerCase()) ? ch : '_';
   }).join(' ');
 }
@@ -43,7 +43,7 @@ function renderKeyboard(containerId) {
   });
 }
 
-// Lives (lượt sai): hiển thị chấm tròn
+// ------- FX helpers -------
 function renderLives(wrong, maxWrong) {
   const lives = document.getElementById('hm-lives');
   if (!lives) return;
@@ -56,9 +56,72 @@ function renderLives(wrong, maxWrong) {
 
   const text = document.getElementById('hm-lives-text');
   if (text) text.textContent = `Sai: ${wrong}/${maxWrong}`;
+
+  // Pop chấm mới vừa mất
+  const dot = lives.children[wrong - 1];
+  if (dot) {
+    dot.classList.add('hm-pop');
+    dot.addEventListener('animationend', () => dot.classList.remove('hm-pop'), { once: true });
+  }
 }
 
-// ===== Public API =====
+function spawnParticlesFrom(el, icons = ['❌','💥','⚡']) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const count = 10;
+
+  for (let i = 0; i < count; i++) {
+    const span = document.createElement('span');
+    span.className = 'hm-particle';
+    span.textContent = icons[i % icons.length];
+    span.style.left = `${cx}px`;
+    span.style.top = `${cy}px`;
+
+    // random quỹ đạo
+    const dx = (Math.random() * 160 - 80).toFixed(0);     // -80..80
+    const dy = (Math.random() * -140 - 40).toFixed(0);    // -40..-180
+    span.style.setProperty('--dx', `${dx}px`);
+    span.style.setProperty('--dy', `${dy}px`);
+
+    document.body.appendChild(span);
+    span.addEventListener('animationend', () => span.remove(), { once: true });
+  }
+}
+
+function triggerWrongFX(letter, newWrong) {
+  const root = document.getElementById('hm-root');
+  const panel = document.getElementById('hm-word-panel');
+  const keyBtn = document.querySelector(`.hm-key[data-k="${letter.toUpperCase()}"]`);
+
+  // Flash đỏ toàn board
+  if (root) {
+    root.classList.add('hm-flash');
+    setTimeout(() => root.classList.remove('hm-flash'), 250);
+  }
+
+  // Rung ô chữ
+  if (panel) {
+    panel.classList.add('hm-shake');
+    panel.addEventListener('animationend', () => panel.classList.remove('hm-shake'), { once: true });
+  }
+
+  // Particle burst từ phím
+  if (keyBtn) spawnParticlesFrom(keyBtn);
+
+  // Rung nhẹ thiết bị
+  if (navigator.vibrate) { try { navigator.vibrate(80); } catch(_){} }
+}
+
+// (nhẹ nhàng) FX khi đúng
+function triggerCorrectFX(letter) {
+  const keyBtn = document.querySelector(`.hm-key[data-k="${letter.toUpperCase()}"]`);
+  if (!keyBtn) return;
+  keyBtn.classList.add('hm-pop');
+  keyBtn.addEventListener('animationend', () => keyBtn.classList.remove('hm-pop'), { once: true });
+}
+
+// ------- Public API -------
 export function startHangman(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -80,37 +143,38 @@ export function startHangman(containerId) {
     }
   });
 
-  // UI gọn – KHÔNG có hình minh hoạ
   container.innerHTML = `
-    <h2 class="text-2xl font-semibold mb-2">Đoán chữ (Hangman)</h2>
+    <div id="hm-root" class="relative">
+      <h2 class="text-2xl font-semibold mb-2">Đoán chữ (Hangman)</h2>
 
-    <div class="bg-gray-100 dark:bg-gray-700 rounded-xl p-4 mb-3">
-      <p id="hangman-word" class="text-3xl font-bold tracking-widest text-center vocab-font-size"></p>
-    </div>
-
-    <div class="flex items-center justify-between mb-2">
-      <div class="flex items-center gap-2">
-        <div id="hm-lives" class="flex items-center gap-1"></div>
-        <span id="hm-lives-text" class="text-sm text-gray-500 dark:text-gray-400"></span>
+      <div id="hm-word-panel" class="bg-gray-100 dark:bg-gray-700 rounded-xl p-4 mb-3">
+        <p id="hangman-word" class="text-3xl font-bold tracking-widest text-center vocab-font-size"></p>
       </div>
-      <div class="flex items-center gap-2">
-        <button id="hm-speak" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">🔊 Nghe từ</button>
-        <button id="hm-hint"  class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-900 dark:text-gray-100 font-bold py-2 px-4 rounded">💡 Gợi ý</button>
+
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div id="hm-lives" class="flex items-center gap-1"></div>
+          <span id="hm-lives-text" class="text-sm text-gray-500 dark:text-gray-400"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="hm-speak" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">🔊 Nghe từ</button>
+          <button id="hm-hint"  class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-900 dark:text-gray-100 font-bold py-2 px-4 rounded">💡 Gợi ý</button>
+        </div>
       </div>
-    </div>
 
-    <p id="hm-meaning" class="mb-2 text-center text-cyan-500 hidden"></p>
+      <p id="hm-meaning" class="mb-2 text-center text-cyan-500 hidden"></p>
 
-    <div id="hangman-keys" class="mt-1 grid grid-cols-10 gap-2"></div>
+      <div id="hangman-keys" class="mt-1 grid grid-cols-10 gap-2"></div>
 
-    <div class="mt-4 flex items-center justify-between">
-      <p id="hm-result" class="h-6 text-lg font-medium"></p>
-      <button id="hm-next" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded hidden">Từ khác</button>
+      <div class="mt-4 flex items-center justify-between">
+        <p id="hm-result" class="h-6 text-lg font-medium"></p>
+        <button id="hm-next" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded hidden">Từ khác</button>
+      </div>
     </div>
   `;
 
-  // init
-  document.getElementById('hangman-word').textContent = maskedWord(state.hangman.word, state.hangman.guessed);
+  document.getElementById('hangman-word').textContent =
+    maskedWord(state.hangman.word, state.hangman.guessed);
   renderKeyboard(containerId);
   renderLives(0, state.hangman.maxWrong);
 
@@ -130,7 +194,6 @@ export function startHangman(containerId) {
   });
   document.getElementById('hm-next')?.addEventListener('click', () => startHangman(containerId));
 
-  // đọc từ khi bắt đầu
   speak(state.hangman.wordObj.word, 'en-US');
 }
 
@@ -139,7 +202,7 @@ export function hangmanGuess(letter, containerId) {
   if (!state.hangman || !/[a-z]/.test(letter)) return;
 
   const { word, guessed, wrong, maxWrong } = state.hangman;
-  if (guessed.has(letter)) return; // đã đoán rồi
+  if (guessed.has(letter)) return;
 
   const newGuessed = new Set(guessed);
   newGuessed.add(letter);
@@ -148,26 +211,27 @@ export function hangmanGuess(letter, containerId) {
   if (!word.includes(letter)) {
     newWrong += 1;
     playSound('wrong');
+    setState({ hangman: { ...state.hangman, guessed: newGuessed, wrong: newWrong } });
+    document.getElementById('hangman-word').textContent = maskedWord(word, newGuessed);
+    renderLives(newWrong, maxWrong);
+    const keyBtn = document.querySelector(`.hm-key[data-k="${letter.toUpperCase()}"]`);
+    if (keyBtn) {
+      keyBtn.disabled = true;
+      keyBtn.classList.add('bg-red-500','text-white');
+    }
+    triggerWrongFX(letter, newWrong);
   } else {
     playSound('correct');
+    setState({ hangman: { ...state.hangman, guessed: newGuessed, wrong: newWrong } });
+    document.getElementById('hangman-word').textContent = maskedWord(word, newGuessed);
+    const keyBtn = document.querySelector(`.hm-key[data-k="${letter.toUpperCase()}"]`);
+    if (keyBtn) {
+      keyBtn.disabled = true;
+      keyBtn.classList.add('bg-green-500','text-white');
+    }
+    triggerCorrectFX(letter);
   }
 
-  setState({ hangman: { ...state.hangman, guessed: newGuessed, wrong: newWrong } });
-
-  // cập nhật UI
-  const wordEl = document.getElementById('hangman-word');
-  if (wordEl) wordEl.textContent = maskedWord(word, newGuessed);
-
-  renderLives(newWrong, maxWrong);
-
-  // disable phím
-  const keyBtn = document.querySelector(`.hm-key[data-k="${letter.toUpperCase()}"]`);
-  if (keyBtn) {
-    keyBtn.disabled = true;
-    keyBtn.classList.add(word.includes(letter) ? 'bg-green-500' : 'bg-red-500', 'text-white');
-  }
-
-  // thắng/thua?
   const solved = word.split('').every(ch => !/[a-z]/i.test(ch) || newGuessed.has(ch));
   const lose = newWrong >= maxWrong;
 
@@ -188,7 +252,7 @@ export function hangmanGuess(letter, containerId) {
   }
 }
 
-// Optional: expose for inline (nếu HTML gọi trực tiếp)
+// Global (nếu HTML gọi trực tiếp)
 if (typeof window !== 'undefined') {
   window.startHangman = startHangman;
   window.hangmanGuess = hangmanGuess;
