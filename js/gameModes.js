@@ -496,63 +496,56 @@ function renderScrambleLetters() {
 
   const { available, answer } = state.scrambleGame;
 
-  // Với available: nếu used=true -> hiển thị khung trống giữ chỗ
-  availableContainer.innerHTML = available.map(letter => {
-    if (letter.used) {
-      return `
-        <div class="w-10 h-10 rounded-lg border-2 border-dashed border-purple-300 dark:border-purple-600 opacity-50"></div>
-      `;
+  // Khay ký tự (giữ chỗ khi used=true)
+  availableContainer.innerHTML = available.map(l => {
+    if (l.used) {
+      return `<div class="w-14 h-14 rounded-lg border-2 border-dashed border-purple-300 dark:border-purple-600 opacity-50"></div>`;
     }
     return `
-      <button 
-        onclick="handleScrambleLetterClick(${letter.id})" 
-        class="bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-100 text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg shadow-md vocab-font-size transition-all duration-200 hover:scale-110">
-        ${letter.char}
+      <button data-letter-id="${l.id}"
+        class="bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-100 text-3xl font-bold w-14 h-14 flex items-center justify-center rounded-lg shadow-md transition-all duration-200 hover:scale-110">
+        ${l.char}
       </button>
     `;
   }).join('');
 
-  // Với answer: vẫn là các nút theo thứ tự đã chọn
-  answerContainer.innerHTML = answer.map(letter => `
-    <button 
-      onclick="handleAnswerLetterClick(${letter.id})"
-      class="bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg shadow-md vocab-font-size transition-all duration-200 hover:scale-110">
-      ${letter.char}
+  // Ô trả lời
+  answerContainer.innerHTML = answer.map(l => `
+    <button data-answer-id="${l.id}"
+      class="bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 text-3xl font-bold w-14 h-14 flex items-center justify-center rounded-lg shadow-md transition-all duration-200 hover:scale-110">
+      ${l.char}
     </button>
   `).join('');
+
+  // Event delegation (gắn/làm mới mỗi lần render, không sợ nhân đôi listener)
+  availableContainer.onclick = (e) => {
+    const btn = e.target.closest('button[data-letter-id]');
+    if (!btn) return;
+    handleScrambleLetterClick(Number(btn.dataset.letterId));
+  };
+
+  answerContainer.onclick = (e) => {
+    const btn = e.target.closest('button[data-answer-id]');
+    if (!btn) return;
+    handleAnswerLetterClick(Number(btn.dataset.answerId));
+  };
 }
 
-// 4) Thay handleAnswerLetterClick để trả ký tự về đúng slot cũ
-export function handleAnswerLetterClick(id) {
-  const { available, answer } = state.scrambleGame;
-  const idx = answer.findIndex(l => l.id === id);
-  if (idx === -1) return;
 
-  answer.splice(idx, 1);                 // bỏ khỏi câu trả lời
-  const slot = available.find(l => l.id === id);
-  if (slot) slot.used = false;           // trả lại đúng vị trí gốc
-  renderScrambleLetters();
-}
-
-// Hàm xóa ký tự cuối cùng trong câu trả lời
-export function handleScrambleBackspace() {
-    const { answer } = state.scrambleGame;
-    if (answer.length > 0) {
-        const lastLetter = answer[answer.length - 1];
-        handleAnswerLetterClick(lastLetter.id);
-    }
-}
 
 // 3) Thay handleScrambleLetterClick để set used=true thay vì splice
 export function handleScrambleLetterClick(id) {
+  if (!state.scrambleGame) return;
   const { available, answer } = state.scrambleGame;
+
   const slot = available.find(l => l.id === id);
   if (!slot || slot.used) return;
 
-  slot.used = true;                // đánh dấu slot đã lấy
-  answer.push({ char: slot.char, id: slot.id }); // thêm vào câu trả lời
+  slot.used = true;                          // đánh dấu đã lấy
+  answer.push({ char: slot.char, id: slot.id });
   renderScrambleLetters();
 }
+
 
 // 1) Thay startScramble để đánh dấu slot và giữ vị trí gốc
 export function startScramble(containerId) {
@@ -562,54 +555,56 @@ export function startScramble(containerId) {
     container.innerHTML = '<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-orange-500">Không có từ phù hợp cho chế độ này.</p>';
     return;
   }
+
+  // Lưu từ hiện tại & tạo dữ liệu trò chơi
   setState({ currentWord: newWord });
   const scrambled = scrambleWord(state.currentWord.word);
-
-  // Giữ nguyên số slot; used=false nghĩa là còn trong khay chọn
   setState({
     scrambleGame: {
       available: scrambled.split('').map((char, index) => ({ char, id: index, used: false })),
-      answer: [] // chứa các object {char,id} theo thứ tự người chơi chọn
+      answer: []
     }
   });
 
+  // UI — KHÔNG có onclick inline
   container.innerHTML = `
     <h2 class="text-2xl font-semibold mb-2">Sắp xếp các chữ cái:</h2>
+
     <div class="h-auto flex flex-col items-center justify-center mb-4 gap-2">
-      <div>
-        <button id="scramble-hint-definition-btn" onclick="toggleScrambleHint('definition')" class="bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Hint</button>
-        <button id="scramble-hint-meaning-btn" onclick="toggleScrambleHint('meaning')" class="ml-2 bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Gợi ý</button>
-        <button onclick="showScrambleAnswer()" class="ml-2 bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white px-3 py-1 rounded-md text-sm font-semibold">Đáp án</button>
+      <div class="flex items-center">
+        <button id="scramble-hint-definition-btn" class="bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Hint</button>
+        <button id="scramble-hint-meaning-btn"    class="ml-2 bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Gợi ý</button>
+        <button id="scramble-show-answer-btn"     class="ml-2 bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white px-3 py-1 rounded-md text-sm font-semibold">Đáp án</button>
       </div>
       <div id="scramble-hint-container" class="mt-2 text-center h-auto min-h-[2rem]">
         <span id="scramble-hint-definition" class="hidden italic text-sm text-gray-500 dark:text-gray-400">"<span id="scramble-definition-content" class="font-semibold"></span>"</span>
-        <span id="scramble-hint-meaning" class="hidden italic text-sm text-gray-500 dark:text-gray-400">Nghĩa: "<span id="scramble-meaning-content" class="font-semibold"></span>"</span>
+        <span id="scramble-hint-meaning"    class="hidden italic text-sm text-gray-500 dark:text-gray-400">Nghĩa: "<span id="scramble-meaning-content" class="font-semibold"></span>"</span>
       </div>
     </div>
 
     <div id="scramble-answer-container" class="w-full max-w-md mx-auto p-3 flex items-center justify-center min-h-[68px] border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 mb-4">
-      <div id="scramble-answer-display" class="flex justify-center items-center gap-2 flex-wrap"></div>
-      <button onclick="handleScrambleBackspace()" class="ml-auto p-2 text-gray-500 hover:text-red-500 transition-colors duration-200" title="Xóa lùi">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <!-- Khung phím backspace -->
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-          d="M6.75 4.5h10.5c.621 0 1.125.504 1.125 1.125v12.75c0 .621-.504 1.125-1.125 1.125H6.75a1.5 1.5 0 01-1.06-.44L2.44 12l3.25-6.96a1.5 1.5 0 011.06-.54z" />
-        <!-- Dấu X bên trong -->
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-          d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5" />
-      </svg>
-     </button>
-
+      <div id="scramble-answer-display" class="flex justify-center items-center gap-3 flex-wrap"></div>
+      <button id="scramble-backspace-btn" class="ml-auto p-2 text-gray-500 hover:text-red-500 transition-colors duration-200" title="Xóa lùi">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <!-- khung backspace -->
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M6.75 4.5h10.5c.621 0 1.125.504 1.125 1.125v12.75c0 .621-.504 1.125-1.125 1.125H6.75a1.5 1.5 0 01-1.06-.44L2.44 12l3.25-6.96a1.5 1.5 0 011.06-.54z" />
+          <!-- dấu X -->
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5" />
+        </svg>
+      </button>
     </div>
 
-    <div id="scrambled-word-display" class="flex justify-center items-center gap-2 my-6 flex-wrap min-h-[56px]"></div>
+    <div id="scrambled-word-display" class="flex justify-center items-center gap-3 my-6 flex-wrap min-h-[56px]"></div>
 
     <div class="mt-4">
-      <button id="check-scramble-btn" onclick="checkScramble()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button>
+      <button id="check-scramble-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button>
     </div>
     <p id="scramble-result" class="mt-4 h-6 text-lg font-medium"></p>
   `;
 
+  // Gán nội dung hint
   document.getElementById("scramble-meaning-content").textContent = state.currentWord.meaning;
   const definitionContentEl = document.getElementById("scramble-definition-content");
   const hintButton = document.getElementById("scramble-hint-definition-btn");
@@ -620,8 +615,22 @@ export function startScramble(containerId) {
     hintButton.classList.add('opacity-50', 'cursor-not-allowed');
   }
 
+  // LẮNG NGHE SỰ KIỆN (thay cho onclick)
+  document.getElementById('scramble-hint-definition-btn')
+    .addEventListener('click', () => toggleScrambleHint('definition'));
+  document.getElementById('scramble-hint-meaning-btn')
+    .addEventListener('click', () => toggleScrambleHint('meaning'));
+  document.getElementById('scramble-show-answer-btn')
+    .addEventListener('click', () => showScrambleAnswer());
+  document.getElementById('check-scramble-btn')
+    .addEventListener('click', () => checkScramble());
+  document.getElementById('scramble-backspace-btn')
+    .addEventListener('click', () => handleScrambleBackspace());
+
+  // Render lần đầu
   renderScrambleLetters();
 }
+
 
 export function toggleScrambleHint(type) {
     const definitionEl = document.getElementById('scramble-hint-definition');
@@ -1233,3 +1242,29 @@ export function checkRememberWord(clickedButton, isCorrectStr) {
 // ===================================================================
 // END: CẬP NHẬT CHỨC NĂNG "NHỚ TỪ MỚI"
 // ===================================================================
+// 4) Trả ký tự về đúng slot cũ khi bấm vào ô trả lời
+export function handleAnswerLetterClick(id) {
+  if (!state.scrambleGame) return;
+  const { available, answer } = state.scrambleGame;
+
+  const idx = answer.findIndex(l => l.id === id);
+  if (idx === -1) return;
+
+  const removed = answer.splice(idx, 1)[0];
+  const slot = available.find(l => l.id === removed.id);
+  if (slot) slot.used = false;
+
+  renderScrambleLetters();
+}
+
+
+// 5) Nút "Xóa lùi": gỡ ký tự cuối khỏi ô trả lời và trả về vị trí cũ
+export function handleScrambleBackspace() {
+  if (!state.scrambleGame) return;
+  const { answer } = state.scrambleGame;
+  if (answer.length === 0) return;
+
+  const last = answer[answer.length - 1];
+  // Tận dụng logic chung để trả ký tự về slot cũ
+  handleAnswerLetterClick(last.id);
+}
