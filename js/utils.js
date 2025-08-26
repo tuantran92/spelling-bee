@@ -172,48 +172,64 @@ export function maskWord(word) {
  */
 export const delay = ms => new Promise(res => setTimeout(res, ms));
 
-export function speak(text, lang, onEndCallback) {
-    if (!text) {
-        if (onEndCallback) onEndCallback();
-        return;
+// utils.js
+export function speak(text, lang = 'en-US', opts = {}) {
+  try {
+    // Bảo vệ: text rỗng/không phải string thì bỏ qua
+    const t = (text == null) ? '' : String(text);
+    if (!t.trim()) {
+      console.warn('[speak] empty text, skip');
+      return;
     }
-    if (typeof SpeechSynthesisUtterance === "undefined") {
-        if (onEndCallback) onEndCallback();
-        return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      console.warn('[speak] speechSynthesis not supported');
+      return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
+    const synth = window.speechSynthesis;
 
-    const rateSlider = document.getElementById('rate-slider');
-    utterance.rate = rateSlider ? parseFloat(rateSlider.value) : 1;
+    // Hủy phát âm trước đó để tránh chồng
+    try { synth.cancel(); } catch (_) {}
 
-    if (state.availableVoices && state.availableVoices.length > 0) {
-        const voiceSelect = document.getElementById('voice-select');
-        const selectedVoiceName = voiceSelect ? voiceSelect.value : null;
-        let voiceToUse = null;
+    const utter = new SpeechSynthesisUtterance(t);
 
-        // 1. Ưu tiên giọng người dùng đã chọn, nếu nó khớp với ngôn ngữ đang cần đọc
-        if (selectedVoiceName) {
-            const selectedVoice = state.availableVoices.find(voice => voice.name === selectedVoiceName);
-            if (selectedVoice && selectedVoice.lang.startsWith(lang.substring(0, 2))) {
-                voiceToUse = selectedVoice;
-            }
+    // Chọn ngôn ngữ
+    const langCode = (lang || '').trim() || 'en-US';
+    utter.lang = langCode;
+
+    // Tốc độ/pitch có thể lấy từ opts, fallback 1.0
+    utter.rate  = (opts.rate  ?? 1.0);
+    utter.pitch = (opts.pitch ?? 1.0);
+
+    // Chọn voice phù hợp lang (nếu có)
+    const pickVoice = () => {
+      const voices = synth.getVoices() || [];
+      const lc = langCode.toLowerCase();
+      // Ưu tiên match prefix, rồi match exact, rồi default
+      return (
+        voices.find(v => v.lang && v.lang.toLowerCase().startsWith(lc)) ||
+        voices.find(v => v.lang && v.lang.toLowerCase() === lc) ||
+        voices.find(v => v.default) ||
+        voices[0] ||
+        null
+      );
+    };
+
+    let voice = pickVoice();
+    // Trường hợp Chrome load voice async: thử lại sau 1 lần
+    if (!voice) {
+      synth.onvoiceschanged = () => {
+        const v2 = pickVoice();
+        if (v2) {
+          utter.voice = v2;
+          synth.speak(utter);
         }
-
-        // 2. Nếu không, tìm một giọng đọc bất kỳ khác khớp với ngôn ngữ đang cần
-        if (!voiceToUse) {
-            voiceToUse = state.availableVoices.find(voice => voice.lang.startsWith(lang.substring(0, 2)));
-        }
-
-        if (voiceToUse) {
-            utterance.voice = voiceToUse;
-        }
+      };
+    } else {
+      utter.voice = voice;
+      synth.speak(utter);
     }
-
-    if (onEndCallback && typeof onEndCallback === 'function') {
-        utterance.onend = onEndCallback;
-    }
-
-    window.speechSynthesis.speak(utterance);
+  } catch (err) {
+    console.error('[speak] error:', err);
+  }
 }

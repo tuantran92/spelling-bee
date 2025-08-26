@@ -1,3 +1,38 @@
+export {
+  startScramble,
+  checkScramble,
+  toggleScrambleHint,
+  showScrambleAnswer,
+  handleScrambleLetterClick,
+  handleAnswerLetterClick,
+  handleScrambleBackspace,
+} from './game-modes/scramble.js';
+
+export {
+  startMcq,
+  checkMcq,
+} from './game-modes/mcq.js';
+export {
+  startSuggestionMode,
+  startSuggestionSession,
+  nextSuggestionWord
+} from './game-modes/suggestion.js';
+
+export {
+  renderReviewCard,
+  handleReviewAnswer,
+  startReview
+} from './game-modes/review.js';
+export { startRememberWord, checkRememberWord } from './game-modes/remember-word.js';
+export { startListening, checkListening } from './game-modes/listening.js';
+export { startPronunciation, listenForPronunciation } from './game-modes/pronunciation.js';
+export { startSpelling, checkSpelling } from './game-modes/spelling.js';
+export {
+  startFillBlank, checkFillBlank, toggleFillBlankHint,
+  skipFillBlankQuestion, translateFillBlankSentence
+} from './game-modes/fill-blank.js';
+export { startReading, handleFlashcardAnswer } from './game-modes/reading.js';
+
 // js/gameModes.js
 import { state, setState } from './state.js';
 import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords, updateAndCacheSuggestions, fetchWordData } from './data.js';
@@ -8,12 +43,12 @@ import { speak } from './utils.js';
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
 
-// --- THÊM MỚI: Biến để xử lý cử chỉ vuốt ---
+/*// --- THÊM MỚI: Biến để xử lý cử chỉ vuốt ---
 let touchStartX = 0;
 let touchEndX = 0;
-let swipeThreshold = 50; // Cần vuốt ít nhất 50px để được tính là qua thẻ
+let swipeThreshold = 50; // Cần vuốt ít nhất 50px để được tính là qua thẻ*/
 
-function getNextWord() {
+/*function getNextWord() {
     const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
     if (gameList.length === 0) return null;
     return gameList[Math.floor(Math.random() * gameList.length)];
@@ -250,10 +285,10 @@ function finishReviewSession() {
     setState({ reviewSession: { isActive: false, words: [], currentIndex: 0 } });
     alert("Hoàn thành! Bạn đã ôn tập xong các từ cho hôm nay.");
     closeGameScreen('review-screen');
-}
+}*/
 
 // --- Chế độ Đánh Vần (Spelling) ---
-export function startSpelling(containerId) {
+/*export function startSpelling(containerId) {
     const container = document.getElementById(containerId);
     const newWord = getNextWord();
     if (!newWord) {
@@ -284,9 +319,9 @@ export function startSpelling(containerId) {
     inputEl.focus();
     inputEl.onkeydown = (event) => { if (event.key === 'Enter') checkSpelling(); };
     speakWord(newWord.word);
-}
+}*/
 
-export function checkSpelling() {
+/*export function checkSpelling() {
     const userAnswer = document.getElementById('spelling-input').value.trim().toLowerCase();
     const resultEl = document.getElementById('spelling-result');
     if (!userAnswer) return;
@@ -310,13 +345,13 @@ export function checkSpelling() {
             resultEl.textContent = `❌ Sai rồi! Đáp án: ${state.currentWord.word}`;
         }
     }
-}
+}*/
 
 
 // ===================================================================
 // START: THAY THẾ HÀM startReading
 // ===================================================================
-export function startReading(containerId) {
+/*export function startReading(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
@@ -369,7 +404,7 @@ export function startReading(containerId) {
     `;
 
     updateFlashcard();
-}
+}*/
 // ===================================================================
 // END: THAY THẾ HÀM startReading
 // ===================================================================
@@ -377,7 +412,7 @@ export function startReading(containerId) {
 // ===================================================================
 // START: THAY THẾ HÀM updateFlashcard
 // ===================================================================
-function updateFlashcard() {
+/*function updateFlashcard() {
     const gameList = state.flashcardList || [];
     const container = document.getElementById('reading-screen-content');
     const cardContainer = document.getElementById('flashcard-container');
@@ -443,7 +478,7 @@ function updateFlashcard() {
     };
 
     speak(word.word, 'en-US');
-}
+}*/
 // ===================================================================
 // END: THAY THẾ HÀM updateFlashcard
 // ===================================================================
@@ -452,7 +487,7 @@ function updateFlashcard() {
 // ===================================================================
 // START: THAY THẾ HÀM handleFlashcardAnswer
 // ===================================================================
-window.handleFlashcardAnswer = (remembered) => {
+/*window.handleFlashcardAnswer = (remembered) => {
     const word = state.flashcardList[state.currentFlashcardIndex];
 
     updateWordLevel(word, remembered); 
@@ -477,7 +512,7 @@ window.handleFlashcardAnswer = (remembered) => {
         setState({ currentFlashcardIndex: newIndex });
         updateFlashcard();
     }, 300); // 300ms, khớp với thời gian transition
-}
+}*/
 // ===================================================================
 // END: THAY THẾ HÀM handleFlashcardAnswer
 // ===================================================================
@@ -489,201 +524,24 @@ window.handleFlashcardAnswer = (remembered) => {
 // --- Sắp xếp chữ (Scramble) ---
 
 // 2) Thay renderScrambleLetters để hiện ô trống tại vị trí cũ
-function renderScrambleLetters() {
-  const availableContainer = document.getElementById('scrambled-word-display');
-  const answerContainer = document.getElementById('scramble-answer-display');
-  if (!availableContainer || !answerContainer) return;
-
-  const { available, answer } = state.scrambleGame;
-
-  // Khay ký tự (giữ chỗ khi used=true)
-  availableContainer.innerHTML = available.map(l => {
-    if (l.used) {
-      return `<div class="w-14 h-14 rounded-lg border-2 border-dashed border-purple-300 dark:border-purple-600 opacity-50"></div>`;
-    }
-    return `
-      <button data-letter-id="${l.id}"
-        class="bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-100 text-3xl font-bold w-14 h-14 flex items-center justify-center rounded-lg shadow-md transition-all duration-200 hover:scale-110">
-        ${l.char}
-      </button>
-    `;
-  }).join('');
-
-  // Ô trả lời
-  answerContainer.innerHTML = answer.map(l => `
-    <button data-answer-id="${l.id}"
-      class="bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 text-3xl font-bold w-14 h-14 flex items-center justify-center rounded-lg shadow-md transition-all duration-200 hover:scale-110">
-      ${l.char}
-    </button>
-  `).join('');
-
-  // Event delegation (gắn/làm mới mỗi lần render, không sợ nhân đôi listener)
-  availableContainer.onclick = (e) => {
-    const btn = e.target.closest('button[data-letter-id]');
-    if (!btn) return;
-    handleScrambleLetterClick(Number(btn.dataset.letterId));
-  };
-
-  answerContainer.onclick = (e) => {
-    const btn = e.target.closest('button[data-answer-id]');
-    if (!btn) return;
-    handleAnswerLetterClick(Number(btn.dataset.answerId));
-  };
-}
+// [moved] renderScrambleLetters
 
 
 
 // 3) Thay handleScrambleLetterClick để set used=true thay vì splice
-export function handleScrambleLetterClick(id) {
-  if (!state.scrambleGame) return;
-  const { available, answer } = state.scrambleGame;
-
-  const slot = available.find(l => l.id === id);
-  if (!slot || slot.used) return;
-
-  slot.used = true;                          // đánh dấu đã lấy
-  answer.push({ char: slot.char, id: slot.id });
-  renderScrambleLetters();
-}
+// [moved] handleScrambleLetterClick
 
 
 // 1) Thay startScramble để đánh dấu slot và giữ vị trí gốc
-export function startScramble(containerId) {
-  const container = document.getElementById(containerId);
-  const newWord = getNextWord();
-  if (!newWord || newWord.word.length < 2) {
-    container.innerHTML = '<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-orange-500">Không có từ phù hợp cho chế độ này.</p>';
-    return;
-  }
-
-  // Lưu từ hiện tại & tạo dữ liệu trò chơi
-  setState({ currentWord: newWord });
-  const scrambled = scrambleWord(state.currentWord.word);
-  setState({
-    scrambleGame: {
-      available: scrambled.split('').map((char, index) => ({ char, id: index, used: false })),
-      answer: []
-    }
-  });
-
-  // UI — KHÔNG có onclick inline
-  container.innerHTML = `
-    <h2 class="text-2xl font-semibold mb-2">Sắp xếp các chữ cái:</h2>
-
-    <div class="h-auto flex flex-col items-center justify-center mb-4 gap-2">
-      <div class="flex items-center">
-        <button id="scramble-hint-definition-btn" class="bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Hint</button>
-        <button id="scramble-hint-meaning-btn"    class="ml-2 bg-gray-200 dark:bg-gray-600 px-3 py-1 rounded-md text-sm font-semibold">Gợi ý</button>
-        <button id="scramble-show-answer-btn"     class="ml-2 bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white px-3 py-1 rounded-md text-sm font-semibold">Đáp án</button>
-      </div>
-      <div id="scramble-hint-container" class="mt-2 text-center h-auto min-h-[2rem]">
-        <span id="scramble-hint-definition" class="hidden italic text-sm text-gray-500 dark:text-gray-400">"<span id="scramble-definition-content" class="font-semibold"></span>"</span>
-        <span id="scramble-hint-meaning"    class="hidden italic text-sm text-gray-500 dark:text-gray-400">Nghĩa: "<span id="scramble-meaning-content" class="font-semibold"></span>"</span>
-      </div>
-    </div>
-
-    <div id="scramble-answer-container" class="w-full max-w-md mx-auto p-3 flex items-center justify-center min-h-[68px] border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 mb-4">
-      <div id="scramble-answer-display" class="flex justify-center items-center gap-3 flex-wrap"></div>
-      <button id="scramble-backspace-btn" class="ml-auto p-2 text-gray-500 hover:text-red-500 transition-colors duration-200" title="Xóa lùi">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <!-- khung backspace -->
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-            d="M6.75 4.5h10.5c.621 0 1.125.504 1.125 1.125v12.75c0 .621-.504 1.125-1.125 1.125H6.75a1.5 1.5 0 01-1.06-.44L2.44 12l3.25-6.96a1.5 1.5 0 011.06-.54z" />
-          <!-- dấu X -->
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-            d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5" />
-        </svg>
-      </button>
-    </div>
-
-    <div id="scrambled-word-display" class="flex justify-center items-center gap-3 my-6 flex-wrap min-h-[56px]"></div>
-
-    <div class="mt-4">
-      <button id="check-scramble-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg">Kiểm tra</button>
-    </div>
-    <p id="scramble-result" class="mt-4 h-6 text-lg font-medium"></p>
-  `;
-
-  // Gán nội dung hint
-  document.getElementById("scramble-meaning-content").textContent = state.currentWord.meaning;
-  const definitionContentEl = document.getElementById("scramble-definition-content");
-  const hintButton = document.getElementById("scramble-hint-definition-btn");
-  if (state.currentWord.definition) {
-    definitionContentEl.textContent = state.currentWord.definition;
-  } else {
-    hintButton.disabled = true;
-    hintButton.classList.add('opacity-50', 'cursor-not-allowed');
-  }
-
-  // LẮNG NGHE SỰ KIỆN (thay cho onclick)
-  document.getElementById('scramble-hint-definition-btn')
-    .addEventListener('click', () => toggleScrambleHint('definition'));
-  document.getElementById('scramble-hint-meaning-btn')
-    .addEventListener('click', () => toggleScrambleHint('meaning'));
-  document.getElementById('scramble-show-answer-btn')
-    .addEventListener('click', () => showScrambleAnswer());
-  document.getElementById('check-scramble-btn')
-    .addEventListener('click', () => checkScramble());
-  document.getElementById('scramble-backspace-btn')
-    .addEventListener('click', () => handleScrambleBackspace());
-
-  // Render lần đầu
-  renderScrambleLetters();
-}
+// [moved] startScramble
 
 
-export function toggleScrambleHint(type) {
-    const definitionEl = document.getElementById('scramble-hint-definition');
-    const meaningEl = document.getElementById('scramble-hint-meaning');
-    
-    const isDefCurrentlyVisible = !definitionEl.classList.contains('hidden');
-    const isMeanCurrentlyVisible = !meaningEl.classList.contains('hidden');
+// [moved] toggleScrambleHint
 
-    // Luôn ẩn cả hai trước khi quyết định hiển thị cái nào
-    definitionEl.classList.add('hidden');
-    meaningEl.classList.add('hidden');
-
-    if (type === 'definition' && !isDefCurrentlyVisible) {
-        definitionEl.classList.remove('hidden');
-    } else if (type === 'meaning' && !isMeanCurrentlyVisible) {
-        meaningEl.classList.remove('hidden');
-    }
-}
-
-export function showScrambleAnswer() {
-    const resultEl = document.getElementById("scramble-result");
-    const checkBtn = document.getElementById("check-scramble-btn");
-
-    resultEl.textContent = `Đáp án là: "${state.currentWord.word}"`;
-    resultEl.className = "mt-4 h-6 text-lg font-medium text-blue-500";
-    
-    checkBtn.disabled = true;
-    checkBtn.classList.add('opacity-50', 'cursor-not-allowed');
-
-    updateWordLevel(state.currentWord, false); 
-    playSound('wrong');
-    setTimeout(() => startScramble('scramble-screen-content'), 2500);
-}
+// [moved] showScrambleAnswer
 
 // 6) (không bắt buộc sửa) checkScramble vẫn dùng answer để ghép chuỗi
-export function checkScramble() {
-  const userAnswer = state.scrambleGame.answer.map(l => l.char).join('').toLowerCase();
-  const resultEl = document.getElementById("scramble-result");
-  if (!userAnswer) return;
-  const isCorrect = userAnswer === state.currentWord.word.toLowerCase();
-
-  playSound(isCorrect ? 'correct' : 'wrong');
-  updateWordLevel(state.currentWord, isCorrect);
-
-  if (isCorrect) {
-    resultEl.textContent = "✅ Chính xác!";
-    resultEl.className = "mt-4 h-6 text-lg font-medium text-green-500";
-    setTimeout(() => startScramble('scramble-screen-content'), 1500);
-  } else {
-    resultEl.textContent = "❌ Sai rồi! Thử lại đi.";
-    resultEl.className = "mt-4 h-6 text-lg font-medium text-red-500";
-  }
-}
+// [moved] checkScramble
 
 // ===================================================================
 // END: NÂNG CẤP CHỨC NĂNG SẮP XẾP CHỮ
@@ -695,88 +553,11 @@ export function checkScramble() {
 
 // --- Trắc nghiệm (MCQ) ---
 
-function renderMcqScreen(containerId) {
-    const targetId = containerId || state.mcqContainerId || 'mcq-screen-content';
-    const container = document.getElementById(targetId);
-    if (!container) {
-        console.error("MCQ container not found:", targetId);
-    return;
-    }
+// [moved] renderMcqScreen
 
-    const gameList = state.filteredVocabList.length > 0 ? state.filteredVocabList : state.vocabList;
-    if (gameList.length < 4) {
-        container.innerHTML = '<h2 class="text-2xl font-semibold mb-4">Thông báo</h2><p class="text-red-500">Cần ít nhất 4 từ để chơi chế độ này.</p>';
-        return;
-    }
-    
-    const correctWord = getNextWord();
-    setState({ currentWord: correctWord });
+// [moved] startMcq
 
-    const options = [correctWord];
-    while (options.length < 4) {
-        const randomWord = state.vocabList[Math.floor(Math.random() * state.vocabList.length)];
-        if (!options.some(opt => opt.word === randomWord.word)) {
-            options.push(randomWord);
-        }
-    }
-    const shuffledOptions = shuffleArray(options);
-
-    const optionsHtml = shuffledOptions.map(opt => {
-        const isCorrect = (opt.word === correctWord.word).toString();
-        return `<button onclick="checkMcq(this, ${isCorrect})" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors vocab-font-size">${opt.meaning}</button>`;
-    }).join('');
-
-    container.innerHTML = `
-        <h2 class="text-2xl font-semibold mb-4">Chọn nghĩa đúng:</h2>
-        <div class="flex justify-center items-center gap-4 mb-6">
-            <div class="text-center font-bold bg-gray-100 dark:bg-gray-700 py-4 px-6 rounded-lg">
-                <p class="vocab-font-size-mcq">${correctWord.word}</p>
-                <p class="text-lg text-gray-500 dark:text-gray-400 font-mono mt-1">${correctWord.phonetic || ''}</p>
-            </div>
-            <button onclick="speakWord('${correctWord.word}', event)" class="p-3 bg-sky-500 hover:bg-sky-600 rounded-full text-white shadow-md">
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
-            </button>
-        </div>
-        <div id="mcq-options" class="grid grid-cols-1 md:grid-cols-2 gap-4">${optionsHtml}</div>
-        <p id="mcq-result" class="mt-6 h-6 text-lg font-medium"></p>
-    `;
-
-    speakWord(correctWord.word);
-}
-
-export function startMcq(containerId) {
-  setState({ mcqContainerId: containerId });   // <— thêm dòng này
-  renderMcqScreen(containerId);
-}
-
-export function checkMcq(clickedButton, isCorrect) {
-    const resultEl = document.getElementById("mcq-result");
-    const optionsContainer = document.getElementById("mcq-options");
-    const isFirstAttempt = !optionsContainer.querySelector("button:disabled");
-
-    playSound(isCorrect ? 'correct' : 'wrong');
-    
-    if (isFirstAttempt) {
-        updateWordLevel(state.currentWord, isCorrect);
-    }
-    
-    if (isCorrect) {
-        resultEl.textContent = "✅ Chính xác!";
-        resultEl.className = "mt-6 h-6 text-lg font-medium text-green-500";
-        optionsContainer.querySelectorAll("button").forEach(btn => {
-            btn.disabled = true;
-            if (btn === clickedButton) {
-                btn.className = "bg-green-500 text-white font-semibold py-3 px-4 rounded-lg vocab-font-size";
-            }
-        });
-        setTimeout(() => {renderMcqScreen(state.mcqContainerId || 'mcq-screen-content'); }, 1500);
-    } else {
-        resultEl.textContent = "❌ Sai rồi, hãy chọn lại!";
-        resultEl.className = "mt-6 h-6 text-lg font-medium text-red-500";
-        clickedButton.disabled = true;
-        clickedButton.className = "bg-red-500 text-white font-semibold py-3 px-4 rounded-lg cursor-not-allowed vocab-font-size";
-    }
-}
+// [moved] checkMcq
 
 // ===================================================================
 // END: SỬA LỖI TRẮC NGHIỆM
@@ -784,7 +565,7 @@ export function checkMcq(clickedButton, isCorrect) {
 
 
 // --- Luyện nghe (Listening) ---
-export function startListening(containerId) {
+/*export function startListening(containerId) {
     const container = document.getElementById(containerId);
     const newWord = getNextWord();
     if (!newWord) {
@@ -808,9 +589,9 @@ export function startListening(containerId) {
     inputEl.focus();
     inputEl.onkeydown = e => { if (e.key === 'Enter') checkListening(); };
     speakWord(state.currentWord.word);
-}
+}*/
 
-export function checkListening() {
+/*export function checkListening() {
     const userAnswer = document.getElementById("listening-input").value.trim().toLowerCase();
     const resultEl = document.getElementById("listening-result");
     if (!userAnswer) return;
@@ -829,10 +610,10 @@ export function checkListening() {
         resultEl.textContent = `❌ Sai rồi! Đáp án: "${state.currentWord.word}"`;
         resultEl.className = "mt-4 h-6 text-lg font-medium text-red-500";
     }
-}
+}*/
 
 // --- Luyện Phát Âm (Pronunciation) ---
-export function startPronunciation(containerId) {
+/*export function startPronunciation(containerId) {
     const container = document.getElementById(containerId);
     if (!SpeechRecognition) {
         container.innerHTML = `<h2 class="text-xl font-semibold text-red-500">Lỗi Tương Thích</h2><p class="mt-2">Trình duyệt của bạn không hỗ trợ nhận dạng giọng nói. Vui lòng dùng Chrome hoặc Edge mới nhất.</p>`;
@@ -862,9 +643,9 @@ export function startPronunciation(containerId) {
         </div>
         <p id="pronunciation-result" class="mt-4 h-6 text-lg font-medium"></p>
     `;
-}
+}*/
 
-export function listenForPronunciation() {
+/*export function listenForPronunciation() {
     const recordBtn = document.getElementById('pronunciation-record-btn');
     const statusEl = document.getElementById('pronunciation-status');
     const transcriptEl = document.getElementById('pronunciation-transcript');
@@ -945,9 +726,9 @@ export function listenForPronunciation() {
     };
 
     recognition.start();
-}
+}*/
 // --- Điền vào chỗ trống (Fill Blank) ---
-export async function startFillBlank(containerId) {
+/*export async function startFillBlank(containerId) {
     const screenEl = document.getElementById(containerId);
 
     if (!state.fillBlankSession.isActive) {
@@ -981,9 +762,9 @@ export async function startFillBlank(containerId) {
     } else {
         displayNextFillBlankQuestion(containerId);
     }
-}
+}*/
 
-function displayNextFillBlankQuestion(containerId) {
+/*function displayNextFillBlankQuestion(containerId) {
     const { words, currentIndex } = state.fillBlankSession;
 
     if (currentIndex >= words.length) {
@@ -1053,9 +834,9 @@ function populateFillBlankUI(containerId, sentence, wordObj) {
     const inputEl = document.getElementById('fill-blank-input');
     inputEl.focus();
     inputEl.onkeydown = (event) => { if (event.key === 'Enter') checkFillBlank(); };
-}
+}*/
 
-export function toggleFillBlankHint(type) {
+/*export function toggleFillBlankHint(type) {
     const definitionEl = document.getElementById('fill-blank-hint-definition');
     const meaningEl = document.getElementById('fill-blank-hint-meaning');
     const translationEl = document.getElementById('fill-blank-translation');
@@ -1075,9 +856,9 @@ export function toggleFillBlankHint(type) {
     if (elements[type] && !isCurrentlyVisible) {
         elements[type].classList.remove('hidden');
     }
-}
+}*/
 
-export async function translateFillBlankSentence() {
+/*export async function translateFillBlankSentence() {
     const translationContentEl = document.getElementById('fill-blank-translation-content');
     const originalSentence = state.currentWord.example;
 
@@ -1104,9 +885,9 @@ export async function translateFillBlankSentence() {
         translationContentEl.textContent = "Dịch lỗi.";
     }
 }
+*/
 
-
-export function checkFillBlank() {
+/*export function checkFillBlank() {
     const userAnswer = document.getElementById('fill-blank-input').value.trim().toLowerCase();
     const resultEl = document.getElementById('fill-blank-result');
     if (!userAnswer) return;
@@ -1134,19 +915,19 @@ export function checkFillBlank() {
         resultEl.textContent = `❌ Sai rồi! Đáp án: "${state.currentWord.word}"`;
         resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
     }
-}
+}*/
 
-export function skipFillBlankQuestion() {
+/*export function skipFillBlankQuestion() {
     playSound('wrong'); // Chơi âm thanh sai khi bỏ qua để có phản hồi
     state.fillBlankSession.currentIndex++;
     startFillBlank('fill-blank-screen-content');
 }
-
+*/
 // ===================================================================
 // START: CẬP NHẬT GIAO DIỆN CHO CHỨC NĂNG "NHỚ TỪ MỚI"
 // ===================================================================
 
-function renderNextRememberWordQuestion(containerId) {
+/*function renderNextRememberWordQuestion(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
@@ -1238,33 +1019,13 @@ export function checkRememberWord(clickedButton, isCorrectStr) {
         clickedButton.className = "bg-red-500 text-white font-semibold py-3 px-4 rounded-lg cursor-not-allowed vocab-font-size";
         setTimeout(() => renderNextRememberWordQuestion('remember-word-screen-content'), 2500);
     }
-}
+}*/
 // ===================================================================
 // END: CẬP NHẬT CHỨC NĂNG "NHỚ TỪ MỚI"
 // ===================================================================
 // 4) Trả ký tự về đúng slot cũ khi bấm vào ô trả lời
-export function handleAnswerLetterClick(id) {
-  if (!state.scrambleGame) return;
-  const { available, answer } = state.scrambleGame;
-
-  const idx = answer.findIndex(l => l.id === id);
-  if (idx === -1) return;
-
-  const removed = answer.splice(idx, 1)[0];
-  const slot = available.find(l => l.id === removed.id);
-  if (slot) slot.used = false;
-
-  renderScrambleLetters();
-}
+// [moved] handleAnswerLetterClick
 
 
 // 5) Nút "Xóa lùi": gỡ ký tự cuối khỏi ô trả lời và trả về vị trí cũ
-export function handleScrambleBackspace() {
-  if (!state.scrambleGame) return;
-  const { answer } = state.scrambleGame;
-  if (answer.length === 0) return;
-
-  const last = answer[answer.length - 1];
-  // Tận dụng logic chung để trả ký tự về slot cũ
-  handleAnswerLetterClick(last.id);
-}
+// [moved] handleScrambleBackspace

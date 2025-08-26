@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "cloudinary": "^2.7.0"
+  },
+  "devDependencies": {
+    "ts-morph": "^26.0.0"
   }
 }
