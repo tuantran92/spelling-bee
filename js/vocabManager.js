@@ -73,85 +73,148 @@ function loadMoreVocab() {
 }
 
 function filterAndDisplayVocab() {
-    const listContainer = document.getElementById('vocab-list-display');
-    const loadMoreContainer = document.getElementById('vocab-load-more-container');
-    if (!listContainer || !loadMoreContainer) return;
+  const listContainer = document.getElementById('vocab-list-display');
+  const loadMoreContainer = document.getElementById('vocab-load-more-container');
+  if (!listContainer || !loadMoreContainer) return;
 
-    const searchTerm = document.getElementById('vocab-search-input').value.trim().toLowerCase();
-    const categoryFilter = document.getElementById('vocab-list-category-filter').value;
+  // --- helpers
+  const esc = (s) => (s == null ? '' : String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
+  const normalize = (s) =>
+    (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const diffLabel = (d) => (d === 'easy' ? 'Dễ' : d === 'hard' ? 'Khó' : 'Trung bình');
 
-    fullFilteredList = state.vocabList.filter(word => {
-        const categoryMatch = categoryFilter === 'all' || (word.category || 'Chung') === categoryFilter;
-        const searchMatch = !searchTerm || word.word.toLowerCase().includes(searchTerm) || word.meaning.toLowerCase().includes(searchTerm);
-        return categoryMatch && searchMatch;
-    });
+  // --- filters (CHỈ theo từ vựng)
+  const rawSearch = (document.getElementById('vocab-search-input')?.value || '').trim();
+  const searchTerm = normalize(rawSearch); // so khớp không dấu, không phân biệt hoa/thường
+  const categoryFilter = document.getElementById('vocab-list-category-filter')?.value || 'all';
 
-    fullFilteredList.sort((a, b) => a.word.localeCompare(b.word));
+  fullFilteredList = (state.vocabList || []).filter(w => {
+    const cat = (w.category || 'Chung');
+    const categoryMatch = categoryFilter === 'all' || cat === categoryFilter;
 
-    const itemsToDisplay = fullFilteredList.slice(0, currentLoadedCount);
+    if (!searchTerm) return categoryMatch;
 
-    if (itemsToDisplay.length === 0) {
-        listContainer.innerHTML = '<p class="text-center text-gray-500 py-8">Không tìm thấy từ nào.</p>';
-    } else {
-        listContainer.innerHTML = itemsToDisplay.map(word => {
-            const originalIndex = state.vocabList.findIndex(v => v.word === word.word);
-            
-            const difficultyClasses = {
-                easy: 'border-l-4 border-green-500',
-                medium: 'border-l-4 border-yellow-500',
-                hard: 'border-l-4 border-red-500'
-            };
-            const difficultyClass = difficultyClasses[word.difficulty] || difficultyClasses.medium;
+    // ====== CHỈ match theo word ======
+    // Mặc định: match tuyệt đối. Nếu muốn match bắt đầu, đổi === thành .startsWith(searchTerm)
+    const wordMatch = normalize(w.word).startsWith(searchTerm);
+    return categoryMatch && wordMatch;
+  });
 
-            return `
-                <div id="vocab-item-${originalIndex}" class="p-3 bg-gray-100 dark:bg-gray-700/60 rounded-lg transition-colors duration-300 ${difficultyClass}">
-                    <div class="flex justify-between items-start gap-3">
-                        <div class="flex-shrink-0 w-16 h-16">
-                            ${word.imageUrl ? 
-                                `<img src="${word.imageUrl}" alt="${word.word}" class="w-full h-full object-cover rounded-md">` :
-                                `<div class="w-full h-full bg-gray-200 dark:bg-gray-600 rounded-md flex items-center justify-center text-gray-400">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"></path></svg>
-                                </div>`
-                            }
-                        </div>
-                        
-                        <div class="flex-grow">
-                            <div class="flex items-center gap-2">
-                                <p class="font-bold text-gray-900 dark:text-gray-100">${word.word}</p>
-                                ${word.partOfSpeech ? `<span class="text-xs italic text-gray-500 dark:text-gray-400">(${word.partOfSpeech})</span>` : ''}
-                            </div>
-                            ${word.phonetic ? `<p class="text-sm text-indigo-500 dark:text-indigo-400 font-mono">${word.phonetic}</p>` : ''}
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${word.meaning}</p>
-                            ${word.definition ? `<p class="text-sm text-gray-500 dark:text-gray-300 mt-1 italic">"${word.definition}"</p>` : ''}
-                        </div>
-                        <div class="flex flex-col items-center gap-2 flex-shrink-0">
-                            <button onclick="showWordStats(${originalIndex})" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Chi tiết"><svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
-                            <button onclick="editVocabWord(${originalIndex})" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Sửa"><svg class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg></button>
-                            <button onclick="deleteVocabWord(${originalIndex})" class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Xóa"><svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
-                        </div>
-                    </div>
-                     <div class="flex items-center justify-between mt-2">
-                        ${word.example ? `<p class="text-xs text-gray-500 dark:text-gray-500 italic pl-1 truncate max-w-[60%]">Vd: ${word.example}</p>`: '<div></div>'}
-                        <select data-index="${originalIndex}" class="difficulty-select text-xs p-1 border rounded dark:bg-gray-600 dark:border-gray-500 focus:ring-1 focus:ring-indigo-500">
-                            <option value="easy" ${word.difficulty === 'easy' ? 'selected' : ''}>Dễ</option>
-                            <option value="medium" ${!word.difficulty || word.difficulty === 'medium' ? 'selected' : ''}>Trung bình</option>
-                            <option value="hard" ${word.difficulty === 'hard' ? 'selected' : ''}>Khó</option>
-                        </select>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
+  // sort theo chữ cái
+  fullFilteredList.sort((a, b) =>
+    (a.word || '').localeCompare(b.word || '', 'en', { sensitivity: 'base' }));
 
-    loadMoreContainer.innerHTML = '';
-    if (currentLoadedCount < fullFilteredList.length) {
-        loadMoreContainer.innerHTML = `
-            <button id="load-more-btn" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-semibold py-2 px-6 rounded-lg">
-                Tải thêm (${fullFilteredList.length - currentLoadedCount} từ nữa)
+  // --- render page
+  const items = fullFilteredList.slice(0, currentLoadedCount);
+
+  if (items.length === 0) {
+    listContainer.innerHTML = `
+      <div class="text-gray-500 dark:text-gray-400 italic py-8 text-center">
+        Không có mục nào khớp bộ lọc.
+      </div>`;
+  } else {
+    listContainer.innerHTML = items.map(word => {
+      const idx = state.vocabList.indexOf(word); // index gốc trong danh sách master
+      const pos = esc(word.partOfSpeech || '');
+      const pho = esc(word.phonetic || '');
+      const img = esc(word.imageUrl || '');
+      const diffClass =
+        (word.difficulty === 'easy') ? 'border-l-4 border-green-500' :
+        (word.difficulty === 'hard') ? 'border-l-4 border-red-500' :
+                                       'border-l-4 border-yellow-500';
+
+      return `
+      <div id="vocab-item-${idx}"
+           class="p-3 md:p-4 bg-gray-800/60 dark:bg-gray-800 text-gray-100 rounded-lg transition-colors duration-300 ${diffClass}">
+        <div class="flex justify-between items-start gap-3">
+          <!-- thumb -->
+          <div class="flex-shrink-0 w-16 h-16 rounded overflow-hidden bg-gray-700 grid place-items-center">
+            ${img ? `<img src="${img}" alt="${esc(word.word)}" class="w-full h-full object-cover">`
+                   : `<span class="text-xs text-gray-400">no image</span>`}
+          </div>
+
+          <!-- nội dung -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline gap-2 flex-wrap">
+              <div class="text-xl md:text-2xl font-bold truncate">${esc(word.word || '')}</div>
+              ${pos ? `<div class="text-sm text-white/70">(${pos})</div>` : ''}
+            </div>
+            ${pho ? `<a class="text-sky-300 text-sm hover:underline">${pho}</a>` : ''}
+            ${word.meaning ? `<div class="mt-1">${esc(word.meaning)}</div>` : ''}
+            ${word.definition ? `<div class="mt-1 italic text-white/80">"${esc(word.definition)}"</div>` : ''}
+            ${word.example ? `<div class="mt-1 italic text-gray-400">Vd: ${esc(word.example)}</div>` : ''}
+          </div>
+
+          <!-- actions -->
+          <div class="flex flex-col items-center gap-2 flex-shrink-0">
+            <button onclick="showWordStats(${idx})"
+                    class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
+                    title="Chi tiết">
+              <svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
             </button>
-        `;
-    }
+
+            <button onclick="openEtymologyPopup('${esc(word.word)}')"
+                    class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
+                    title="Gốc từ (Etymology)">
+              <svg class="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 6h7m-7 4h7m-7 4h5M6 4a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V8l-4-4H6z"/>
+              </svg>
+            </button>
+
+            <button onclick="editVocabWord(${idx})"
+                    class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
+                    title="Sửa">
+              <svg class="h-5 w-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z"/>
+              </svg>
+            </button>
+
+            <button onclick="deleteVocabWord(${idx})"
+                    class="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
+                    title="Xóa">
+              <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+
+            <select id="diff-${idx}"
+                    class="mt-1 text-sm bg-gray-700 text-white rounded px-2 py-1"
+                    onchange="updateWordDifficulty(${idx}, this.value)">
+              <option value="easy"   ${word.difficulty === 'easy'   ? 'selected' : ''}>Dễ</option>
+              <option value="medium" ${!word.difficulty || word.difficulty === 'medium' ? 'selected' : ''}>Trung bình</option>
+              <option value="hard"   ${word.difficulty === 'hard'   ? 'selected' : ''}>Khó</option>
+            </select>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // --- load more
+  loadMoreContainer.innerHTML = '';
+  if (currentLoadedCount < fullFilteredList.length) {
+    loadMoreContainer.innerHTML = `
+      <button id="load-more-btn"
+              class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500
+                     font-semibold py-2 px-6 rounded-lg">
+        Tải thêm (${fullFilteredList.length - currentLoadedCount} từ nữa)
+      </button>`;
+    document.getElementById('load-more-btn')?.addEventListener('click', () => {
+      currentLoadedCount += ITEMS_PER_PAGE;
+      filterAndDisplayVocab();
+    });
+  }
 }
+
+
 
 export function updateWordDifficulty(index, newDifficulty) {
     if (state.vocabList[index]) {

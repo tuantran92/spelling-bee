@@ -35,13 +35,13 @@ export { startReading, handleFlashcardAnswer } from './game-modes/reading.js';
 export { startWordMatch } from './game-modes/word-match.js';
 export { startHangman, hangmanGuess } from './game-modes/hangman.js';
 
-
 // js/gameModes.js
 import { state, setState } from './state.js';
 import { updateWordLevel, recordDailyActivity, saveUserData, getReviewableWords, updateAndCacheSuggestions, fetchWordData } from './data.js';
 import { scrambleWord, levenshteinDistance, playSound, maskWord, shuffleArray } from './utils.js';
 import { closeGameScreen } from './ui.js';
 import { speak } from './utils.js';
+export { openEtymologyPopup, getWordOrigin } from './services/etymology.js';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;

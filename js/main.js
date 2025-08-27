@@ -121,6 +121,8 @@ function attachGlobalFunctions() {
  window.startHangman   = game.startHangman;
  window.hangmanGuess   = game.hangmanGuess;
 
+ window.openEtymologyPopup = game.openEtymologyPopup; // dự phòng
+
 }
 
 function addEventListeners() {

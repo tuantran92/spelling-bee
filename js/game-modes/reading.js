@@ -4,6 +4,7 @@
 import { state, setState } from '../state.js';
 import { updateWordLevel } from '../data.js';
 import { speak, playSound, shuffleArray } from '../utils.js';
+import { openEtymologyPopup } from '../services/etymology.js'; // ⬅️ NEW
 
 function currentList() {
   return (state.filteredVocabList && state.filteredVocabList.length > 0)
@@ -15,7 +16,10 @@ export function startReading(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  const list = currentList();
+  const list = (state.filteredVocabList && state.filteredVocabList.length > 0)
+    ? state.filteredVocabList
+    : (state.vocabList || []);
+
   if (!Array.isArray(list) || list.length === 0) {
     container.innerHTML = `
       <h2 class="text-2xl font-semibold mb-4">Thông báo</h2>
@@ -23,8 +27,7 @@ export function startReading(containerId) {
     return;
   }
 
-  // dùng thứ tự random giống bản gốc (nếu bạn muốn cố định, bỏ shuffleArray)
-  const flashcardList = shuffleArray ? shuffleArray([...list]) : [...list];
+  const flashcardList = (typeof shuffleArray === 'function') ? shuffleArray([...list]) : [...list];
   setState({ flashcardList, currentFlashcardIndex: 0 });
 
   container.innerHTML = `
@@ -33,9 +36,19 @@ export function startReading(containerId) {
     <div id="flashcard-container"
          class="w-full h-[60vh] max-h-[500px] rounded-2xl shadow-lg relative overflow-hidden
                 flex flex-col justify-end cursor-pointer group transition-all duration-300
-                bg-gray-800 transform hover:scale-105">
+                bg-gray-800">
 
-      <!-- Overlay CHỈ hiển thị khi mở nghĩa -->
+      <!-- ACTIONS TOP-RIGHT: 📜 Gốc từ -->
+      <div class="absolute top-3 right-3 z-20 flex gap-2">
+        <button id="flashcard-etymology-btn"
+                class="backdrop-blur bg-black/50 hover:bg-black/60 text-white text-sm font-semibold
+                       px-3 py-1.5 rounded-full shadow">
+          📜 Gốc từ
+          <span class="ml-1 opacity-70">(E)</span>
+        </button>
+      </div>
+
+      <!-- Overlay gradient khi mở nghĩa -->
       <div id="flashcard-overlay"
            class="absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t
                   from-black/40 via-black/20 to-transparent
@@ -54,6 +67,7 @@ export function startReading(containerId) {
             </svg>
           </button>
         </div>
+
         <p id="flashcard-phonetic" class="text-lg text-white/70 font-mono mt-1"></p>
 
         <!-- Khu nghĩa/định nghĩa/ví dụ – ẩn mặc định, click thẻ để mở -->
@@ -84,8 +98,11 @@ export function startReading(containerId) {
     </div>
   `;
 
+  // bắt phím tắt cho Flashcard (E = Etymology)
+  addReadingKeyListener();
   updateFlashcard();
 }
+
 
 /** cập nhật nội dung thẻ hiện tại */
 function updateFlashcard() {
@@ -117,7 +134,7 @@ function updateFlashcard() {
   const overlayEl = document.getElementById('flashcard-overlay');
   const detailsEl = document.getElementById('flashcard-details');
 
-  // reset trạng thái hiển thị – ẩn nghĩa, ẩn overlay (để ảnh KHÔNG mờ mặc định)
+  // reset hiển thị – ẩn nghĩa, ẩn overlay
   detailsEl.style.maxHeight = '0px';
   if (overlayEl) {
     overlayEl.classList.add('opacity-0');
@@ -156,6 +173,13 @@ function updateFlashcard() {
   const speakBtn = document.getElementById('flashcard-speak-btn');
   if (speakBtn) speakBtn.onclick = (e) => { e.stopPropagation(); speak(word.word, 'en-US'); };
 
+  // 📜 Gốc từ
+  const etyBtn = document.getElementById('flashcard-etymology-btn');
+  if (etyBtn) etyBtn.onclick = (e) => {
+    e.stopPropagation();
+    openEtymologyPopup(word.word);
+  };
+
   // đọc nghĩa VI
   const speakMeaningBtn = document.getElementById('flashcard-speak-meaning-btn');
   if (speakMeaningBtn) speakMeaningBtn.onclick = (e) => { e.stopPropagation(); speak(word.meaning || '', 'vi-VN'); };
@@ -181,7 +205,7 @@ function updateFlashcard() {
     }
   };
 
-  // tự đọc từ khi xuất hiện thẻ (giống bản gốc)
+  // tự đọc từ khi xuất hiện thẻ
   speak(word.word, 'en-US');
 }
 
@@ -211,4 +235,22 @@ export function handleFlashcardAnswer(remembered) {
     setState({ currentFlashcardIndex: currentFlashcardIndex + 1 });
     updateFlashcard();
   }, 300);
+}
+
+let READING_KEY_HANDLER = null;
+function addReadingKeyListener() {
+  if (READING_KEY_HANDLER) {
+    window.removeEventListener('keydown', READING_KEY_HANDLER);
+  }
+  READING_KEY_HANDLER = (e) => {
+    // chỉ hoạt động khi flashcard đang mở
+    if (!document.getElementById('flashcard-container')) return;
+    const key = e.key.toLowerCase();
+    if (key === 'e') {
+      e.preventDefault();
+      const w = state.currentWord?.word || '';
+      if (w) openEtymologyPopup(w);
+    }
+  };
+  window.addEventListener('keydown', READING_KEY_HANDLER);
 }
