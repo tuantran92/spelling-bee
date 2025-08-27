@@ -1,7 +1,7 @@
 // js/game-modes/scramble.js  (ES module)
 
 import { state, setState } from '../state.js';
-import { scrambleWord, playSound } from '../utils.js';
+import { scrambleWord, playSound, speak } from '../utils.js'; // ⬅️ thêm speak
 import { updateWordLevel, fetchWordData } from '../data.js';
 
 // timer cho lần load lại kế tiếp
@@ -152,31 +152,55 @@ export function checkScramble() {
   playSound(isCorrect ? 'correct' : 'wrong');
   updateWordLevel(state.currentWord, isCorrect);
 
-  if (isCorrect) {
-    resultEl.textContent = '✅ Chính xác!';
-    resultEl.className = 'mt-4 h-6 text-lg font-medium text-green-500';
-  } else {
-    resultEl.textContent = `❌ Sai rồi! Đáp án: ${state.currentWord.word}`;
-    resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
-  }
-
   // 🔒 Clear timer cũ (nếu có) để tránh đua
   if (SCRAMBLE_NEXT_TIMER) {
     clearTimeout(SCRAMBLE_NEXT_TIMER);
     SCRAMBLE_NEXT_TIMER = null;
   }
 
-  // Đợi 1 chút rồi load câu mới, nhưng CHỈ khi container vẫn còn & chưa bị ẩn
-  SCRAMBLE_NEXT_TIMER = setTimeout(() => {
-    SCRAMBLE_NEXT_TIMER = null;
-    const container = document.getElementById('scramble-screen-content');
-    const isHidden = container && (container.offsetParent === null || container.classList?.contains('hidden'));
-    if (!container || isHidden) {
-      // người dùng đã rời màn hoặc đóng → không render nữa
-      return;
-    }
-    startScramble(container); // truyền thẳng element để chắc chắn đúng
-  }, 1200);
+  // Ẩn/hiện nút Tiếp tục
+  let nextBtn = document.getElementById('scramble-next-btn');
+  if (!nextBtn) {
+    nextBtn = document.createElement('button');
+    nextBtn.id = 'scramble-next-btn';
+    nextBtn.textContent = 'Tiếp tục';
+    nextBtn.className = 'mt-3 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-6 rounded-lg hidden';
+    resultEl.after(nextBtn);
+  }
+
+  if (isCorrect) {
+    resultEl.textContent = '✅ Chính xác!';
+    resultEl.className = 'mt-4 h-6 text-lg font-medium text-green-500';
+
+    // 🔊 Đọc to từ vựng vừa sắp xếp đúng
+    try { speak(state.currentWord.word, 'en-US'); } catch (e) {}
+
+    // Hiện nút "Tiếp tục" (không tự chuyển nữa)
+    nextBtn.classList.remove('hidden');
+    nextBtn.disabled = false;
+    nextBtn.onclick = () => {
+      const container = document.getElementById('scramble-screen-content');
+      if (!container) return;
+      nextBtn.classList.add('hidden'); // ẩn để chuẩn bị câu mới
+      startScramble(container);
+    };
+
+  } else {
+    resultEl.textContent = `❌ Sai rồi! Đáp án: ${state.currentWord.word}`;
+    resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
+
+    // Ẩn nút "Tiếp tục" khi sai
+    nextBtn.classList.add('hidden');
+
+    // Tự chuyển sau 1.2s như cũ
+    SCRAMBLE_NEXT_TIMER = setTimeout(() => {
+      SCRAMBLE_NEXT_TIMER = null;
+      const container = document.getElementById('scramble-screen-content');
+      const isHidden = container && (container.offsetParent === null || container.classList?.contains('hidden'));
+      if (!container || isHidden) return;
+      startScramble(container);
+    }, 1200);
+  }
 }
 
 

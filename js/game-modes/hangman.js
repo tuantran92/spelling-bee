@@ -26,22 +26,65 @@ function maskedWord(word, guessedSet) {
 }
 
 function renderKeyboard(containerId) {
-  const keys = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const wrap = document.getElementById('hangman-keys');
   if (!wrap) return;
-  wrap.innerHTML = keys.map(k => `
-    <button class="hm-key bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500
-                   text-gray-900 dark:text-gray-100 font-bold py-2 px-3 rounded"
-            data-k="${k}">${k}</button>
-  `).join('');
 
+  // Dùng layout US QWERTY
+  const rows = [
+    ['Q','W','E','R','T','Y','U','I','O','P'],
+    ['A','S','D','F','G','H','J','K','L'],
+    ['Z','X','C','V','B','N','M']
+  ];
+
+  // đảm bảo class container đúng kiểu "nhiều hàng"
+  wrap.className = 'mt-2 space-y-2';
+
+  wrap.innerHTML = rows.map((row, idx) => {
+    // nhẹ nhàng "thụt lề" hàng 2,3 cho giống bàn phím thật
+    const indent = idx === 1 ? 'ml-3 md:ml-6' : (idx === 2 ? 'ml-6 md:ml-12' : '');
+    return `
+      <div class="flex justify-center gap-2 ${indent}">
+        ${row.map(k => `
+          <button
+            class="hm-key bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500
+                   text-gray-900 dark:text-gray-100 font-bold rounded
+                   w-10 h-10 md:w-11 md:h-11 leading-none"
+            data-k="${k}">${k}</button>
+        `).join('')}
+      </div>
+    `;
+  }).join('');
+
+  // click -> đoán
   wrap.querySelectorAll('.hm-key').forEach(btn => {
     btn.addEventListener('click', () => {
       const k = btn.getAttribute('data-k');
       hangmanGuess(k, containerId);
     });
   });
+
+  // bật lắng nghe bàn phím vật lý
+  addKeyboardListener(containerId);
 }
+
+// đảm bảo chỉ có 1 listener hoạt động
+let HANGMAN_KEY_HANDLER = null;
+
+function addKeyboardListener(containerId) {
+  if (HANGMAN_KEY_HANDLER) {
+    window.removeEventListener('keydown', HANGMAN_KEY_HANDLER);
+  }
+  HANGMAN_KEY_HANDLER = (e) => {
+    if (!state.hangman) return;
+    const key = e.key;
+    if (/^[a-z]$/i.test(key)) {
+      e.preventDefault();
+      hangmanGuess(key, containerId);
+    }
+  };
+  window.addEventListener('keydown', HANGMAN_KEY_HANDLER);
+}
+
 
 // ------- FX helpers -------
 function renderLives(wrong, maxWrong) {
@@ -164,7 +207,7 @@ export function startHangman(containerId) {
 
       <p id="hm-meaning" class="mb-2 text-center text-cyan-500 hidden"></p>
 
-      <div id="hangman-keys" class="mt-1 grid grid-cols-10 gap-2"></div>
+      <div id="hangman-keys" class="mt-2 space-y-2"></div>
 
       <div class="mt-4 flex items-center justify-between">
         <p id="hm-result" class="h-6 text-lg font-medium"></p>
