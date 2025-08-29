@@ -10,7 +10,7 @@ const FEATURES = [
   { title: 'Trắc Nghiệm', sub: 'Chọn nghĩa đúng của từ', screen: 'mcq-screen', accent: 'blue', icon: '📝' },
   { title: 'Nhớ Từ Mới', sub: 'Chọn từ đúng trong các từ', screen: 'remember-word-screen', accent: 'green', icon: '✅' },
   { title: 'Sắp Xếp Chữ', sub: 'Tạo thành từ đúng', screen: 'scramble-screen', accent: 'amber', icon: '🔤' },
-  { title: 'Sắp Xếp Chữ (đua thời gian)', sub: 'Liên tục tới khi hết giờ', screen: 'timed-scramble-screen', accent: 'amber', icon: '⏱️' },
+  { title: 'Sắp Xếp Chữ (tính giờ)', sub: 'Liên tục tới khi hết giờ', screen: 'timed-scramble-screen', accent: 'amber', icon: '⏱️' },
   { title: 'Điền từ', sub: 'Hoàn thành câu với từ đúng', screen: 'fill-blank-screen', accent: 'teal', icon: '🧩' },
   { title: 'Luyện Thi', sub: 'Kiểm tra kiến thức tổng hợp', screen: 'exam-screen', accent: 'violet', icon: '📚' },
   { title: 'Nối Từ (Word Match)', sub: 'Ghép từ với nghĩa đúng', screen: 'word-match-screen', accent: 'green', icon: '🔗' },

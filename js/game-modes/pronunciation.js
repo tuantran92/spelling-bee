@@ -3,11 +3,38 @@ import { state, setState } from '../state.js';
 import { updateWordLevel } from '../data.js';
 import { playSound, speak } from '../utils.js';
 
-const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition;
+// Web Speech API
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 let recognition;
 let hadResult = false;
+
+// ===== Helpers =====
+function normalize(s) {
+  return (s || '')
+    .toLowerCase()
+    .replace(/[^a-z']/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n; if (!n) return m;
+  const dp = Array.from({ length: m + 1 }, (_, i) => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return dp[m][n];
+}
 
 /** Lấy từ kế tiếp ngẫu nhiên từ danh sách hiện tại */
 function getNextWord() {
@@ -22,9 +49,15 @@ function getNextWord() {
 /** Xin quyền micro trước khi bật SpeechRecognition */
 async function ensureMicPermission() {
   try {
-    if (!navigator.mediaDevices?.getUserMedia) return true; // một số trình duyệt cũ
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    // tắt ngay track để giải phóng
+    if (!navigator.mediaDevices?.getUserMedia) return true;
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
     stream.getTracks().forEach(t => t.stop());
     return true;
   } catch (err) {
@@ -76,10 +109,17 @@ export function startPronunciation(containerId) {
 }
 
 export async function listenForPronunciation() {
-  if (!SpeechRecognition) return;
-
   const resultEl = document.getElementById('pronunciation-result');
+  if (!SpeechRecognition) {
+    if (resultEl) {
+      resultEl.textContent = '⚠️ Trình duyệt không hỗ trợ nhận dạng giọng nói.';
+      resultEl.className = 'mt-4 h-6 text-lg font-medium text-yellow-500';
+    }
+    return;
+  }
+
   const word = state.currentWord?.word || '';
+  const goal = normalize(word);
 
   // 1) xin quyền micro trước
   const mic = await ensureMicPermission();
@@ -90,67 +130,76 @@ export async function listenForPronunciation() {
   }
 
   // 2) khởi tạo recognition
-  if (recognition) recognition.stop();
+  if (recognition) try { recognition.stop(); } catch {}
   recognition = new SpeechRecognition();
   recognition.lang = 'en-US';
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-  // recognition.continuous = false; // mặc định false
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 5;
+  recognition.continuous = false;
   hadResult = false;
 
-  // ====== UI states / debug ======
-  resultEl.textContent = '🎤 Đang nghe... hãy nói rõ và gần mic.';
+  // Timeout nếu không nói gì
+  let noSpeechTimer = null;
+  const setNoSpeechTimer = () => {
+    clearTimeout(noSpeechTimer);
+    noSpeechTimer = setTimeout(() => {
+      try { recognition.abort(); } catch {}
+      resultEl.textContent = '⚠️ Không phát hiện tiếng nói. Thử nói gần mic và rõ hơn.';
+      resultEl.className = 'mt-4 h-6 text-lg font-medium text-yellow-500';
+    }, 8000);
+  };
+
+  // UI states
+  resultEl.textContent = `🎤 Đang nghe từ: "${word}"...`;
   resultEl.className = 'mt-4 h-6 text-lg font-medium text-gray-400';
 
-  recognition.onstart = () => {
-    resultEl.textContent = `🎤 Đang nghe từ: "${word}"...`;
-  };
-  recognition.onaudiostart = () => {
-    // có âm thanh đi vào
-  };
-  recognition.onspeechstart = () => {
-    resultEl.textContent = '🗣️ Bắt được tiếng nói...';
-  };
-  recognition.onspeechend = () => {
-    // kết thúc đoạn nói, chờ kết quả
-  };
+  let interim = '';
+  let finalText = '';
+  let bestConf = 0;
 
-  recognition.onresult = (event) => {
-    hadResult = true;
-    const transcript = event.results[0][0].transcript.toLowerCase().trim();
-    const isCorrect = transcript === (word || '').toLowerCase();
+  recognition.onstart = () => setNoSpeechTimer();
+  recognition.onspeechstart = () => setNoSpeechTimer();
+  recognition.onaudiostart = () => setNoSpeechTimer();
+  recognition.onsoundstart = () => setNoSpeechTimer();
+  recognition.onspeechend = () => setNoSpeechTimer();
 
-    playSound(isCorrect ? 'correct' : 'wrong');
-    if (state.currentWord) updateWordLevel(state.currentWord, isCorrect);
+  recognition.onresult = (e) => {
+    setNoSpeechTimer();
+    const last = e.results[e.results.length - 1];
+    if (!last) return;
 
-    if (isCorrect) {
-      resultEl.textContent = `✅ Chuẩn! Bạn nói: "${transcript}"`;
-      resultEl.className = 'mt-4 h-6 text-lg font-medium text-green-500';
-      setTimeout(() => startPronunciation('pronunciation-screen-content'), 1500);
+    if (last.isFinal) {
+      // chọn alternative có confidence cao nhất
+      let best = last[0];
+      for (let i = 1; i < last.length; i++) {
+        if ((last[i]?.confidence || 0) > (best?.confidence || 0)) best = last[i];
+      }
+      finalText = best?.transcript || '';
+      bestConf = best?.confidence || 0;
     } else {
-      resultEl.textContent = `❌ Chưa đúng. Bạn nói: "${transcript}". Đáp án: "${word}"`;
-      resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
+      interim = Array.from(last).map(a => a.transcript).join(' ');
     }
-    recognition.stop();
   };
 
   recognition.onnomatch = () => {
-    resultEl.textContent = '🤔 Không nhận ra lời nói. Thử nói lại chậm và rõ hơn.';
+    clearTimeout(noSpeechTimer);
+    resultEl.textContent = '🤔 Không nhận ra lời nói. Thử lại chậm và rõ hơn.';
     resultEl.className = 'mt-4 h-6 text-lg font-medium text-yellow-500';
   };
 
   recognition.onerror = (e) => {
+    clearTimeout(noSpeechTimer);
     let msg = '⚠️ Lỗi không xác định.';
     switch (e.error) {
       case 'not-allowed':
       case 'service-not-allowed':
-        msg = '⚠️ Bạn đã chặn quyền micro. Hãy mở khóa micro cho trang này rồi thử lại.';
+        msg = '⚠️ Bạn đã chặn quyền micro. Mở quyền mic cho trang này rồi thử lại.';
         break;
       case 'audio-capture':
-        msg = '⚠️ Không tìm thấy thiết bị thu âm (micro). Kiểm tra kết nối & chọn đúng input.';
+        msg = '⚠️ Không tìm thấy thiết bị thu âm. Kiểm tra micro & chọn đúng input.';
         break;
       case 'no-speech':
-        msg = '⚠️ Không phát hiện tiếng nói. Hãy nói gần micro hơn và rõ ràng.';
+        msg = '⚠️ Không phát hiện tiếng nói. Hãy nói gần mic hơn và rõ ràng.';
         break;
       case 'network':
         msg = '⚠️ Lỗi mạng khi nhận dạng. Kiểm tra kết nối Internet.';
@@ -163,14 +212,48 @@ export async function listenForPronunciation() {
   };
 
   recognition.onend = () => {
-    // nếu onend xảy ra mà chưa có kết quả và không có lỗi → coi như no-speech
-    if (!hadResult && (!resultEl.textContent || resultEl.textContent.includes('Đang nghe'))) {
-      resultEl.textContent = '⚠️ Không nhận được âm thanh, thử lại nhé.';
-      resultEl.className = 'mt-4 h-6 text-lg font-medium text-yellow-500';
+    clearTimeout(noSpeechTimer);
+
+    // nếu chưa có kết quả → coi như no-speech
+    if (!finalText && !interim) {
+      if (!resultEl.textContent) {
+        resultEl.textContent = '⚠️ Không nhận được âm thanh, thử lại nhé.';
+        resultEl.className = 'mt-4 h-6 text-lg font-medium text-yellow-500';
+      }
+      return;
+    }
+
+    hadResult = true;
+    const heardRaw = finalText || interim;
+    const heard = normalize(heardRaw);
+
+    // So khớp gần đúng
+    const dist = levenshtein(heard, goal);
+    const pass =
+      heard === goal ||
+      (goal.length >= 4 && dist <= 1) ||
+      (goal.length >= 7 && dist <= 2);
+
+    playSound(pass ? 'correct' : 'wrong');
+    if (state.currentWord) updateWordLevel(state.currentWord, pass);
+
+    if (pass) {
+      resultEl.textContent = `✅ Chuẩn! Bạn nói: "${heardRaw}"${bestConf ? ` (conf: ${Math.round(bestConf * 100)}%)` : ''}`;
+      resultEl.className = 'mt-4 h-6 text-lg font-medium text-green-500';
+      setTimeout(() => startPronunciation('pronunciation-screen-content'), 1200);
+    } else {
+      resultEl.textContent = `❌ Chưa đúng. Bạn nói: "${heardRaw}". Đáp án: "${word}"`;
+      resultEl.className = 'mt-4 h-6 text-lg font-medium text-red-500';
     }
   };
 
-  recognition.start();
+  try {
+    recognition.start(); // nên gọi từ onclick để iOS cho phép
+  } catch {
+    clearTimeout(noSpeechTimer);
+    resultEl.textContent = '⚠️ Không thể khởi động nhận dạng. Thử lại.';
+    resultEl.className = 'mt-4 h-6 text-lg font-medium text-yellow-500';
+  }
 }
 
 // Bảo đảm callable từ onclick trong HTML
