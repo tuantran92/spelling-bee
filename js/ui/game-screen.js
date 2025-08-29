@@ -26,6 +26,7 @@ export function showGameScreen(screenId) {
     'spelling-screen':     game.startSpelling,
     'reading-screen':      game.startReading,
     'scramble-screen':     game.startScramble,
+    'timed-scramble-screen': game.startTimedScramble,
     'mcq-screen':          game.startMcq,
     'listening-screen':    game.startListening,
     'exam-screen':         exam.setupExamScreen,

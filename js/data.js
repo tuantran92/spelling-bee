@@ -122,7 +122,6 @@ export function updateAndCacheSuggestions() {
     setState({ suggestions: { difficult: difficultWords, new: newWords } });
 }
 
-
 export function getReviewableWords() {
     const now = new Date();
     const reviewable = state.vocabList.filter(wordObj => {
@@ -184,6 +183,16 @@ export async function loadUserData(profileName) {
         settings: { ...defaultAppData.settings, ...userData.appData?.settings },
         dailyProgress: { ...defaultAppData.dailyProgress, ...userData.appData?.dailyProgress }
     };
+
+    // 🔧 Làm sạch kiểu dữ liệu đề phòng bản cũ lưu chuỗi
+    appData.points = Number(appData.points || 0);
+    appData.dailyProgress = appData.dailyProgress || { date: null, words: 0, minutes: 0 };
+    appData.dailyProgress.words   = Number(appData.dailyProgress.words   || 0);
+    appData.dailyProgress.minutes = Number(appData.dailyProgress.minutes || 0);
+    appData.dailyActivity = appData.dailyActivity || {};
+    for (const day of Object.keys(appData.dailyActivity)) {
+      appData.dailyActivity[day] = Number(appData.dailyActivity[day] || 0);
+    }
 
     if (appData.settings.darkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
@@ -250,7 +259,7 @@ export function updateWordLevel(wordObj, isCorrect) {
     if (isCorrect) {
         wordProgress.level = Math.min(wordProgress.level + 1, SRS_INTERVALS.length - 1);
         wordProgress.correctAttempts = (wordProgress.correctAttempts || 0) + 1;
-        state.appData.points = (state.appData.points || 0) + 10;
+        state.appData.points = Number(state.appData.points || 0) + 10; // 🔧 ép kiểu số
         recordDailyActivity(1);
     } else {
         wordProgress.level = Math.max(0, wordProgress.level - 2);
@@ -278,13 +287,17 @@ export function updateWordLevel(wordObj, isCorrect) {
     saveUserData();
 }
 
+// ✅ THAY MỚI: luôn cộng bằng số & cập nhật dashboard
 export function recordDailyActivity(count) {
     const today = new Date().toISOString().split('T')[0];
-    if (!state.appData.dailyActivity) {
-        state.appData.dailyActivity = {};
-    }
-    state.appData.dailyActivity[today] = (state.appData.dailyActivity[today] || 0) + count;
-    state.appData.dailyProgress.words += count;
+    if (!state.appData.dailyActivity) state.appData.dailyActivity = {};
+
+    const prevDayVal = Number(state.appData.dailyActivity[today] || 0);
+    state.appData.dailyActivity[today] = prevDayVal + Number(count || 0);
+
+    const prevWords = Number(state.appData.dailyProgress?.words || 0);
+    state.appData.dailyProgress.words = prevWords + Number(count || 0);
+
     updateDashboard();
 }
 
@@ -534,8 +547,8 @@ export async function fetchWordData(word) {
                     wordData.phonetic = firstEntry.phonetics?.find(p => p.text)?.text || null;
                     const firstMeaning = firstEntry.meanings?.[0];
                     if (firstMeaning) {
-                        wordData.partOfSpeech = firstMeaning.partOfSpeech || null;
                         const firstDefinition = firstMeaning.definitions?.[0];
+                        wordData.partOfSpeech = firstMeaning.partOfSpeech || null;
                         if (firstDefinition) {
                             wordData.definition = firstDefinition.definition || null;
                             wordData.example = firstDefinition.example || null;

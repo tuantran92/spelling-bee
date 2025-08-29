@@ -18,6 +18,7 @@ import * as mcq from './game-modes/mcq.js';
 const learningGameModes = [
   'suggestion-screen', 'review-screen', 'spelling-screen', 'reading-screen',
   'scramble-screen', 'mcq-screen', 'listening-screen', 'pronunciation-screen',
+  'scramble-screen', 'timed-scramble-screen', 'mcq-screen', 'listening-screen', 'pronunciation-screen',
   'fill-blank-screen', 'exam-screen', 'remember-word-screen'
 ];
 
@@ -28,7 +29,9 @@ function startSessionTimer() {
     if (state.appData.dailyProgress.date !== todayStr) {
       state.appData.dailyProgress = { date: todayStr, words: 0, minutes: 0 };
     }
-    state.appData.dailyProgress.minutes += 1/60;
+    // 🔧 luôn cộng số, tránh nối chuỗi
+    state.appData.dailyProgress.minutes =
+      Number(state.appData.dailyProgress.minutes || 0) + 1/60;
     updateDashboard();
   }, 1000);
   setState({ sessionTimer: timerId });

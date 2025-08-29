@@ -7,7 +7,7 @@ export {
   handleAnswerLetterClick,
   handleScrambleBackspace,
 } from './game-modes/scramble.js';
-
+export { startTimedScramble } from './game-modes/timed-scramble.js';
 export {
   startMcq,
   checkMcq,
