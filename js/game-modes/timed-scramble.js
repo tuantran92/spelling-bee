@@ -117,7 +117,11 @@ async function ensureHints(){
   if (!w.definition || !w.meaning){
     try{
       const fresh = await fetchWordData(w.word);
-      if (fresh) setState({ currentWord: { ...w, ...fresh } });
+      if (fresh) {
+        // ⛔ không override target word đang chơi
+        const { word: _ignored, ...rest } = fresh;
+        setState({ currentWord: { ...w, ...rest } });
+      }
     }catch{}
   }
   const def = document.getElementById('ts-def');
@@ -126,7 +130,7 @@ async function ensureHints(){
 
 // ===== round control =====
 function newRound(){
-  if (frozen) return;
+  // KHÔNG chặn khi frozen, để có thể chuyển round trong lúc tạm khoá UI
   const w = pickWord();
   if(!w){
     const c = document.getElementById('ts-content');
@@ -155,6 +159,9 @@ function maybeAutoCheck(){
   const target = state.currentWord.word.toLowerCase();
 
   if (guess === target){
+    // 🔒 đóng băng ngay để tránh spam click/gợi ý trong lúc chuyển round
+    lockControls(true);
+
     const disqualified = (helpCount * 2) > letters.length; // >50% ký tự trợ giúp
     if (!disqualified){
       sessionCorrect += 1;
@@ -173,7 +180,11 @@ function maybeAutoCheck(){
       ? 'Đúng nhưng đã dùng trợ giúp >50% ký tự, KHÔNG tính điểm.'
       : 'Chính xác! Tạo từ mới…';
 
-    setTimeout(newRound, 300);
+    setTimeout(() => {
+      newRound();
+      // 🔓 mở lại tương tác cho round mới
+      lockControls(false);
+    }, 300);
   } else {
     try{ playSound('wrong'); }catch{}
     const ansBox = document.getElementById('ts-answer');
@@ -217,11 +228,28 @@ function suggestOne(){
 function revealAnswer(){
   if (!ticking || frozen) return;
   const r = state._tsRound;
-  r.chosen = [...r.letters.keys()];
+  const target = state.currentWord.word;
+
+  // Sắp theo đúng thứ tự đích
+  const used = new Set();
+  const chosen = [];
+  for (let pos = 0; pos < target.length; pos++) {
+    const want = target[pos]?.toLowerCase();
+    const idx = r.letters.findIndex((ch, i) => !used.has(i) && ch.toLowerCase() === want);
+    if (idx !== -1) { chosen.push(idx); used.add(idx); }
+  }
+  r.chosen = chosen;
   renderAnswer(); renderPool();
+
   const footer = document.getElementById('ts-footer');
   if (footer) footer.textContent = `Đáp án: ${state.currentWord.word}`;
-  setTimeout(newRound, 900);
+
+  // khoá tạm để tránh click thêm trong lúc next
+  lockControls(true);
+  setTimeout(() => {
+    newRound();
+    lockControls(false);
+  }, 900);
 }
 
 // ===== Timer =====
@@ -291,7 +319,7 @@ export function startTimedScramble(container){
       </div>
 
       <!-- Ô trả lời: 1 dòng, rộng tối đa, cuộn ngang khi cần -->
-      <div class="w-full mx-auto p-3 min-h-[68px]
+      <div class="w-full mx-auto p-3 min-h[68px]
                   border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
       <div id="ts-answer"
             class="w-full flex items-center justify-center gap-2 flex-nowrap overflow-x-auto"></div>

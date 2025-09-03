@@ -1,19 +1,18 @@
 // js/main.js
-
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from './firebase.js';
 import { setState, state } from './state.js';
 import { showTab, showGameScreen, closeGameScreen, updateDashboard, addSettingsEventListeners, applyFilters, handleFontSizeChange } from './ui.js';
 import * as profile from './profile.js';
 import * as data from './data.js';
-import * as game from './gameModes.js';          // các mode CHƯA tách vẫn lấy ở đây
+import * as game from './gameModes.js';
 import * as vocabManager from './vocabManager.js';
 import * as exam from './exam.js';
 import * as ui from './ui.js';
-
-// 👉 NEW: import các mode đã tách
 import * as scramble from './game-modes/scramble.js';
 import * as mcq from './game-modes/mcq.js';
+// 🔊 TTS chuẩn + interceptor toàn cục
+import { speakWord as ttsSpeakWord, installTTSInterceptor } from './tts.js';
 
 const learningGameModes = [
   'suggestion-screen', 'review-screen', 'spelling-screen', 'reading-screen',
@@ -29,7 +28,6 @@ function startSessionTimer() {
     if (state.appData.dailyProgress.date !== todayStr) {
       state.appData.dailyProgress = { date: todayStr, words: 0, minutes: 0 };
     }
-    // 🔧 luôn cộng số, tránh nối chuỗi
     state.appData.dailyProgress.minutes =
       Number(state.appData.dailyProgress.minutes || 0) + 1/60;
     updateDashboard();
@@ -79,8 +77,10 @@ function attachGlobalFunctions() {
   window.skipImageSelection = vocabManager.skipImageSelection;
   window.loadMoreImages = vocabManager.loadMoreImages;
 
-  // Game Modes CHƯA tách (giữ nguyên)
-  window.speakWord = game.speakWord;
+  // 🔊 TTS chuẩn (nếu gamemode nào vẫn gọi window.speakWord thì sẽ dùng đúng giọng)
+  window.speakWord = (text, opts, overrides) => ttsSpeakWord(text, opts, overrides);
+
+  // Game Modes (các API giữ nguyên)
   window.checkSpelling = game.checkSpelling;
   window.handleFlashcardAnswer = game.handleFlashcardAnswer;
   window.checkListening = game.checkListening;
@@ -93,7 +93,6 @@ function attachGlobalFunctions() {
   window.startSuggestionMode = game.startSuggestionMode;
   window.checkRememberWord = game.checkRememberWord;
 
-  // ✅ Scramble — lấy từ module mới
   window.startScramble = scramble.startScramble;
   window.checkScramble = scramble.checkScramble;
   window.toggleScrambleHint = scramble.toggleScrambleHint;
@@ -102,30 +101,25 @@ function attachGlobalFunctions() {
   window.handleAnswerLetterClick = scramble.handleAnswerLetterClick;
   window.handleScrambleBackspace = scramble.handleScrambleBackspace;
 
-  // ✅ MCQ — lấy từ module mới
   window.startMcq = mcq.startMcq;
   window.checkMcq = mcq.checkMcq;
 
-  // Exam
   window.startExam = exam.startExam;
   window.checkExamAnswer = exam.checkExamAnswer;
 
-  // Reading / Flashcard
-  window.startReading = game.startReading;               // nếu bạn gọi ở nơi khác
+  window.startReading = game.startReading;
   window.handleFlashcardAnswer = game.handleFlashcardAnswer;
 
-  // Game Modes
   window.startSuggestionMode   = game.startSuggestionMode;
-  window.startSuggestionSession = game.startSuggestionSession; // NEW
-  window.nextSuggestionWord     = game.nextSuggestionWord;     // NEW
+  window.startSuggestionSession = game.startSuggestionSession;
+  window.nextSuggestionWord     = game.nextSuggestionWord;
   window.handleReviewAnswer     = game.handleReviewAnswer;
- // Word Match & Hangman
- window.startWordMatch = game.startWordMatch;
- window.startHangman   = game.startHangman;
- window.hangmanGuess   = game.hangmanGuess;
 
- window.openEtymologyPopup = game.openEtymologyPopup; // dự phòng
+  window.startWordMatch = game.startWordMatch;
+  window.startHangman   = game.startHangman;
+  window.hangmanGuess   = game.hangmanGuess;
 
+  window.openEtymologyPopup = game.openEtymologyPopup;
 }
 
 function addEventListeners() {
@@ -147,12 +141,21 @@ function addEventListeners() {
         }
       }
     }
+
+    // Khi bấm tab "Hồ sơ" thì gắn click-to-upload cho avatar
+    const btn = target.closest('button');
+    if (btn && btn.getAttribute('onclick') && btn.getAttribute('onclick').includes("showTab('profile-tab'")) {
+      setTimeout(() => { profile.initAvatarChangeUI(); }, 0);
+    }
   });
 
   addSettingsEventListeners();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // 🚀 Cài interceptor TTS ngay khi app boot
+  installTTSInterceptor();
+
   attachGlobalFunctions();
 
   signInAnonymously(auth).catch(error => {

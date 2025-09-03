@@ -25,14 +25,13 @@ export async function displayProfileScreen() {
                 const profileItem = document.createElement('div');
                 profileItem.className = 'flex items-center justify-between gap-2';
 
-                // --- BẮT ĐẦU THAY ĐỔI TẠI ĐÂY ---
+                // gắn id cho ảnh để có thể cập nhật live sau khi upload
                 profileItem.innerHTML = `
                     <button class="flex-grow flex items-center gap-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg" onclick="profile.promptPasswordForLogin('${doc.id}', '${profile.name}')">
-                        <img src="${avatarSrc}" alt="Avatar" class="w-16 h-16 rounded-full object-cover">
+                        <img id="avatar-img-in-profile-list-${doc.id}" src="${avatarSrc}" alt="Avatar" class="w-16 h-16 rounded-full object-cover">
                         <span class="flex-grow text-left text-xl">${profile.name}</span>
                     </button>
                 `;
-                // --- KẾT THÚC THAY ĐỔI ---
 
                 profileListEl.appendChild(profileItem);
             });
@@ -349,6 +348,30 @@ export function initDataMigration() {
         }
     });
 }
+
+// 👉 NEW: gắn click vào avatar để mở picker ẩn
+export function initAvatarChangeUI() {
+  let img = document.getElementById('profileAvatarImg');
+  const fileInput = document.getElementById('avatarFileInput');
+  if (!img || !fileInput) return;
+
+  // Xoá mọi handler cũ (nếu có) để tránh bị bind trùng
+  const freshImg = img.cloneNode(true);
+  img.parentNode.replaceChild(freshImg, img);
+  img = freshImg;
+
+  img.style.cursor = 'pointer';
+  img.title = 'Bấm để đổi ảnh';
+  img.addEventListener('click', (e) => {
+    e.stopPropagation();          // ⛔ chặn bubble lên wrapper
+    fileInput.click();
+  });
+
+  if (!fileInput.dataset.avatarUploaderBound) {
+    fileInput.addEventListener('change', (e) => handleAvatarUpload(e));
+    fileInput.dataset.avatarUploaderBound = '1';
+  }
+}
 // ======================================================
-// END: KẾT THÚC HÀM CẦN THÊM
+// END
 // ======================================================

@@ -4,7 +4,7 @@ import { saveUserData } from '../data.js';
 import * as profile from '../profile.js';
 import { populateFilters, applyFilters, setAllTopics } from './filters.js';
 
-/** Render tab Hồ sơ (Settings) với checkbox chủ đề (mobile-friendly) */
+/** Render tab Hồ sơ (Settings) */
 export function renderProfileTab() {
   const container = document.getElementById('profile-tab');
   if (!container) return;
@@ -13,15 +13,17 @@ export function renderProfileTab() {
   const fontSize = state.appData.settings?.fontSize || 1.0;
   const avatarSrc =
     state.appData.avatarUrl ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      state.appData.profileName || 'User'
-    )}&background=random&color=fff`;
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(state.appData.profileName || 'User')}&background=random&color=fff`;
 
   container.innerHTML = `
     <header class="text-center mb-8">
-      <div class="relative inline-block group">
-        <img id="profile-avatar" src="${avatarSrc}" alt="Avatar"
+      <div id="avatarWrapper" class="relative inline-block group cursor-pointer">
+        <img id="profileAvatarImg" src="${avatarSrc}" alt="Avatar"
              class="w-24 h-24 rounded-full object-cover border-4 border-indigo-200 dark:border-indigo-800">
+        <div class="absolute inset-0 hidden group-hover:flex items-center justify-center
+                    bg-black/40 text-white text-xs font-medium rounded-full pointer-events-none">
+          Đổi ảnh
+        </div>
       </div>
       <h1 class="text-2xl font-bold mt-4">${state.appData.profileName || ''}</h1>
     </header>
@@ -43,13 +45,9 @@ export function renderProfileTab() {
 
           <div class="flex gap-2 mt-2">
             <button id="btn-select-all-topics"
-                    class="px-3 py-1 rounded-md text-sm bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500">
-              Chọn tất cả
-            </button>
+                    class="px-3 py-1 rounded-md text-sm bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500">Chọn tất cả</button>
             <button id="btn-clear-topics"
-                    class="px-3 py-1 rounded-md text-sm bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500">
-              Bỏ chọn
-            </button>
+                    class="px-3 py-1 rounded-md text-sm bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500">Bỏ chọn</button>
           </div>
           <p class="text-[11px] text-gray-500 mt-1">Chạm để bật/tắt từng chủ đề (thân thiện di động).</p>
 
@@ -109,12 +107,11 @@ export function renderProfileTab() {
         </div>
       </div>
 
-      <!-- Phải: Tài khoản (rút gọn) -->
+      <!-- Phải: Tài khoản -->
       <div class="space-y-4">
         <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 px-2">TÀI KHOẢN</h3>
         <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
-          <div class="flex justify-between items-center py-2 cursor-pointer hover:opacity-80"
-               id="switch-profile-btn">
+          <div class="flex justify-between items-center py-2 cursor-pointer hover:opacity-80" id="switch-profile-btn">
             <span class="font-medium">Đổi hồ sơ</span>
             <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
           </div>
@@ -123,16 +120,12 @@ export function renderProfileTab() {
     </div>
   `;
 
-  // Vẽ checkbox + set difficulty
+  // Render & events cho phần còn lại
   populateFilters();
-
-  // Gắn events
   const box = document.getElementById('topic-checkboxes');
   if (box) box.addEventListener('change', () => applyFilters());
-
   const diff = document.getElementById('difficulty-filter');
   if (diff) diff.addEventListener('change', () => applyFilters());
-
   const selAll = document.getElementById('btn-select-all-topics');
   const clrAll = document.getElementById('btn-clear-topics');
   if (selAll) selAll.addEventListener('click', () => setAllTopics(true));
@@ -147,10 +140,13 @@ export function renderProfileTab() {
   setupVoiceOptions();
   addSettingsEventListeners();
   applyAppearanceSettings();
-  applyFilters(); // cập nhật filteredVocabList + nhãn
+  applyFilters();
+
+  // 🔑 avatar clickable
+  profile.initAvatarChangeUI();
 }
 
-/** Lưu mục tiêu/ngày */
+/** Lưu mục tiêu */
 export function handleGoalChange() {
   const typeSelect = document.getElementById('goal-type-select');
   const valueInput = document.getElementById('goal-value-input');
@@ -166,12 +162,10 @@ export function handleGoalChange() {
   saveUserData();
 }
 
-/** Lưu cỡ chữ từ vựng + áp ngay */
 export function handleFontSizeChange() {
   const slider = document.getElementById('font-size-slider');
   const display = document.getElementById('font-size-value');
   if (!slider || !display) return;
-
   const newSize = parseFloat(slider.value);
   display.textContent = newSize.toFixed(1);
   state.appData.settings.fontSize = newSize;
@@ -179,7 +173,6 @@ export function handleFontSizeChange() {
   saveUserData();
 }
 
-/** Áp giao diện: dark mode + scale font từ vựng */
 export function applyAppearanceSettings() {
   const isDark = state.appData.settings?.darkMode ?? localStorage.getItem('darkMode') === 'true';
   document.documentElement.classList.toggle('dark', isDark);
@@ -187,7 +180,6 @@ export function applyAppearanceSettings() {
   document.documentElement.style.setProperty('--vocab-font-scale', fontSize);
 }
 
-/** Được `ui.js` gọi lại để refresh Home tab khi dữ liệu thay đổi */
 export function updateDashboard() {
   const home = document.getElementById('home-tab');
   if (home && home.classList.contains('active')) {
@@ -195,26 +187,28 @@ export function updateDashboard() {
   }
 }
 
-/** Toggle dark mode + lưu settings + render lại nếu đang ở tab này */
 export function toggleDarkMode() {
   const isCurrentlyDark = document.documentElement.classList.contains('dark');
   const newDarkModeState = !isCurrentlyDark;
   localStorage.setItem('darkMode', newDarkModeState);
-
   if (state.appData.settings) {
     state.appData.settings.darkMode = newDarkModeState;
     saveUserData();
   }
   applyAppearanceSettings();
-
   if (document.getElementById('profile-tab')?.classList.contains('active')) {
     renderProfileTab();
   }
 }
 
-/** Nạp danh sách voice + demo */
 export function setupVoiceOptions() {
   const synth = window.speechSynthesis;
+
+  // Kích hoạt load voice trên vài trình duyệt (hack nhẹ)
+  if (synth.getVoices().length === 0) {
+    const noop = new SpeechSynthesisUtterance('');
+    synth.speak(noop); synth.cancel();
+  }
 
   function populateVoiceList() {
     const voiceSelect = document.getElementById('voice-select');
@@ -225,7 +219,7 @@ export function setupVoiceOptions() {
       if (voices.length === 0) { setTimeout(populateVoiceList, 100); return; }
 
       const supportedVoices = voices.filter(v => v.lang.startsWith('en') || v.lang.startsWith('vi'));
-      const savedVoiceName = state.appData.settings.voice;
+      const savedVoiceName = state.appData.settings?.voice;
       voiceSelect.innerHTML = '';
 
       const enVoices = supportedVoices.filter(v => v.lang.startsWith('en'));
@@ -266,21 +260,32 @@ export function setupVoiceOptions() {
   populateVoiceList();
   if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = populateVoiceList;
 
-  // demo
+  // ✅ DEMO: phát trực tiếp theo voice chọn (không qua window.speakWord)
   const demoBtn = document.getElementById('demo-voice-btn');
   if (demoBtn) {
     demoBtn.addEventListener('click', () => {
       const voiceSelect = document.getElementById('voice-select');
       const rateSlider = document.getElementById('rate-slider');
       if (!voiceSelect || !rateSlider) return;
-      const selectedVoiceName = voiceSelect.value;
-      const rate = parseFloat(rateSlider.value || '1');
-      if (window.speakWord) window.speakWord('Hello, this is a test.', null, { voiceName: selectedVoiceName, rate });
+
+      const wantedName = voiceSelect.value;
+      const rate = Math.max(0.5, Math.min(2, parseFloat(rateSlider.value || '1')));
+
+      const u = new SpeechSynthesisUtterance('Hello, this is a test.');
+      const voices = window.speechSynthesis.getVoices() || [];
+      const v = voices.find(v => v.name === wantedName)
+            || voices.find(v => v.lang?.toLowerCase().startsWith('en'))
+            || voices[0];
+
+      if (v) { u.voice = v; if (v.lang) u.lang = v.lang; }
+      u.rate = rate;
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
     });
   }
 }
 
-/** Gắn các listener chung — an toàn chạy nhiều lần */
 export function addSettingsEventListeners() {
   const safe = (id, evt, handler) => {
     const el = document.getElementById(id);
@@ -289,4 +294,19 @@ export function addSettingsEventListeners() {
   safe('goal-type-select', 'change', handleGoalChange);
   safe('goal-value-input', 'change', handleGoalChange);
   safe('font-size-slider', 'input', handleFontSizeChange);
+
+  // ✅ Lưu giọng đọc & tốc độ vào settings
+  safe('voice-select', 'change', () => {
+    state.appData.settings = state.appData.settings || {};
+    state.appData.settings.voice = document.getElementById('voice-select')?.value || '';
+    saveUserData();
+  });
+  safe('rate-slider', 'change', () => {
+    state.appData.settings = state.appData.settings || {};
+    const v = parseFloat(document.getElementById('rate-slider')?.value || '1') || 1;
+    state.appData.settings.speechRate = Math.max(0.5, Math.min(2, v));
+    const rv = document.getElementById('rate-value');
+    if (rv) rv.textContent = state.appData.settings.speechRate.toFixed(1);
+    saveUserData();
+  });
 }
